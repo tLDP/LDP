@@ -71,17 +71,17 @@ class ComboFactory:
         combo = combo + '</select>\n'
         return combo
     
-    def Class(self, value, lang):
-        combo = "<select name='class_code'>\n"
-        keys = lampadas.classes.keys()
+    def Type(self, value, lang):
+        combo = "<select name='type_code'>\n"
+        keys = lampadas.types.keys()
         for key in keys:
-            classfoo = lampadas.classes[key]
-            assert not classfoo == None
+            type = lampadas.types[key]
+            assert not type==None
             combo = combo + "<option "
-            if classfoo.ID == value:
+            if type.code == value:
                 combo = combo + "selected "
-            combo = combo + "value='" + str(classfoo.ID) + "'>"
-            combo = combo + classfoo.name[lang]
+            combo = combo + "value='" + type.code + "'>"
+            combo = combo + type.name[lang]
             combo = combo + "</option>\n"
         combo = combo + "</select>"
         return combo
@@ -275,8 +275,8 @@ class TableFactory:
         box = box + '<th align=right>Status</th><td>'
         box = box + combo_factory.PubStatus(doc.PubStatusCode, lang)
         box = box + '</td>\n'
-        box = box + '<th align=right>Class</th><td>\n'
-        box = box + combo_factory.Class(doc.class_code, lang)
+        box = box + '<th align=right>Type</th><td>\n'
+        box = box + combo_factory.Type(doc.type_code, lang)
         box = box + '</td>\n'
         box = box + '<th align=right>Maint</th><td>\n'
         if doc.Maintained:
@@ -350,7 +350,7 @@ class TableFactory:
         box = box + '</table>\n'
         return box
         
-    def doctable(self, uri, class_code=None, subtopic_code=None):
+    def doctable(self, uri, type_code=None, subtopic_code=None):
         log(3, "Creating doctable")
         box = '<table class="box"><tr><th colspan="2">|strtitle|</th></tr>'
         keys = lampadas.Docs.sort_by("Title")
@@ -358,7 +358,7 @@ class TableFactory:
             doc = lampadas.Docs[key]
             if doc.Lang == uri.lang:
                 ok = 1
-                if class_code and doc.class_code <> class_code:
+                if type_code and doc.type_code <> type_code:
                     ok = 0
                 if subtopic_code and doc.subtopic_code <> subtopic_code:
                     ok = 0
@@ -441,6 +441,7 @@ class TableFactory:
         log(3, 'Creating subtopics table')
         topic = lampadas.topics[uri.code]
         box = '<table class="navbox"><tr><th>' + topic.name[uri.lang] + '</th></tr>\n'
+        box = box + '<tr><td>|topic.description|</td></tr>\n'
         box = box + '<tr><td><ol>\n'
         keys = lampadas.subtopics.sort_by('num')
         for key in keys:
@@ -468,15 +469,15 @@ class TableFactory:
         box = box + '</table>\n'
         return box
 
-    def classes(self, uri):
-        log(3, 'Creating classes table')
-        box = '<table class="navbox"><tr><th>|strclasses|</th></tr>\n'
+    def types(self, uri):
+        log(3, 'Creating types table')
+        box = '<table class="navbox"><tr><th>|strtypes|</th></tr>\n'
         box = box + '<tr><td>\n'
-        keys = lampadas.classes.sort_by('sort_order')
+        keys = lampadas.types.sort_by('sort_order')
         for key in keys:
-            Class = lampadas.classes[key]
-            box = box + '<a href="class/' + Class.code + '">\n'
-            box = box + Class.name[uri.lang] + '</a><br>\n'
+            type = lampadas.types[key]
+            box = box + '<a href="type/' + type.code + '">\n'
+            box = box + type.name[uri.lang] + '</a><br>\n'
         box = box + '</td></tr>\n'
         box = box + '</table>\n'
         return box
@@ -536,14 +537,24 @@ class TableFactory:
         return box
 
 
+    def user_docs(self, uri, user):
+        log(3, 'Creating user_docs table')
+        box = '<table class="navbox"><tr><th>|session_name|</th></tr>\n'
+        keys = user.docs.keys()
+        for key in keys:
+            box = box + '<tr><td>\n'
+            userdoc = user.docs[key]
+            box = box + '<a href="/doc/' + userdoc.ID + '">' + usrdoc.title[uri.lang] + '</a>\n'
+            box = box + '</td></tr>\n'
+        box = box + '</table>\n'
+        return box
+
+
 # PageFactory
 
 class PageFactory:
 
     tablef  = TableFactory()
-
-#    def __call__(self, key, session_id):
-#        return self.page(key, session_id)
 
     def page_exists(self, key):
         uri = URI(key)
@@ -589,7 +600,7 @@ class PageFactory:
 
                 newstring = ''
             
-                # Built-ins
+                # Tokens based on a logged-in user
                 # 
                 if token=='session_id':
                     if build_user == None:
@@ -606,16 +617,15 @@ class PageFactory:
                         newstring = ''
                     else:
                         newstring = build_user.name
+                if token=='session_user_docs':
+                    newstring = self.tablef.user_docs(uri, build_user)
+
+                # Meta-data about the page being served
+                # 
                 if token=='title':
                     newstring = page.title[uri.lang]
                 if token=='body':
                     newstring = page.page[uri.lang]
-                if token=='hostname':
-                    newstring = config.hostname
-                if token=='rootdir':
-                    newstring = config.root_dir
-                if token=='port':
-                    newstring = str(config.port)
                 if token=='base':
                     newstring = 'http://' + config.hostname
                     if config.port > '':
@@ -623,17 +633,24 @@ class PageFactory:
                     newstring = newstring + config.root_dir
                     if uri.force_lang:
                         newstring = newstring + uri.lang + '/'
-                if token=='stylesheet':
-                    newstring='default'
-                if token=='version':
-                    newstring = VERSION
-
-                # Tokens for URI elements
-                # 
                 if token=='uri.code':
                     newstring = uri.code
                 if token=='uri.base':
                     newstring = uri.base
+
+
+                # Configuration information
+                # 
+                if token=='hostname':
+                    newstring = config.hostname
+                if token=='rootdir':
+                    newstring = config.root_dir
+                if token=='port':
+                    newstring = str(config.port)
+                if token=='stylesheet':
+                    newstring='default'
+                if token=='version':
+                    newstring = VERSION
 
                 # Tokens for when a page embeds an object
                 # 
@@ -643,9 +660,15 @@ class PageFactory:
                 if token=='user.name':
                     user = lampadas.users[uri.username]
                     newstring = user.name
-                if token=='class.name':
-                    aclass = lampadas.classes[uri.code]
-                    newstring = aclass.name[uri.lang]
+                if token=='type.name':
+                    type = lampadas.types[uri.code]
+                    newstring = type.name[uri.lang]
+                if token=='topic.name':
+                    topic = lampadas.topics[uri.code]
+                    newstring = topic.name[uri.lang]
+                if token=='topic.description':
+                    topic = lampadas.topics[uri.code]
+                    newstring = topic.description[uri.lang]
 
                 # Tables
                 # 
@@ -667,14 +690,14 @@ class PageFactory:
                     newstring = self.tablef.subtopics(uri)
                 if token=='tabsubtopic':
                     newstring = self.tablef.subtopic(uri)
-                if token=='tabclasses':
-                    newstring = self.tablef.classes(uri)
+                if token=='tabtypes':
+                    newstring = self.tablef.types(uri)
                 if token=='tabsessions':
                     newstring = self.tablef.sessions(uri, build_user)
                 if token=='tablanguages':
                     newstring = self.tablef.languages(uri)
-                if token=='tabclassdocs':
-                    newstring = self.tablef.doctable(uri, class_code=uri.code)
+                if token=='tabtypedocs':
+                    newstring = self.tablef.doctable(uri, type_code=uri.code)
                 if token=='tabsubtopicdocs':
                     newstring = self.tablef.doctable(uri, subtopic_code=uri.code)
             

@@ -55,8 +55,8 @@ class Lampadas:
     """
     
     def __init__(self):
-        self.classes        = Classes()
-        self.classes.Load()
+        self.types        = Types()
+        self.types.load()
         self.Config         = Cfg()
         self.Docs           = Docs()
         self.Docs.Load()
@@ -79,38 +79,38 @@ class Lampadas:
 
 # Class
 
-class Classes(LampadasCollection):
+class Types(LampadasCollection):
     """
     A collection object of all document classes (HOWTO, FAQ, etc).
     """
     
-    def Load(self):
-        sql = "SELECT class_code, sort_order FROM class"
+    def load(self):
+        sql = "SELECT type_code, sort_order FROM type"
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
             if row == None: break
-            newClass = Class()
-            newClass.Load(row)
-            self.data[newClass.code] = newClass
+            newType = Type()
+            newType.Load(row)
+            self.data[newType.code] = newType
 
-class Class:
+class Type:
     """
-    A class is a way of identifying the type of a document, such as a
+    A type is a way of identifying the type of a document, such as a
     User's Guide, a HOWTO, or a FAQ List.
     """
 
-    def __init__(self, class_code=None):
+    def __init__(self, type_code=None):
         self.name = LampadasCollection()
         self.description = LampadasCollection()
-        if class_code==None: return
-        self.code = class_code
+        if type_code==None: return
+        self.code = type_code
 
     def Load(self, row):
         self.code       = trim(row[0])
         self.sort_order = row[1]
 
-        sql = "SELECT lang, class_name, class_desc FROM class_i18n WHERE class_code=" + wsq(self.code)
+        sql = "SELECT lang, type_name, type_desc FROM type_i18n WHERE type_code=" + wsq(self.code)
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
@@ -151,7 +151,7 @@ class Docs(LampadasCollection):
     """
 
     def Load(self):
-        sql = "SELECT doc_id, title, class_code, format_id, dtd, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, maintained, license, abstract, rating, lang, sk_seriesid FROM document"
+        sql = "SELECT doc_id, title, class_code, format_code, dtd, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, maintained, license, abstract, rating, lang, sk_seriesid FROM document"
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
@@ -163,9 +163,9 @@ class Docs(LampadasCollection):
 # FIXME: try instantiating a new document, then adding *it* to the collection,
 # rather than passing in all these parameters.
 
-    def add(self, Title, class_code, FormatID, DTD, DTDVersion, Version, LastUpdate, URL, ISBN, PubStatusCode, ReviewStatus, TickleDate, PubDate, HomeURL, TechReviewStatusCode, License, Abstract, Lang, SeriesID):
+    def add(self, Title, class_code, format_code, DTD, DTDVersion, Version, LastUpdate, URL, ISBN, PubStatusCode, ReviewStatus, TickleDate, PubDate, HomeURL, TechReviewStatusCode, License, Abstract, Lang, SeriesID):
         self.id = db.read_value('SELECT max(doc_id) from document') + 1
-        sql = "INSERT INTO document(doc_id, title, class_code, format_id, dtd, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, license, abstract, lang, sk_seriesid) VALUES (" + str(self.id) + ", " + wsq(Title) + ", " + wsq(class_code) + ", " + dbint(FormatID) + ", " + wsq(DTD) + ", " + wsq(DTDVersion) + ", " + wsq(Version) + ", " + wsq(LastUpdate) + ", " + wsq(URL) + ", " + wsq(ISBN) + ", " + wsq(PubStatusCode) + ", " + wsq(ReviewStatus) + ", " + wsq(TickleDate) + ", " + wsq(PubDate) + ", " + wsq(HomeURL) + ", " + wsq(TechReviewStatusCode) + ", " + wsq(License) + ", " + wsq(Abstract) + ", " + wsq(Lang) + ", " + wsq(SeriesID) + ")"
+        sql = "INSERT INTO document(doc_id, title, class_code, format_code, dtd, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, license, abstract, lang, sk_seriesid) VALUES (" + str(self.id) + ", " + wsq(Title) + ", " + wsq(class_code) + ", " + wsq(format_code) + ", " + wsq(DTD) + ", " + wsq(DTDVersion) + ", " + wsq(Version) + ", " + wsq(LastUpdate) + ", " + wsq(URL) + ", " + wsq(ISBN) + ", " + wsq(PubStatusCode) + ", " + wsq(ReviewStatus) + ", " + wsq(TickleDate) + ", " + wsq(PubDate) + ", " + wsq(HomeURL) + ", " + wsq(TechReviewStatusCode) + ", " + wsq(License) + ", " + wsq(Abstract) + ", " + wsq(Lang) + ", " + wsq(SeriesID) + ")"
         assert db.runsql(sql) == 1
         db.commit()
         self.NewID = db.read_value('SELECT MAX(doc_id) from document')
@@ -173,7 +173,7 @@ class Docs(LampadasCollection):
         self[self.NewID] = newDoc
         return self.NewID
     
-    def Del(self, id):
+    def delete(self, id):
         sql = ('DELETE from document WHERE doc_id=' + str(id))
         assert db.runsql(sql) == 1
         db.commit()
@@ -189,7 +189,7 @@ class Doc:
         self.Load(id)
 
     def Load(self, id):
-        sql = "SELECT doc_id, title, class_code, format_id, dtd, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, maintained, license, abstract, rating, lang, sk_seriesid FROM document WHERE doc_id=" + str(id)
+        sql = "SELECT doc_id, title, class_code, format_code, dtd, dtd_version, version, last_update, url, isbn, pub_status, review_status, tickle_date, pub_date, ref_url, tech_review_status, maintained, license, abstract, rating, lang, sk_seriesid FROM document WHERE doc_id=" + str(id)
         cursor = db.select(sql)
         row = cursor.fetchone()
         self.LoadRow(row)
@@ -198,7 +198,7 @@ class Doc:
         self.ID                     = row[0]
         self.Title                  = trim(row[1])
         self.class_code             = trim(row[2])
-        self.FormatID               = row[3]
+        self.format_code            = trim(row[3])
         self.DTD                    = trim(row[4])
         self.DTDVersion             = trim(row[5])
         self.Version                = trim(row[6])
@@ -224,7 +224,7 @@ class Doc:
         self.Versions               = DocVersions(self.ID)
 
     def Save(self):
-        sql = "UPDATE document SET title=" + wsq(self.Title) + ", class_code=" + wsq(self.class_code) + ", format_id=" + dbint(self.FormatID) + ", dtd=" + wsq(self.DTD) + ", dtd_version=" + wsq(self.DTDVersion) + ", version=" + wsq(self.Version) + ", last_update=" + wsq(self.LastUpdate) + ", url=" + wsq(self.URL) + ", isbn=" + wsq(self.ISBN) + ", pub_status=" + wsq(self.PubStatusCode) + ", review_status=" + wsq(self.ReviewStatusCode) + ", tickle_date=" + wsq(self.TickleDate) + ", pub_date=" + wsq(self.PubDate) + ", ref_url=" + wsq(self.HomeURL) + ", tech_review_status=" + wsq(self.TechReviewStatusCode) + ", maintained=" + wsq(bool2tf(self.Maintained)) + ", license=" + wsq(self.License) + ", abstract=" + wsq(self.Abstract) + ", rating=" + dbint(self.Rating) + ", lang=" + wsq(self.Lang) + ", sk_seriesid=" + wsq(self.SeriesID) + " WHERE doc_id=" + str(self.ID)
+        sql = "UPDATE document SET title=" + wsq(self.Title) + ", class_code=" + wsq(self.class_code) + ", format_code=" + wsq(self.format_code) + ", dtd=" + wsq(self.DTD) + ", dtd_version=" + wsq(self.DTDVersion) + ", version=" + wsq(self.Version) + ", last_update=" + wsq(self.LastUpdate) + ", url=" + wsq(self.URL) + ", isbn=" + wsq(self.ISBN) + ", pub_status=" + wsq(self.PubStatusCode) + ", review_status=" + wsq(self.ReviewStatusCode) + ", tickle_date=" + wsq(self.TickleDate) + ", pub_date=" + wsq(self.PubDate) + ", ref_url=" + wsq(self.HomeURL) + ", tech_review_status=" + wsq(self.TechReviewStatusCode) + ", maintained=" + wsq(bool2tf(self.Maintained)) + ", license=" + wsq(self.License) + ", abstract=" + wsq(self.Abstract) + ", rating=" + dbint(self.Rating) + ", lang=" + wsq(self.Lang) + ", sk_seriesid=" + wsq(self.SeriesID) + " WHERE doc_id=" + str(self.ID)
         db.runsql(sql)
         db.commit()
 
@@ -291,7 +291,7 @@ class DocFiles(LampadasCollection):
         self.data = {}
         assert not DocID == None
         self.DocID = DocID
-        sql = "SELECT filename, format_id FROM document_file WHERE doc_id=" + str(DocID)
+        sql = "SELECT filename, format_code FROM document_file WHERE doc_id=" + str(DocID)
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
@@ -300,14 +300,14 @@ class DocFiles(LampadasCollection):
             newDocFile.Load(DocID, row)
             self.data[newDocFile.Filename] = newDocFile
 
-    def add(self, DocID, Filename, FormatID=None):
-        sql = 'INSERT INTO document_file (doc_id, filename, format_id) VALUES (' + str(DocID) + ', ' + wsq(Filename) + ', ' + dbint(FormatID) + ')'
+    def add(self, DocID, Filename, format_code=None):
+        sql = 'INSERT INTO document_file (doc_id, filename, format_code) VALUES (' + str(DocID) + ', ' + wsq(Filename) + ', ' + wsq(format_code) + ')'
         assert db.runsql(sql) == 1
         db.commit()
         newDocFile = DocFile()
         newDocFile.DocID = DocID
         newDocFile.Filename = Filename
-        newDocFile.FormatID = FormatID
+        newDocFile.format_code = format_code
         
     def Clear(self):
         sql = "DELETE FROM document_file WHERE doc_id=" + str(self.DocID)
@@ -326,8 +326,8 @@ class DocFile:
         assert not DocID == None
         assert not row == None
         self.DocID	= DocID
-        self.Filename	= trim(row[0])
-        self.FormatID	= row[1]
+        self.Filename    = trim(row[0])
+        self.format_code = trim(row[1])
         if self.Filename[:5] == 'http:' or self.Filename[:4] == 'ftp:':
             self.IsLocal = 0
         else:
@@ -340,11 +340,11 @@ class DocFile:
         self.is_primary	= self.IsLocal
         
     def Save(self):
-        sql = "UPDATE document_file SET format_id=" + dbint(self.FormatID) + " WHERE doc_id=" + str(self.DocID) + " AND filename=" + wsq(self.Filename)
+        sql = "UPDATE document_file SET format_code=" + wsq(self.format_code) + " WHERE doc_id=" + str(self.DocID) + " AND filename=" + wsq(self.Filename)
         db.runsql(sql)
         db.commit()
 
-    def Del(self):
+    def delete(self):
         sql = "DELETE FROM document_file WHERE doc_id=" + str(self.DocID) + " AND filename=" + wsq(self.Filename)
         db.runsql(sql)
         db.commit()
@@ -381,7 +381,7 @@ class DocRatings(LampadasCollection):
         self.data[newDocRating.UserID] = newDocRating
         self.CalcAverage()
 
-    def Del(self, UserID):
+    def delete(self, UserID):
         if self.data[UserID] == None: return
         del self.data[UserID]
         sql = 'DELETE FROM doc_vote WHERE doc_id=' + str(self.DocID) + ' AND user_id=' + str(UserID)
@@ -583,29 +583,29 @@ class Formats(LampadasCollection):
     
     def __init__(self):
         self.data = {}
-        sql = "SELECT format_id FROM format"
+        sql = "SELECT format_code FROM format"
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
             if row == None: break
             newFormat = Format()
             newFormat.Load(row)
-            self.data[newFormat.ID] = newFormat
+            self.data[newFormat.code] = newFormat
 
 class Format:
     """
     A file format, for document source files.
     """
 
-    def __init__(self, FormatID=None):
+    def __init__(self, format_code=None):
         self.name = LampadasCollection()
         self.description = LampadasCollection()
-        if FormatID==None: return
-        self.ID = FormatID
+        if format_code==None: return
+        self.code = format_code
 
     def Load(self, row):
-        self.ID = row[0]
-        sql = "SELECT lang, format_name, format_desc FROM format_i18n WHERE format_id=" + str(self.ID)
+        self.code = trim(row[0])
+        sql = "SELECT lang, format_name, format_desc FROM format_i18n WHERE format_code=" + wsq(self.code)
         cursor = db.select(sql)
         while (1):
             row = cursor.fetchone()
@@ -860,6 +860,64 @@ class SubtopicDoc:
         pass
     
         
+# UserDocs
+
+class UserDocs(LampadasCollection):
+    """
+    A collection object providing access to all user document associations.
+    """
+
+    def __init__(self, username):
+        self.data = {}
+        self.username = username
+        sql = "SELECT doc_id, username, role, email, active FROM document_user WHERE username=" + wsq(username)
+        cursor = db.select(sql)
+        while (1):
+            row = cursor.fetchone()
+            if row == None: break
+            newUserDoc = UserDoc()
+            newUserDoc.load(row)
+            self.data[newUserDoc.id] = newUserDoc
+
+    def add(self, doc_id, role, email, active):
+        sql = "INSERT INTO document_user(doc_id, username, role, email, active) VALUES (" + str(doc_id) + ", " + wsq(self.username) + ", " + wsq(role) + ", " + wsq(email) + ", " + wsq(bool2tf(active)) +  " )"
+        assert db.runsql(sql) == 1
+        db.commit()
+        newUserDoc = UserDoc()
+        self.data[docid] = newUserDoc
+    
+    def delete(self, doc_id):
+        sql = 'DELETE from document_user WHERE doc_id=' + str(doc_id) + ' AND username=' + wsq(self.username)
+        assert db.runsql(sql) == 1
+        db.commit()
+        del self.data[doc_id]
+
+class UserDoc:
+    """
+    An association between a user and a document. This association defines the role
+    which the user plays in the production of the document.
+    """
+
+    def __init__(self, doc_id=None, username=None):
+        self.doc_id = doc_id
+        self.username = username
+        if doc_id == None: return
+        if username == None: return
+        self.load(doc_id, username)
+
+    def load(self, row):
+        self.doc_id		= row[0]
+        self.username	= trim(row[1])
+        self.role		= trim(row[2])
+        self.email		= trim(row[3])
+        self.active		= tf2bool(row[4])
+
+    def save(self):
+        sql = "UPDATE document_user SET role=" + wsq(self.role) + ", email=" + wsq(self.email) + ", active=" + wsq(bool2tf(self.active)) + " WHERE doc_id=" + str(self.doc_id) + " AND username=" + wsq(self.username)
+        db.runsql(sql)
+        db.commit()
+
+
 # Users
 
 class Users:
@@ -944,86 +1002,6 @@ class User:
         db.runsql(sql)
         db.commit()
 
-
-# UserDocs
-
-class UserDocs(LampadasList):
-    """
-    A collection object providing access to all user document associations.
-    """
-
-    def __init__(self, username):
-        #print "Loading user docs for user: " + str(UserID)
-        LampadasList.__init__(self)
-        assert not username == None
-        self.username = username
-        sql = "SELECT doc_id, username, role, email, active FROM document_user WHERE username=" + wsq(username)
-        cursor = db.select(sql)
-        #print sql
-        while (1):
-            #print "Loading UserDocs row"
-            row = cursor.fetchone()
-            if row == None: break
-            #print "Loaded UserDocs row"
-            newUserDoc = UserDoc(row[0], username)
-            self.list = self.list + [newUserDoc]
-
-    def add(self, DocID, Role, Email, Active):
-        sql = "INSERT INTO document_user(doc_id, username, role, email, active) VALUES (" + str(DocID) + ", " + wsq(self.username) + ", " + wsq(Role) + ", " + wsq(Email) + ", " + wsq(bool2tf(Active)) +  " )"
-        assert db.runsql(sql) == 1
-        db.commit()
-    
-    def Del(self, DocID):
-        sql = 'DELETE from document_user WHERE doc_id=' + str(DocID) + ' AND username=' + wsq(self.username)
-        assert db.runsql(sql) == 1
-        db.commit()
-        del self.col[DocID]
-
-class UserDoc(Doc):
-    """
-    An association between a user and a document. This association defines the role
-    which the user plays in the production of the document.
-    """
-
-    def __init__(self, DocID=None, username=None):
-        #print "initializing UserDoc, DocID: " + str(DocID) + ", UserID: " + str(UserID)
-        Doc.__init__(self, DocID)
-        self.DocID = DocID
-        self.username = username
-        #print "UserDoc.UserID: " + str(UserID)
-        if DocID == None: return
-        if username == None: return
-        #print "Calling UserDoc.load"
-        self.Load(DocID, username)
-
-    def Load(self, DocID=None, username=None):
-        #print "Loading UserDoc, DocID: " + str(DocID) + ", UserID: " + str(UserID)
-        if not DocID == None:
-            self.DocID = DocID
-        assert not self.DocID == None
-        if not username == None:
-            self.username = username
-        assert not self.username == None
-        sql = "SELECT doc_id, username, role, email, active FROM document_user WHERE doc_id=" + str(self.DocID) + " AND user_id=" + wsq(self.username)
-        cursor = db.select(sql)
-        row = cursor.fetchone()
-        self.LoadRow(row)
-        Doc.Load(self, self.DocID)
-
-    def LoadRow(self, row):
-        assert not row == None
-        self.DocID		= row[0]
-        self.username	= trim(row[1])
-        self.Role		= trim(row[2])
-        self.Email		= trim(row[3])
-        self.Active		= tf2bool(row[4])
-
-    def Save(self):
-        sql = "UPDATE document_user SET role=" + wsq(self.Role) + ", email=" + wsq(self.Email) + ", active=" + wsq(bool2tf(self.Active)) + " WHERE doc_id=" + str(self.DocID) + " AND username=" + wsq(self.username)
-        db.runsql(sql)
-        db.commit()
-        Doc.Save(self)
-    
 
 lampadas = Lampadas()
 

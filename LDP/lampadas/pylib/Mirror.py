@@ -135,8 +135,8 @@ class Mirror:
             self.os.system(cmd_start + 'gunzip -f ' + file)
             return 1
 
+mirror = Mirror()
 
 if __name__ == "__main__":
-    M = Mirror()
-    M.mirror_all()
+    mirror.mirror_all()
 

@@ -20,11 +20,7 @@
 # 
 """
 The URLParse module deciphers a Lampadas URL into its component parts.
-The API is documented in the Lampadas Programmer's Guide. A summary:
-
-/doc/<ID>[/<format>]
-/author/<ID>
-/$topic/$class
+The API is documented in the Lampadas Programmer's Guide.
 """
 
 import string
@@ -108,7 +104,7 @@ class URI:
                 temp = temp[1:]
                 if len(temp) > 0:
                     self.id = int(temp[0])
-            elif temp[0] == 'topic' or temp[0] == 'subtopic' or temp[0]=='class':
+            elif temp[0] == 'topic' or temp[0] == 'subtopic' or temp[0]=='type':
                 self.filename = temp[0]
                 temp = temp[1:]
                 if len(temp) > 0:
