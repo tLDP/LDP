@@ -393,7 +393,8 @@ class Widgets:
             return '|strunknown|'
 
     def section_code(self, value, lang):
-        combo = WOStringIO('<select name="section_code">\n')
+        combo = WOStringIO('<select name="section_code">\n' \
+                           '<option></option>\n')
         section_codes = lampadasweb.sections.sort_by('sort_order')
         for section_code in section_codes:
             section = lampadasweb.sections[section_code]
@@ -425,5 +426,8 @@ class Widgets:
 
     def sort_order(self, value):
         return '<input type=text name="sort_order" width="5" maxlength="5" value="' + str(value) + '">'
+
+    def adjust_sort_order(self):
+        return '<input type=text name="adjust_sort_order" width="5" maxlength="5" value="0">'
 
 widgets = Widgets()

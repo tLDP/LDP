@@ -1937,6 +1937,10 @@ class TabPage(Table):
                              '    <td>%s</td>\n' \
                              '    <td></td>\n' \
                              '</tr>\n' \
+                             '<tr><td class="label">|stradjust_sort_order|</td>\n' \
+                             '    <td>%s</td>\n' \
+                             '    <td></td>\n' \
+                             '</tr>\n' \
                              '<tr>\n' \
                              '    <td></td>\n' \
                              '    <td><input type=submit name="save" value="|strsave|"></td>\n' \
@@ -1951,7 +1955,8 @@ class TabPage(Table):
                                             widgets.tf('only_registered', page.only_registered),
                                             widgets.tf('only_admin', page.only_admin),
                                             widgets.tf('only_sysadmin', page.only_sysadmin),
-                                            widgets.data(string.join(page.data))
+                                            widgets.data(string.join(page.data)),
+                                            widgets.adjust_sort_order()
                                            ))
 
             # List the available translations

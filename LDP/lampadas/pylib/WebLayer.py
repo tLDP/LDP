@@ -124,6 +124,56 @@ class Pages(LampadasCollection):
         self.data[page.code] = page
         return page
 
+    def adjust_sort_order(self, page_code, adjust_by):
+        """
+        Bump a page up or down an arbitrary number of positions in the sort order.
+        If the sort_order reaches the top or bottom (0), it stops.
+        """
+
+        page = self[page_code]
+
+        # You cannot adjust if the page is not in a section!
+        if page.section_code=='':
+            return
+
+        # Determine whether to raise or lower sort_order
+        if adjust_by > 0:
+            adjust_tick = 1
+        else:
+            adjust_tick = -1
+            
+        adjustments = 0
+        while adjustments <> adjust_by:
+
+            # Find the document with which we will be switching.
+            # Abort if there is no such creature.
+            page_to_switch = self.find_by_sort_order(page.section_code, page.sort_order + adjust_tick)
+            if page_to_switch==None:
+                break
+
+            # Put the other page in our place, and save it.
+            page_to_switch.sort_order = page_to_switch.sort_order - adjust_tick
+            page_to_switch.save()
+            
+            # Put ourselves in its place, and remember it.
+            page.sort_order = page.sort_order + adjust_tick
+            adjustments = adjustments + adjust_tick
+            
+            # Stop if we raach 0
+            if page.sort_order==0:
+                break
+
+        # If we made any adjustments, save them.
+        if adjustments <> 0:
+            page.save()
+
+    def find_by_sort_order(self, section_code, sort_order):
+        for key in self.keys():
+            page = self[key]
+            if page.section_code==section_code and page.sort_order==sort_order:
+                return page
+        
+        
 class Page:
 
     def __init__(self, page_code='', sort_order=0, section_code='', template_code='', only_dynamic=0, only_registered=0, only_admin=0, only_sysadmin=0, data=[]):

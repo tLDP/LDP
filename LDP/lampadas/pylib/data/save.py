@@ -261,7 +261,7 @@ def newpage(req, page_code, sort_order, section_code, template_code,
     redirect(req, '../../page_edit/' + str(page.code) + referer_lang_ext(req))
 
 def page(req, page_code, sort_order, section_code, template_code,
-            only_dynamic, only_registered, only_admin, only_sysadmin, data):
+            only_dynamic, only_registered, only_admin, only_sysadmin, data, adjust_sort_order):
     page = lampadasweb.pages[page_code]
     page.sort_order   = int(sort_order)
     page.section_code = section_code
@@ -271,6 +271,7 @@ def page(req, page_code, sort_order, section_code, template_code,
     page.only_admin = int(only_admin)
     page.only_sysadmin = int(only_sysadmin)
     page.data = string.split(data)
+    lampadasweb.pages.adjust_sort_order(page.code, int(adjust_sort_order))
     page.save()
     go_back(req)
 
