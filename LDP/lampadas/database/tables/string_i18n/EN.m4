@@ -1,0 +1,8 @@
+insert(test,		[Test Text])
+insert(footer,		[<h1><center>Lampadas Footer</center></h1>])
+insert(project,		[The Linux Documentation Project])
+insert(projectshort,	[The LDP])
+insert(mmtitle,		[Main Menu])
+insert(home,		[Home])
+insert(doctable,	[DocTable])
+insert(docdetails,	[Document Details])
