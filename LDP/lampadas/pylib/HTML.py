@@ -49,7 +49,8 @@ class BoxFactory:
 		self.box = self.box + '<table><tr><th>|mmtitle|</th></tr>'
 		self.box = self.box + '<tr><td>'
 		self.box = self.box + '<a href="home">|home|</a><br>'
-		self.box = self.box + '<a href="doctable">|doctable|</a>'
+		self.box = self.box + '<a href="doctable">|doctable|</a><br>'
+		self.box = self.box + '<a href="downloads">Downloads</a>'
 		self.box = self.box + '</td></tr>'
 		self.box = self.box + '</table>'
 		return self.box
@@ -139,8 +140,8 @@ class ComboFactory:
 
 class PageFactory:
 
-	Blocks		= WebLayer.Blocks()
 	Pages		= WebLayer.Pages()
+	Blocks		= WebLayer.Blocks()
 	Strings		= WebLayer.Strings()
 	Templates	= WebLayer.Templates()
 	Box		= BoxFactory()
@@ -170,6 +171,7 @@ class PageFactory:
 		
 		Log(3, 'Serving language ' + lang)
 		pagecode = Keys[0]
+		Log(3, 'Serving page ' + pagecode)
 		if pagecode == 'doc':
 			DocID = int(Keys[1])
 			page = self.DocPage(DocID, lang)

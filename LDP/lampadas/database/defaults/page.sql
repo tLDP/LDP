@@ -1,14 +1,15 @@
 DELETE FROM page_i18n;
 DELETE FROM page;
 
-INSERT INTO page (page_code, template_code) VALUES ('test',		'default');
-INSERT INTO page (page_code, template_code) VALUES ('home',		'default');
-INSERT INTO page (page_code, template_code) VALUES ('lampadas',		'default');
-INSERT INTO page (page_code, template_code) VALUES ('copyright',	'default');
-INSERT INTO page (page_code, template_code) VALUES ('contribute',	'default');
-INSERT INTO page (page_code, template_code) VALUES ('privacy',		'default');
-INSERT INTO page (page_code, template_code) VALUES ('about',		'default');
-INSERT INTO page (page_code, template_code) VALUES ('doctable',		'default');
+INSERT INTO page (page_code, section_code, template_code) VALUES ('test',	'test',		'default');
+INSERT INTO page (page_code, section_code, template_code) VALUES ('home',	'main',		'default');
+INSERT INTO page (page_code, section_code, template_code) VALUES ('lampadas',	NULL,		'default');
+INSERT INTO page (page_code, section_code, template_code) VALUES ('copyright',	NULL,		'default');
+INSERT INTO page (page_code, section_code, template_code) VALUES ('contribute',	'main',		'default');
+INSERT INTO page (page_code, section_code, template_code) VALUES ('privacy',	NULL,		'default');
+INSERT INTO page (page_code, section_code, template_code) VALUES ('about',	NULL,		'default');
+INSERT INTO page (page_code, section_code, template_code) VALUES ('doctable',	NULL,		'default');
+
 
 INSERT INTO page_i18n (page_code, lang, title, page) VALUES ('test', 'EN', 'Test Page',
 'Test Page');
@@ -145,3 +146,84 @@ INSERT INTO page_i18n (page_code, lang, title, page) VALUES ('doctable', 'FR', '
 Le DocTable goes here...
 ');
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+INSERT INTO page (page_code, section_code, template_code) VALUES ('downloads',	'misc',		'default');
+
+
+INSERT INTO page_i18n (page_code, lang, title, page) VALUES ('downloads', 'EN', 'Downloads',
+'
+<h3>&nbsp;Linux Documentation Project Downloads</h3>
+
+<p>
+Along with the many HOWTOs, Guides and other documents published by the
+LDP, we also develop tools and utilities for working with documentation.
+These tools are all available under the GPL.
+</p>
+
+<hr>
+
+<p>
+<strong>db2omf</strong>
+</p>
+<p>
+Db2omf is a conversion utility that reads a DocBook file (either XML or SGML),
+and writes out an <a href="http://www.ibiblio.org/osrt/omf/">OMF</a> file.
+The OMF file is suitable for submission to a
+<a href="http://scrollkeeper.sourceforge.net">ScrollKeeper</a> database.
+</p>
+
+<ul>
+<p>
+<li><a href="db2omf-0.4.tar.gz">Version 0.4</a> (tarred and gzipped package, 11k)</li>
+<li><a href="db2omf-0.5.tar.gz">Version 0.5</a> (tarred and gzipped package, 11k)</li>
+</ul>
+
+<p>
+<strong>texi2db</strong>
+</p>
+<p>
+Texi2db is a conversion utility that converts
+<a href="http://www.texinfo.org">GNU Texinfo</a> source files
+into DocBook XML.
+</p>
+<ul>
+
+<p>
+<li><a href="texi2db-0.3.tar.gz">Version 0.3</a> (tarred and gzipped package, 23k)</li>
+<li><a href="texi2db-0.4.tar.gz">Version 0.4</a> (tarred and gzipped package, 24k)</li>
+<li><a href="texi2db-0.4.1.tar.gz">Version 0.4.1</a> (tarred and gzipped package, 24k)</li>
+
+</ul>
+
+<p>
+<strong>wt2db</strong>
+</p>
+<p>
+Wt2db is a conversion utility that converts
+<a href="http://www.tldp.org/HOWTO/WikiText-HOWTO/index.html">WikiText</a>
+source files into DocBook XML/SGML.
+</p>
+
+<ul>
+<p>
+<li><a href="wt2db-0.3.tar.gz">Version 0.3</a> (tarred and gzipped package, 12k)</li>
+</ul>
+');
+
+INSERT INTO page_i18n (page_code, lang, title, page) VALUES ('downloads', 'FR', 'Le Downloads',
+'
+Le Downloads go here...
+');

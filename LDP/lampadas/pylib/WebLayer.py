@@ -61,13 +61,51 @@ class BlockI18n:
 		self.Block	= row[1]
 
 
+# Sections
+
+class Sections(LampadasCollection):
+
+	def __init__(self):
+		self.data = {}
+		self.sql = "SELECT section_code FROM section"
+		self.cursor = DB.Select(self.sql)
+		while (1):
+			self.row = self.cursor.fetchone()
+			if self.row == None: break
+			newSection = Section()
+			newSection.Load(self.row)
+			self.data[newSection.Code] = newSection
+
+class Section:
+
+	def __init__(self):
+		self.I18n = {}
+
+	def Load(self, row):
+		self.Code		= trim(row[0])
+		self.sql = "SELECT lang, section_name FROM section_i18n WHERE section_code=" + wsq(self.Code)
+		self.cursor = DB.Select(self.sql)
+		while (1):
+			self.row = self.cursor.fetchone()
+			if self.row == None: break
+			newSectionI18n = SectionI18n()
+			newSectionI18n.Load(self.row)
+			self.I18n[newSectionI18n.Lang] = newSectionI18n
+
+class SectionI18n:
+
+	def Load(self, row):
+		self.Lang	= row[0]
+		self.Name	= trim(row[1])
+
+
 # Pages
 
 class Pages(LampadasCollection):
 
 	def __init__(self):
 		self.data = {}
-		self.sql = "SELECT page_code, template_code FROM page"
+		self.sql = "SELECT page_code, section_code, template_code FROM page"
 		self.cursor = DB.Select(self.sql)
 		while (1):
 			self.row = self.cursor.fetchone()
@@ -83,7 +121,8 @@ class Page:
 
 	def Load(self, row):
 		self.Code		= trim(row[0])
-		self.TemplateCode	= trim(row[1])
+		self.SectionCode	= trim(row[1])
+		self.TemplateCode	= trim(row[2])
 		self.sql = "SELECT lang, title, page FROM page_i18n WHERE page_code=" + wsq(self.Code)
 		self.cursor = DB.Select(self.sql)
 		while (1):
