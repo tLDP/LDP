@@ -13,6 +13,7 @@
     <table>
       <title><xsl:value-of select="name"/></title>
       <tgroup cols="2">
+       <tbody>
         <row>
 	  <entry><emphasis>Name:</emphasis></entry>
 	  <entry><xsl:value-of select="name"/></entry>
@@ -30,6 +31,7 @@
 	  <entry><emphasis>Description:</emphasis></entry>
 	  <entry><xsl:value-of select="description"/></entry>
 	</row>
+       </tbody>
       </tgroup>
     </table>
   </xsl:template>
