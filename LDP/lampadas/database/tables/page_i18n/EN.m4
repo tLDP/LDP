@@ -26,7 +26,7 @@ insert([lampadas], [About Lampadas],
 
     <h2>Why Lampadas?</h2>
 
-    <p>Fans of Frank Herbert's Dune series will recognize Lampadas as the name of the Bene Gesserit teaching planet, which plays a role in the final book, Chapterhouse: Dune. Before the planet can be destroyed by hordes of Honored Matres, Reverend Mother Lucia orders the planet to share Other Memory, two by two then four by four, until all the students hold within them the composite knowledge and memories of the entire planet. After the planet is annihilated by the Honored Matres, the precious knowledge is carried back to the Bene Gesserit Chapterhouse by the lone holder of the precious cargo, Rebecca.
+    <p>Fans of Frank Herbert\'s Dune series will recognize Lampadas as the name of the Bene Gesserit teaching planet, which plays a role in the final book, Chapterhouse: Dune. Before the planet can be destroyed by hordes of Honored Matres, Reverend Mother Lucia orders the planet to share Other Memory, two by two then four by four, until all the students hold within them the composite knowledge and memories of the entire planet. After the planet is annihilated by the Honored Matres, the precious knowledge is carried back to the Bene Gesserit Chapterhouse by the lone holder of the precious cargo, Rebecca.
 
     <p>Herbert apparently took the name from the city of Lampadas, which was an ancient seat of learning and scholarship. Also, the word lampadas is the accusative form of the word "Torch" in ancient Greek.
 
@@ -47,18 +47,18 @@ insert([copyright], [Copyright],
 
     <p>Linux is a trademark of Linus Torvalds. TLDP is a trademark of The Linux Documentation Project. All other trademarks are the trademarks of their respective owners.
 
-    <p>Unless you expressly state otherwise, by writing a comment, a bug report or a document annotation or other reader feedback you agree to release it into the Public Domain. This is so authors are free to integrate your comments into their documentation regardless of the document's license.
+    <p>Unless you expressly state otherwise, by writing a comment, a bug report or a document annotation or other reader feedback you agree to release it into the Public Domain. This is so authors are free to integrate your comments into their documentation regardless of the document\'s license.
 ])
 
 insert([contribute], [Contributing to Lampadas],
 [
-    As a member of this Lampadas System, you benefit from the work of hundreds of Linux users who have given freely of their time and knowledge to create the enormous LDP document collection. We're sure that you would like to give a little back in return, and help make us even better.
-    We've designed the Lampadas system to make giving back simple and easy. Here are some ways you can help, roughly in order of difficulty or commitment required:
+    As a member of this Lampadas System, you benefit from the work of hundreds of Linux users who have given freely of their time and knowledge to create the enormous LDP document collection. We\'re sure that you would like to give a little back in return, and help make us even better.
+    We\'ve designed the Lampadas system to make giving back simple and easy. Here are some ways you can help, roughly in order of difficulty or commitment required:
 
     <ul>
     <li>Rate Documents
 
-    <p>Each document has a "rating", on a scale of 1 to 10, which tells you what other readers think of it. We use this rating to improve our documents, for focusing our attention on the documents you've identified as neednig improvement.</li>
+    <p>Each document has a "rating", on a scale of 1 to 10, which tells you what other readers think of it. We use this rating to improve our documents, for focusing our attention on the documents you\'ve identified as neednig improvement.</li>
 
     <li>Report a Bug
 

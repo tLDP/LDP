@@ -60,5 +60,10 @@ install: all
 		done
 
 clean:
-	rm defaults.sql
-	rm table_order.mak
+	rm -f drop.sql
+	rm -f create.sql
+	rm -f insert.sql
+	rm -f permissions.sql
+	rm -f defaults.sql
+	rm -f table_order.mak
+	
