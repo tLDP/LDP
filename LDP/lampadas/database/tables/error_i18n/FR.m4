@@ -35,3 +35,6 @@ insert(302,
 insert(303,
     [Make command wrote to STDERR],
     [A command wrote output to STDERR.])
+insert(304,
+    [Make command wrote zero-length file.],
+    [A command created an output file, but the length of that file is zero.])
