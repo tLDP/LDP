@@ -25,5 +25,6 @@ copy string to '/tmp/lampadas_string.txt';
 copy string_i18n to '/tmp/lampadas_string_i18n.txt';
 copy subtopic to '/tmp/lampadas_subtopic.txt';
 copy topic to '/tmp/lampadas_topic.txt';
+copy topic_i18n to '/tmp/lampadas_topic_i18n.txt';
 copy username to '/tmp/lampadas_username.txt';
 copy username_notes to '/tmp/lampadas_username_notes.txt';

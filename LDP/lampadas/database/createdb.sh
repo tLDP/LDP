@@ -27,5 +27,6 @@ psql lampadas -qf string.sql
 psql lampadas -qf string_i18n.sql
 psql lampadas -qf subtopic.sql
 psql lampadas -qf topic.sql
+psql lampadas -qf topic_i18n.sql
 psql lampadas -qf username.sql
 psql lampadas -qf username_notes.sql
