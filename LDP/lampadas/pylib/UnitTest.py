@@ -320,44 +320,47 @@ class testConverter(unittest.TestCase):
 	def setUp(self):
 		self.C = Converter.Converter()
 
-	def testWikiText(self):
-		output = self.C.WikiText('test/wt/Lampadas.wt')
-		fd = open('test/wt/Lampadas.xml.new', 'w')
+	def run(self, dir, base, ext, output):
+		self.filename	= dir + base + ext
+		self.xmlnew		= dir + base + '.xml.new'
+		self.md5new		= dir + base + '.md5.new'
+		self.md5old		= dir + base + '.md5.old'
+	
+		fd = open(self.xmlnew, 'w')
 		fd.write(output + "\n")
 		fd.close()
 
-		newchecksum = commands.getoutput('md5sum < test/wt/Lampadas.xml.new')
+		newchecksum = commands.getoutput('md5sum < ' + self.xmlnew)
 		newchecksum = newchecksum + "\n"
 		
-		fd = open('test/wt/Lampadas.md5.new', 'w')
+		fd = open(self.md5new, 'w')
 		fd.write(newchecksum)
 		fd.close()
 
-		fd = open('test/wt/Lampadas.md5.old', 'r')
+		fd = open(self.md5old, 'r')
 		oldchecksum = fd.read()
 		fd.close()
 
 		assert oldchecksum == newchecksum
+
+	def testWikiText(self):
+		
+		output = self.C.wikitext('test/wt/Lampadas.wt')
+		self.run('test/wt/', 'Lampadas', '.wt', output)
 
 	def testTexinfo(self):
-		output = self.C.Texinfo('test/texinfo/texinfo.txi')
-		fd = open('test/texinfo/texinfo.xml.new', 'w')
-		fd.write(output + "\n")
-		fd.close()
+		output = self.C.texinfo('test/texinfo/texinfo.txi')
+		self.run('test/texinfo/', 'texinfo', '.txi', output)
 
-		newchecksum = commands.getoutput('md5sum < test/texinfo/texinfo.xml.new')
-		newchecksum = newchecksum + "\n"
+	def testDBSGML(self):
+		output = self.C.dbsgml('test/db3.0sgml/RPM-HOWTO.sgml')
+		self.run('test/db3.0sgml/', 'RPM-HOWTO', '.sgml', output)
 		
-		fd = open('test/texinfo/texinfo.md5.new', 'w')
-		fd.write(newchecksum)
-		fd.close()
+		output = self.C.dbsgml('test/db3.1sgml/XFree86-Second-Mouse.sgml')
+		self.run('test/db3.1sgml/', 'XFree86-Second-Mouse', '.sgml', output)
 
-		fd = open('test/texinfo/texinfo.md5.old', 'r')
-		oldchecksum = fd.read()
-		fd.close()
-
-		assert oldchecksum == newchecksum
-
+		output = self.C.dbsgml('test/db4.1sgml/Small-Memory.sgml')
+		self.run('test/db4.1sgml/', 'Small-Memory', '.sgml', output)
 
 #class testHTML(unittest.TestCase):
 	

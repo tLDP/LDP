@@ -10,19 +10,12 @@ Currently supported source formats are:
 	Plain Text
 	WikiText
 	Texinfo
+	DocBook SGML
 
 Working on:
 
-	DocBook SGML
-
-For 1.0:
-
 	Linuxdoc
-
-For 1.0+:
-
 	DebianDoc
-	HTML
 """
 
 # Modules ##################################################################
@@ -43,41 +36,41 @@ Log = Log()
 
 class Converter:
 
-	def Text(self, Filename, Format):
+	def text(self, Filename, Format):
 		Log(3, 'Converting ' + Filename + ' from text')
 		return WikiText(Filename)
 
-	def WikiText(self, Filename):
+	def wikitext(self, Filename):
 		Log(3, 'Converting ' + Filename + ' from WikiText')
-		command = 'wt2db -a ' + Filename
+		command = 'wt2db -x ' + Filename
 		result = commands.getoutput(command)
 		return result
 
-	def Texinfo(self, Filename):
+	def texinfo(self, Filename):
 		Log(3, 'Converting ' + Filename + ' from Texinfo')
 		command = 'texi2db -f ' + Filename
 		result = commands.getoutput(command)
 		return result
 
-	def DBSGML(self, Filename):
+	def dbsgml(self, Filename):
 		Log(3, 'Converting ' + Filename + ' from DocBook SGML')
-		command = ''
+		command = 'xmllint --sgml ' + Filename
 		result = commands.getoutput(command)
 		return result
 
-	def LinuxDoc(self, Filename):
+	def ldsgml(self, Filename):
 		Log(3, 'Converting ' + Filename + ' from LinuxDoc SGML')
 		command = ''
 		result = commands.getoutput(command)
 		return result
 
 
-	def XML(self, Filename):
+	def xml(self, Filename):
 		command = 'xsltproc /usr/share/sgml/docbook/stylesheet/xsl/nwalsh/html/docbook.xsl ' + Filename
 		result = commands.getoutput(command)
 		return result
 
-	def SGML(self, Filename, Format):
+	def sgml(self, Filename, Format):
 		command = 'xsltproc --docbook /usr/share/sgml/docbook/stylesheet/xsl/nwalsh/html/docbook.xsl ' + Filename
 		result = commands.getoutput(command)
 		return result
@@ -85,5 +78,6 @@ class Converter:
 
 if __name__ == "__main__":
 	C = Converter()
-	output = C.Texinfo('test/texinfo/texinfo.txi')
+#	output = C.texinfo('test/texinfo/texinfo.txi')
+	output = C.dbsgml('test/db3.0sgml/RPM-HOWTO.sgml')
 	print output
