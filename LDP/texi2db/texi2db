@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 #
-# this utility converts a texinfo file into LDP WikiText format.
+# this utility converts a Texinfo file into DocBook XML format.
 # 
 use File::Basename;
 use FileHandle;
@@ -123,21 +123,31 @@ $replacement = "";
 #
 # Actions:
 # 
-#	DROPLINE	Drop it on the floor
-#	DROPBLOCK	Drop the whole block on the floor
-#	META		Meta-Data
+# 	ALIAS		Create an alias to another command
+#	APPENDIX	Begin an appentix
 #	BYE		Stop processing the file
+#	CLEAR		Clear a variable
+#	COMMENT		Insert a comment
+#	DEFFN		Define a function
+#	DEFINFOENCLOSE	Load a customized highlighting pattern
+#	DROPBLOCK	Drop the whole block on the floor
+#	DROPLINE	Drop it on the floor
+#	IFCLEAR		Test a variable
+#	IFSET		Test a variable
 #	INDEX		An index entry
+#	ITEM		An item in a list or table
+#	LITERALBLOCK	Literal layout block
+#	MACRO		Record a program macro
+#	META		Meta-Data
+#	MULTITABLE	Begin a multi column table
+#	NODE		A Texinfo node
 #	ORDEREDLIST	Numbered (enumerated) list
 #	ORDEREDLISTEND	End an enumerated list
-#	SEEKEND		Skip everything until you find the corresponding @end tag
-#	NODE		A Texinfo node
 #	SECT?		One of the sectioning commands
-#	APPENDIX?	One of the appendix commands
-#	DEFINFOENCLOSE	Load a customized highlighting pattern
+#	SEEKEND		Skip everything until you find the corresponding @end tag
 #	SET		Set a variable
-#	CLEAR		Clear a variable
-#	IFSET		Test a variable
+#	TABLE		Begin a table
+#	TABLEEND	End a table
 #
 #	@-Command			Action
 %patterns = (
@@ -172,20 +182,23 @@ $replacement = "";
 	'@dircategory'			=>'DROPLINE',
 	'@direntry'			=>'SEEKEND',
 	'@display'			=>'LITERALBLOCK',
+#	'@end display'			=>'DROPLINE',
 	'@enumerate'			=>'ORDEREDLIST',
 	'@end enumerate'		=>'ORDEREDLISTEND',
 	'@example'			=>'LITERALBLOCK',
+#	'@end example'			=>'DROPLINE',
 	'@exdent'			=>'DROPLINE',
 	'@finalout'			=>'DROPLINE',
 	'@footnotestyle'		=>'DROPLINE',
 	'@format'			=>'LITERALBLOCK',
+#	'@end format'			=>'DROPLINE',
 	'@flushleft'			=>'DROPLINE',
 	'@end flushleft'		=>'DROPLINE',
 	'@flushright'			=>'DROPLINE',
 	'@end flushright'		=>'DROPLINE',
 	'@headings'			=>'DROPLINE',
 	'@html'				=>'SEEKEND',
-	'@end html'			=>'DROLINE',
+	'@end html'			=>'DROPLINE',
 	'@ifhtml'			=>'SEEKEND',
 	'@end ifhtml'			=>'DROPLINE',
 	'@ifinfo'			=>'SEEKEND',
@@ -208,6 +221,7 @@ $replacement = "";
 	'@item'				=>'ITEM',
 	'@itemx'			=>'ITEM',
 	'@lisp'				=>'LITERALBLOCK',
+#	'@end lisp'			=>'DROPLINE',
 	'@macro'			=>'MACRO',
 	'@majorheading'			=>'SECT1',
 	'@menu'				=>'SEEKEND',
@@ -224,6 +238,7 @@ $replacement = "";
 	'@shorttitlepage'		=>'DROPLINE',
 	'@smallbook'			=>'DROPLINE',
 	'@smallexample'			=>'LITERALBLOCK',
+#	'@end smallexample'		=>'DROPLINE',
 	'@sp'				=>'DROPLINE',
 	'@ftable'			=>'TABLE',
 	'@end ftable'			=>'TABLEEND',
@@ -236,6 +251,7 @@ $replacement = "";
 	'@tex'				=>'SEEKEND',
 	'@titlepage'			=>'SEEKEND',
 	'@verbatim'			=>'LITERALBLOCK',
+#	'@end verbatim'			=>'DROPLINE',
 	'@vtable'			=>'TABLE',
 	'@end vtable'			=>'TABLEEND',
 	
@@ -436,10 +452,14 @@ $replacement = "";
 # Their handling is subtly different than the %tags.
 # We don't just replace them with the DocBook tags, because we
 # want any <para> tags to go inside them, not outside.
+#
+# Any existing para is closed first, as these are always paragraphs.
 # 
 %blocks = (
-	'@quotation'		=>'<blockquote><literallayout>',
-	'@end quotation'	=>'</literallayout></blockquote>',
+#	'@quotation'		=>'<blockquote><literallayout>',
+#	'@end quotation'	=>'</literallayout></blockquote>',
+	'@quotation'		=>'<blockquote>',
+	'@end quotation'	=>'</blockquote>',
 #	'@format'		=>'<literallayout>',
 #	'@end format'		=>'</literallayout>',
 );
@@ -767,6 +787,7 @@ LINE:	while ($line = <$fh>) {
 			} else {
 				($pattern, $action) = &matchblock();
 				if ($action) {
+					&message("replacing block with $action") if ($verbose > 2);
 					&closepara;
 					$buf .= $action;
 					next LINE;
@@ -881,6 +902,8 @@ sub cleanline {
 	$line =~ s/\x0C//;
 	$line =~ s/\xA0/&nbsp;/;
 	$line =~ s/\xD7//;
+	$line =~ s/\xD8/&Ouml;/;
+	$line =~ s/\xDF/&szlig;/;
 	$line =~ s/\xF6/&ouml;/;
 	$line =~ s/\xE4/&auml;/;
 }
@@ -935,7 +958,7 @@ sub matchblock {
 	}
 }
 
-# the rest are all inline processing
+# inline processing
 #
 sub convertinline {
 TAG:	while ($line =~ /\@\w+\{[^\{]*?\}/) {
@@ -950,6 +973,18 @@ TAG:	while ($line =~ /\@\w+\{[^\{]*?\}/) {
 		$contents =~ s/.*\{(.*)\}/\1/;
 		&message("CMDLINE: $line") if ($verbose > 2);
 		&message("CMD: $command, tag: $tag, tagplain: $tagplain, contents: $contents") if ($verbose > 2);
+
+		# If we're in a table's first column, and this column is already wrapped in the same tag,
+		# don't process internal tag.
+		#
+		if (scalar @tableformat) {
+			if ($tableformat[-1] eq $tag) {
+				&message("not doubly wrapping tag $tag") if ($verbose >2);
+				$replacement = $contents;
+				&replaceinline;
+				next TAG;
+			}
+		}
 
 		# substitutions (we only want to catch @{} type tags here)
 		# 
@@ -1007,6 +1042,9 @@ TAG:	while ($line =~ /\@\w+\{[^\{]*?\}/) {
 				 or ($dbtag eq 'option')) {
 					$contents =~ s/\<literal\>//g;
 					$contents =~ s/\<\/literal\>//g;
+					$contents =~ s/\<programlisting\>//g;
+					$contents =~ s/\<\/programlisting\>//g;
+					&message("removed inline literals: $contents") if ($verbose > 2);
 				}
 
 				($tag, $attributes) = split(/ /, $dbtag);
@@ -1018,6 +1056,17 @@ TAG:	while ($line =~ /\@\w+\{[^\{]*?\}/) {
 				$dbclose = "\<\/$tag\>" . $dbclose;
 			}
 			$replacement = $dbopen . $contents . $dbclose;
+			
+			# Texinfo allows nexted literals, DocBook does not.
+			# 
+			if (scalar @literal) {
+				$replacement =~ s/\<literal\>//g;
+				$replacement =~ s/\<\/literal\>//g;
+				$replacement =~ s/\<programlisting\>//g;
+				$replacement =~ s/\<\/programlisting\>//g;
+				&message("removed literal tags literals: $replacement") if ($verbose > 2);
+			}
+
 			&replaceinline;
 			next TAG;
 		}
@@ -1066,7 +1115,15 @@ TAG:	while ($line =~ /\@\w+\{[^\{]*?\}/) {
 
 	# unusual stuff to deal with
 	#
+	# @\n is sometimes entered when the user meant @(space).
+	# Texinfo handles it, so we have to.
+	#
 	$line =~ s/\@$/ /;
+	
+	# Remove <> from inside <email></email> tags, since DocBook stylesheets
+	# generally add them back in when generating output.
+	#
+	$line =~ s/\<email\>&lt;(.*?)&gt;\<\/email\>/\<email\>$1\<\/email\>/g;
 	
 	# We should have found *all* @-commands by now.
 	# If any are still hanging around, we have a problem.
@@ -1074,13 +1131,6 @@ TAG:	while ($line =~ /\@\w+\{[^\{]*?\}/) {
 	if ($line =~ /\@/) {
 		&raiseerror("Unrecognized @-command in $line");
 	}
-
-	# very special, yet strange, accomodations...
-	#
-	# Remove <> from inside <email></email> tags, since DocBook stylesheets
-	# generally add them back in when generating output.
-	#
-	$line =~ s/\<email\>&lt;(.*?)&gt;\<\/email\>/\<email\>$1\<\/email\>/g;
 }
 
 sub markspecial {
@@ -1805,6 +1855,7 @@ sub orderedlist {
 	$buf .= '<orderedlist>';
 	push @nest, 'ordered';
 	push @initem, 0;
+#	$suppresspara++;
 }
 
 sub itemizedlist {
@@ -1812,6 +1863,7 @@ sub itemizedlist {
 	$buf .= '<itemizedlist>';
 	push @nest, 'itemized';
 	push @initem, 0;
+#	$suppresspara++;
 }
 
 sub item {
@@ -1846,6 +1898,7 @@ sub item {
 sub listitem {
 	&closelistitem;
 	$buf .= '<listitem>';
+	&para;
 	$initem[-1] = 1;
 }
 
@@ -1868,40 +1921,42 @@ sub para {
 sub literalblock {
 	if ($pattern =~ /\bformat\b/) {
 		&message("start programlisting") if ($verbose > 2);
-		$literaltag = 'programlisting';
-#		$suppressconversion++;
 		$suppresspara++;
-		$buf .= '<programlisting>' . "\n";
+		$literaltag = 'programlisting';
 	} elsif ($pattern =~ /\bexample\b/) {
 		&message("start programlisting") if ($verbose > 2);
-		$literaltag = 'programlisting';
 		$suppresspara++;
-		$buf .= '<programlisting>';
+		$literaltag = 'programlisting';
 	} elsif ($pattern =~ /\bsmallexample\b/) {
 		&message("start programlisting") if ($verbose > 2);
-		$literaltag = 'programlisting';
 		$suppresspara++;
-		$buf .= '<programlisting>';
+		$literaltag = 'programlisting';
 	} elsif ($pattern =~ /\bdisplay\b/) {
 		&message("start literallayout") if ($verbose > 2);
-		$literaltag = 'literallayout';
 		$suppresspara++;
-		$buf .= '<literallayout>';
+		$literaltag = 'literallayout';
 	} elsif ($pattern =~ /\blisp\b/) {
 		&message("start programlisting") if ($verbose > 2);
-		$literaltag = 'programlisting';
 		$suppressconversion++;
 		$suppresspara++;
-		$buf .= '<programlisting>';
+		$literaltag = 'programlisting';
+	} elsif ($pattern =~ /\bquotation\b/) {
+		&message("start quotation") if ($verbose > 2);
+		$literaltag = 'blockquote';
 	} elsif ($pattern =~ /\bverbatim\b/) {
 		&message("start programlisting") if ($verbose > 2);
-		$literaltag = 'programlisting';
 		$suppressconversion++;
 		$suppresspara++;
-		$buf .= '<programlisting>';
+		$literaltag = 'programlisting';
 	} else {
 		&raiseerror("Unrecognized literal: $pattern");
 	}
+	if (scalar @literal) {
+		&message("Not including tag $literaltag, due to nested literal blocks") if ($verbose > 2);
+		$literaltag = '';
+	}
+	
+	$buf .= '<' . $literaltag .  '>' . "\n" if ($literaltag);
 	$literalendtag = $pattern;
 	$literalendtag =~ s/\@/\@end /;
 	push @literal, $literaltag;
@@ -2039,6 +2094,7 @@ sub closeorderedlist {
 		$buf .= '</orderedlist>' . "\n";
 		pop @nest;
 		pop @initem;
+#		$suppresspara--;
 	}
 }
 
@@ -2049,6 +2105,7 @@ sub closeitemizedlist {
 		$buf .= '</itemizedlist>' . "\n";
 		pop @nest;
 		pop @initem;
+#		$suppresspara--;
 	}
 }
 
@@ -2056,6 +2113,7 @@ sub closelistitem {
 	&closeformalpara;
 	if ((($nest[-1] eq 'ordered') or (@nest[-1] eq 'itemized')) and (@initem[-1])) {
 		&message("closing list item") if ($verbose > 2);
+		#$buf .= '</para></listitem>' . "\n";
 		$buf .= '</listitem>' . "\n";
 		$initem[-1] = 0;
 	}
@@ -2078,12 +2136,15 @@ sub closepara {
 
 sub closeliteralblock {
 	if (scalar @literal) {
-		$buf .= '</' . $literal[-1] . '>' . "\n";
+		foreach $tag (split(/,/, $literal[-1])) {
+			$buf .= '</' . &trim($tag) . '>' . "\n";
+		}
 		$literal = '';
 		$literalend = '';
 		$suppressconversion--;
 		$suppressconversion = 0 if ($suppressconversion < 0);
 		$suppresspara--;
+		&raiseerror("Literal block nesting error") if ($suppresspara < 0);
 		$suppresspara = 0 if ($suppresspara < 0);
 		pop @literal;
 		pop @literalend;
