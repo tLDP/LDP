@@ -27,6 +27,8 @@ This module generates HTML primitives.
 from Globals import *
 from Log import log
 from DataLayer import lampadas
+import re
+import string
 
 
 class Widgets:
@@ -39,6 +41,16 @@ class Widgets:
     def title(self, value):
         return WOStringIO('<input type=text name="title" style="width:100%%" value="%s">' % value).get_value()
 
+    def title_compressed(self, value):
+        """
+        Compress the title so it will display well in 80 characters.
+        Just add spaces around all + signs, which lets the title wrap.
+        """
+        
+        parts = value.split('+')
+        text = string.join(parts, ' + ')
+        return text
+        
     def abstract(self, value):
         return '<input type=text name="abstract" style="width:100%" value="' + value + '">'
 
