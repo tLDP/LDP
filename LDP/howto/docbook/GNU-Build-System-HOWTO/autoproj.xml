@@ -1,0 +1,362 @@
+<?xml version="1.0" encoding="ISO-8859-1?>
+<!DOCTYPE article PUBLIC "-//OASIS//DTD DocBook XML V4.1.2//EN"
+                      "/usr/share/sgml/docbook/xml-dtd-4.1.2/docbookx.dtd">
+
+<article>
+  <articleinfo>
+    <title>Software Auto'ing mini-HOWTO</title>
+    <author>
+      <firstname>Mark</firstname>
+      <surname>Hoebeke</surname>
+      <affiliation>
+	<orgname>INRA</orgname>
+	<orgdiv>Unité Statistique &amp; Génome</orgdiv>
+	<address><email>Mark.Hoebeke(at)jouy.inra.fr</email></address>
+      </affiliation>
+    </author>
+
+    <copyright>
+      <year>2003</year>
+      <holder>Mark Hoebeke</holder> 
+    </copyright>
+    <legalnotice>
+      <title>Copyright</title>
+      <para>Permission is granted to copy, distribute and/or modify
+  this document under the terms of the Open Publication License,
+  version 2.0.</para>
+    </legalnotice>
+    
+    <revhistory>
+      <revision>
+	<revnumber>0.1</revnumber>
+	<date>2003-07-22</date>
+	<authorinitials>mh</authorinitials>
+	<revremark>First draft</revremark>
+      </revision>
+    </revhistory>    
+
+    <abstract>
+      <para>This mini-HOWTO aims to bootstrap developers in using the Gnu <computeroutput>autoconf, automake</computeroutput> and <computeroutput>libtool</computeroutput> utilities. Using a sample project, it describes a recipe to leverage the power of these tools to create distributable and portable programs. Pointers to more in-depth information are also provided.</para> 
+    </abstract>
+  </articleinfo>
+
+  <section>
+    <title>Why bother with the Gnu Auto tools ?</title>
+    <para>Our ego of software developers makes us all dream of zillions of users happily executing what our brains painstakingly gave birth to. Our legendary laziness makes us balk at maintaining a bunch of configuration files each tailored to make our programs compile on a specific hardware/software combination. Enter the Gnu Auto tools (which is the term used here to designate <computeroutput>autoconf, automake, libtool</computeroutput>). With a little effort, these utilities will allow us to roll our own tarballs which any user can the install by issuing the universal command triplet :
+<screen>./configure
+make
+make install</screen></para>
+    <para>This mini-HOWTO is a guided tour of the steps it takes to adapt an existing software project to the Gnu Auto tools. It starts with the installation of these utilities and proceeds to describe how to organize a project's directory hierarchy to ease the job of writing the configuration files. Then each tool's main functionalities and usage are examined in turn.</para>
+  </section>
+  <section>
+    <title>Installing the Gnu Auto tools</title>
+    <para>As the Gnu Auto tools are installed on a vast majority of systems, this section is provided for the unlucky few for which this is not the case. To determine if installation is needed, check the output of the following commands :
+<screen>
+autoconf --version
+automake --version
+libtooolize --version
+</screen> If each command prints out its version information, you can skip the remaining of this section. If one or more commands return with a <computeroutput>command not found</computeroutput>, they'll have to be installed.</para>
+    <section>
+      <title>Installing from binary packages</title>
+      <para>Most of the Linux distributions include pre-packaged bundles of the Gnu Auto tools. For example, both Mandrake and RedHat provide RPMs called <computeroutput>autoconf-*.rpm, automake-*.rpm</computeroutput> and <computeroutput>libtool-*.rpm</computeroutput> (where the asterisk stands for the specific release number). Debian also has <computeroutput>autoconf-*.deb, automake-*.deb</computeroutput> and <computeroutput>libtool-*.deb</computeroutput> packages. Finally, Solaris <computeroutput>.pkg</computeroutput> files can also be found on the Sunfreeware site. Thus, installation can be performed with your favourite software management tool.</para>
+    </section>
+    <section>
+      <title>Installing from sources</title>
+      <para>In case you prefer to install the Gnu Auto tools from the source tarballs, they can be fetched at your nearest GNU ftp mirror site (the list of mirrors is available at <ulink url="http://www.gnu.org/prep/ftp.html"></ulink>).</para>
+    </section>
+  </section>
+
+  <section>
+    <title>A typical directory layout</title>
+    <para>The average software project is made of different kinds of files: source code, documentation, data and possibly script files. Adopting a consistent directory layout separating the files according to their types greatly helps the overall compilation and installation management. The hierarchy that will be used throughout this document is as follows :
+<screen>
+projectname\
+           |---src\
+           |---doc\
+           |---data\
+           |---scripts\
+</screen>
+  where <computeroutput>projectname</computeroutput> denotes the toplevel directory of our project. If you wish to benefit of the Gnu Auto tools for an existing project, I suggest you create this directory layout and move the files to the appropriate locations.</para>
+    <para>As an example, I'll take a small project whose goal is to generate a random string of four letters (A, C, G and T), given their occurrence probabilities and the total string length. The string preceded by a small header describing how it was generated <footnote><para>Yes. This utility generates DNA sequences and the resulting output is a string in FASTA format which is one of the most used formats to store sequence information in bioinformatics.</para></footnote>.</para>
+    <para>Initially, the project comprises one source file <filename>main_seqgen.c</filename> (listed in <xref linkend="mainseqgen"/>) and the <filename>Makefile</filename> to compile it into an executable called <filename>seqgen</filename>. Both of these files are located in the <filename>src</filename> directory. Here's the <filename>Makefile</filename>'s contents:
+<screen>
+seqgen: main_seqgen.c
+        gcc -o seqgen seqgen.c
+</screen></para>
+  </section>
+  <section>
+    <title>Autoconf'ing</title>
+    <para>The main goal of using Gnu Autoconf is to ensure that compilation will be correctly carried out on most platforms. For our toy project, at least one parameter has to be taken into account: the name of the C compiler. In the <filename>Makefile</filename>, it is hardcoded as being <filename>gcc</filename>. However, users may wish to use other compilers instead (<filename>icc</filename>, the Intel compiler, or <filename>cc</filename>, the Solaris C compiler). To achieve compiler-independence, we have to find a way to transform its name into a variable that will be substituted when configuring the compilation. That's exactly what Gnu Autoconf will do for us.</para>
+    <para>The first step is to replace the name of the compiler with the corresponding variable name written a la Gnu Autoconf. Gnu Autoconf variables simply are strings surrounded with '@' characters. Moreover, Gnu Autoconf already provides a variable for the C compiler, namely <computeroutput>@CC@</computeroutput>. Hence, after transformation out <filename>Makefile</filename> becomes:
+<screen>
+seqgen: main_seqgen.c
+        @CC@ -o seqgen seqgen.c
+</screen></para>
+<para>Now how do we get subsitution of <computeroutput>@CC@</computeroutput> with its correct value? This is taken care of by the <filename>configure</filename> script we are about to generate (remember, <filename>./configure</filename> is the first command ran when installing a project from a source tarball). <filename>configure</filename> itself is generated from a file called <filename>confgure.in</filename> by the <filename>autoconf</filename> command. So we moved a step further but we still need to compose this <filename>configure.in</filename> file. We could do with our favourite text editor, but we're better of using the <filename>autoscan</filename> command which is part of Gnu Autoconf. All we have to do is to run <filename>autoscan</filename> in our project's root directory. This yields a <filename>configure.scan</filename> we can use to build our <filename>configure.in</filename> file.</para>
+<para>
+<filename>configure.scan</filename> provides a skeleton for the compilation configuration file <filename>configure.in</filename>. Let's rename <filename>configure.scan</filename> to <filename>configure.in</filename> and edit the latter. This configuration file contains a set of macros whose purpose is to detect what kind of machine our project is compiled on. Macros are written in the (exotic ?) m4 language but Gnu Autoconf comes with a library of macros covering the needs of most software projects<footnote><para>You can access the list of existing macros by navigating in the <emphasis>Existing Tests</emphasis> node of the Gnu Autoconf manual available with the <command>info autoconf</command> command.</para></footnote>. Regarding our project, we need to insert the specific macro for determining the available C compiler. This macro is called <filename>AC_PROG_CC</filename> and stores the name of the C compiler in the <filename>CC</filename> variable. All we have to do is to insert the line:
+<screen>
+AC_PROG_CC
+</screen>
+immediately below the line containing:
+<screen>
+dnl Checks for programs.
+</screen>
+</para>
+<para> The steps leading to the generation of the <filename>configure</filename> script are outlined below :
+</para>
+    <orderedlist>
+      <listitem><para><filename>cd</filename> to the project root directory.</para></listitem>
+      <listitem><para>Run <filename>autoscan</filename> to generate <filename>configure.scan</filename>.</para></listitem>
+      <listitem><para>Copy <filename>configure.scan</filename> to <filename>configure.in</filename>.</para></listitem>
+      <listitem><para>Edit <filename>configure.in</filename>.</para></listitem>
+      <listitem><para>Run <filename>autoconf</filename> to generate <filename>configure</filename> from <filename>configure.in</filename>.</para></listitem>
+    </orderedlist>
+    <para>One last step is required before issuing the <filename>configure</filename> command. As a matter of fact, this command takes files having a <filename>.in</filename> suffix as input files, performs variable substution on them and generates files without the <filename>.in</filename> suffix as output. So we'd bette rename our <filename>Makefile</filename> to <filename>Makefile.in</filename> for it to be processed by <filename>configure</filename>.</para>
+    <warning>
+<para>Running <filename>./configure</filename> with no <filename>Makefile.in</filename> will cause any existing <filename>Makefile</filename> to be overwritten and emptied.</para>
+<para>Do not edit the <filename>Makefile</filename> anymore. Any modifications have to be made to the <filename>Makefile.in</filename>.</para>
+    </warning>
+<para>If things turned out right, you should be able to <filename>cd</filename> to the <filename>src</filename> directory and issue the <filename>make</filename> command leading to the compilation of the executable using the locally available C compiler.</para>
+  </section>
+  <section>
+    <title>Automake'ing</title>
+    <para></para>
+  </section>
+  <section>
+    <title>Libtoolize'ing</title>
+    <para></para>
+  </section>
+  <section>
+    <title>Further information</title>
+<para>A more in-depth tutorial on the usage of the Gnu Auto tools can be found in the Gnu Autoconf, automake and libtool book by Gary V. Vaughan, Ben Elliston, Tom Tromey and Ian Lance Taylor, published by New Riders. Manuals for Gnu Autoconf and automake are also available on Gnu's Web site at <ulink url="http://www.gnu.org/manual/manual.html"></ulink>.</para>
+  </section>
+  <appendix id="mainseqgen">
+    <title>Sample project <filename>main_seqgen.c</filename> file.</title>
+    <programlisting>
+#include &lt;assert.h&gt;
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;string.h&gt;
+
+// Nucleotide letter codes.
+static const char *a_opt = "-a";
+static const char *c_opt = "-c";
+static const char *g_opt = "-g";
+static const char *t_opt = "-t";
+static const char *seed_opt = "-s";
+static const char *help_opt = "-h";
+
+// Precision threshold for float comparisons.
+static const float epsilon = 1e-6;
+
+// Command-line usage string.
+static const char *usage_string="Usage : %s [-h] [-a fa -c fc -g fg -t fg]"
+                                " [-s seed] seqlen\n";
+
+// FASTA sequence header string.
+static const char *fasta_header ="&gt;seqgen random sequence\n";
+
+float
+max(float n1, float n2)
+{
+  return (n1 &gt; n2 ? n1 : n2);
+}
+
+int 
+get_frequency(char **optstring, int index,
+	      const char *nucstring, int nuclen, 
+	       float *freq)
+{
+  int freq_ok = 0;
+
+  if (!strncasecmp (nucstring, optstring[index], nuclen))
+    {
+      *freq = atof (optstring[index+1]);
+      if (*freq &gt;= 0 && *freq &lt;= 1.0)
+	freq_ok = 1;
+    } 
+
+  if (!freq_ok)
+    *freq = -1.0;
+
+  return freq_ok;
+}
+
+int 
+compute_frequencies(float *freq_a, float *freq_c, 
+		    float *freq_g, float *freq_t)
+{
+  int freqs_ok = 0;
+
+  int auto_freqs = 0;
+  float sum_freqs = 0.0;
+  
+  if (*freq_a &gt;= 0.0 && *freq_a &lt;= 1.0)
+    sum_freqs += *freq_a;
+  else
+    auto_freqs++;
+
+  if (*freq_c &gt;= 0.0 && *freq_c &lt;= 1.0)
+    sum_freqs += *freq_c;
+  else
+    auto_freqs++;
+
+  if (*freq_g &gt;= 0.0 && *freq_g &lt;= 1.0)
+    sum_freqs += *freq_g;
+  else
+    auto_freqs++;
+
+  if (*freq_t &gt;= 0.0 && *freq_t &lt;= 1.0)
+    sum_freqs += *freq_t;
+  else
+    auto_freqs++;
+  
+  if (*freq_a &lt; 0)
+    *freq_a = max ((1.0 - sum_freqs)/auto_freqs, 0.0);
+
+  if (*freq_c &lt; 0)
+    *freq_c = max ((1.0 - sum_freqs)/auto_freqs, 0.0);
+
+  if (*freq_g &lt; 0)
+    *freq_g = max ((1.0 - sum_freqs)/auto_freqs, 0.0);
+
+  if (*freq_t &lt; 0)
+    *freq_t = max ((1.0 - sum_freqs)/auto_freqs, 0.0);
+
+  if (fabs (*freq_a + *freq_c + *freq_g + *freq_t - 1.0) &lt;= epsilon )
+    freqs_ok = 1;
+
+#ifdef DEBUG
+  fprintf (stderr,"Frequencies: a = %f\tc = %f\tg = %f\tt = %f\n",
+	   *freq_a,*freq_c,*freq_g,*freq_t);
+#endif
+
+  return (freqs_ok);
+}
+
+char *
+generate_sequence (int seqlen, 
+		   float freq_a, float freq_c, float freq_g, float freq_t)
+{
+
+  char *nuc_tab = "acgt";
+  float freq_tab[4];
+  freq_tab[0] = freq_a;
+  freq_tab[1] = freq_tab[0] + freq_c;
+  freq_tab[2] = freq_tab[1] + freq_g;
+  freq_tab[3] = freq_tab[2] + freq_t;
+
+  int i=0;
+  int header_len=strlen (fasta_header);
+  char *sequence=(char *) calloc (header_len+seqlen+2, sizeof (char));
+  
+  strncpy (sequence, fasta_header, strlen (fasta_header));
+  if (sequence) {
+    for (i = 0; i &lt; seqlen; i++) 
+      {
+	double randval = drand48 ();
+	int index=0;
+	while (randval &gt; freq_tab[index])
+	    index++;
+
+#ifdef DEBUG
+	assert(index &lt; 4);
+#endif
+	sequence[header_len+i] = nuc_tab[index];
+      }
+    sequence[header_len+seqlen]='\n';
+  }
+
+  return sequence;
+}
+
+
+int
+main (int argc, char **argv)
+{
+
+  float freq_a = -1.0;
+  float freq_c = -1.0;
+  float freq_g = -1.0;
+  float freq_t = -1.0;
+
+  int seed = getpid ();
+
+  int seq_len = -1;
+
+  if (argc &lt; 2) 
+    {
+      fprintf (stderr,usage_string,argv[0]);
+      return (EXIT_FAILURE);
+    }
+
+  seq_len = atoi (argv[argc-1]);
+  if (seq_len &lt;= 0) 
+    {
+      fprintf (stderr,"%s : sequence length must be positive.\n",argv[0]);
+      return (EXIT_FAILURE);
+    }
+
+
+  int opt_ok=0;
+  int index = 1;
+  while (index &lt; argc -1) 
+    {
+      opt_ok=get_frequency (argv, index, a_opt, strlen (a_opt), &amp;freq_a);
+      if (opt_ok) 
+	index +=2;
+
+      opt_ok=get_frequency (argv, index, c_opt, strlen (c_opt), &amp;freq_c);
+      if (opt_ok) 
+	index +=2;
+
+      opt_ok=get_frequency (argv, index, g_opt, strlen (g_opt), &amp;freq_g);
+      if (opt_ok) 
+	index +=2;
+
+      opt_ok=get_frequency (argv, index, t_opt, strlen (t_opt), &amp;freq_t);
+      if (opt_ok)
+	index +=2;
+
+      if (!strncasecmp (seed_opt, argv[index], strlen (seed_opt)))
+	{
+	  seed = atoi (argv[index+1]);
+	  opt_ok = 1;
+	}
+      
+      if (!opt_ok) 
+	{
+	  fprintf (stderr, "%s : unknown option %s.\n", argv[0], argv[index]);
+	  index++;
+	}
+
+
+    }
+  
+  if (!compute_frequencies (&amp;freq_a,&amp;freq_c,&amp;freq_g,&amp;freq_t)) 
+    {
+      fprintf (stderr, "%s : wrong frequencies given.\n", argv[0]);
+      return (EXIT_FAILURE);
+    }
+
+  srand48 (seed);
+
+  char *sequence=generate_sequence(seq_len,freq_a,freq_c,freq_g,freq_t);
+  if (!sequence)
+    {
+      fprintf (stderr, "%s : unable to generate sequence.\n", argv[0]);
+      return (EXIT_FAILURE);
+    }
+
+  fprintf (stdout,"%s",sequence);
+
+  free (sequence);
+
+  return (EXIT_SUCCESS);
+  
+}
+
+</programlisting>
+  </appendix>
+</article>
