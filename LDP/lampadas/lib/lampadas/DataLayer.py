@@ -18,6 +18,37 @@ __version__ = '0.2'
 from types import StringType
 
 
+# BaseConfig ##################################################################
+
+class ConfigFileReadErrorException(Exception) :
+	pass
+
+class ConfigFile :
+	"""
+	Basic configuration options (dbname, dbtype), used to know where we can find
+	the database.
+	"""
+
+	def __init__(self) :
+		import ConfigParser
+
+		self.config = ConfigParser.ConfigParser()
+		self.config.readfp(open('lampadas.conf'))
+		self.parse()
+
+	def parse(self) :
+		if not self.config.has_section('DB') :
+			raise ConfigFileReadErrorException("File 'lampadas.conf' is missing or does not contain a '[DB]' section")
+			
+		if not self.config.has_option('DB', 'dbtype') :
+			raise ConfigFileReadErrorException("Can't read option 'dbtype' from lampadas.conf")
+		self.dbtype = self.config.get('DB', 'dbtype')
+		
+		if not self.config.has_option('DB', 'dbname') :
+			raise ConfigFileReadErrorException("Can't read option 'dbname' from lampadas.conf")
+		self.dbname = self.config.get('DB', 'dbname')
+		
+
 # User ########################################################################
 
 class User :
@@ -27,8 +58,8 @@ class User :
 	"""
 
 	def __init__(self) :
-		self.username = "" # why is username <> userid ?
-		self.user_id = None
+		self.username = ""
+		self.user_id = ""
 		self.firstname = ""
 		self.surname = ""
 		self.name = "%s %s" % (self.firstname, self.surname)
@@ -284,17 +315,26 @@ if __name__ == '__main__' :
 class UnknownDBException(Exception) :
 	pass
 
-def get_database(dbtype, dbname) :
+def get_database(dbtype = '', dbname = '') :
 	"""
 	To let people use different DBs, use specific class derived from Database
 	"""
 
-	if dbtype == 'pgsql' :
-		return PgSQLDatabase(dbname)
-	elif dbtype == 'mysql' :
-		return MySQLDatabase(dbname)
+	# Use config file
+	dbconfig = ConfigFile()
+
+	# Overwrite options if arguments specified
+	if dbtype != '' :
+		dbconfig.dbtype = dbtype
+	if dbname != '' :
+		dbconfig.dbname = dbname
+
+	if dbconfig.dbtype == 'pgsql' :
+		return PgSQLDatabase(dbconfig.dbname)
+	elif dbconfig.dbtype == 'mysql' :
+		return MySQLDatabase(dbconfig.dbname)
 	else :
-		raise UnknownDBException('Unknown database type %s' % dbtype)
+		raise UnknownDBException('Unknown database type %s' % dbconfig.dbtype)
 
 class Database :
 	"""
@@ -311,16 +351,16 @@ class Database :
 		"""
 		Return value of config parameter
 		"""
-		# SELECT value FROM config WHERE name='$name'
 		cur = self.connection.cursor()
-		cur.execute("SELECT value FROM config WHERE name='%s'", name)
-		return cur.fetchone()
+		cur.execute("SELECT value FROM config WHERE name = %s", name)
+		tmp = cur.fetchone()
+		return tmp[0]
 
 	# users ###
 	
 	def mk_user(self, row) :
 		"""
-		User factory
+		User factory (takes a single row query result as argument)
 		"""
 		u = User()
 		
@@ -364,7 +404,9 @@ class Database :
 		"""
 		Return the list of all users. User list Factory.
 		"""
-		return [self.mk_user(row) for row in query_results]
+		cur = self.connection.cursor()
+		cur.execute("SELECT * from username")
+		return [self.mk_user(row) for row in cur.fetchall()]
 	
 	def get_user_from_sessionid(self,session_id) :
 		"""
