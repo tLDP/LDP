@@ -75,11 +75,12 @@ $contents;
 
 # these hold information about the node we are currently in, if any
 #
-$nodename = "";
-$nodenext = "";
-$nodeprev = "";
-$nodeup = "";
-$nodeid = "";
+$nodename = '';
+$nodetitle = '';
+$nodenext = '';
+$nodeprev = '';
+$nodeup = '';
+$nodeid = '';
 $nodeinit = 0;
 
 # remember this hierarchical information for every node
@@ -139,9 +140,9 @@ $replacement = "";
 	'@alias'			=>'ALIAS',
 	'@author'			=>'META',
 	'@bye'				=>'BYE',
-	'@c'				=>'COMMENT',
 	'@clear'			=>'CLEAR',
-	'@comment'			=>'COMMENT',
+#	'@c'				=>'COMMENT',		# handled specially
+#	'@comment'			=>'COMMENT',
 	'@contents'			=>'DROPLINE',
 	'@defcodeindex'			=>'DROPLINE',		# TODO
 	'@deffn'			=>'DEFFN',
@@ -162,12 +163,10 @@ $replacement = "";
 	'@end defspec'			=>'DROPLINE',
 	'@dircategory'			=>'DROPLINE',
 	'@direntry'			=>'SEEKEND',
-	'@display'			=>'LITERALBLOCK',
 	'@enumerate'			=>'ORDEREDLIST',
 	'@end enumerate'		=>'ORDEREDLISTEND',
 	'@example'			=>'LITERALBLOCK',
 	'@footnotestyle'		=>'DROPLINE',
-	'@format'			=>'LITERALBLOCK',
 	'@flushleft'			=>'DROPLINE',
 	'@end flushleft'		=>'DROPLINE',
 	'@flushright'			=>'DROPLINE',
@@ -421,6 +420,10 @@ $replacement = "";
 %blocks = (
 	'@quotation'		=>'<blockquote>',
 	'@end quotation'	=>'</blockquote>',
+	'@display'		=>'<literallayout>',
+	'@end display'		=>'</literallayout>',
+	'@format'		=>'<literallayout>',
+	'@end format'		=>'</literallayout>',
 );
 
 # these are inline @-Commands which are replaced by a set of tags instead of one-for-one
@@ -638,10 +641,6 @@ LINE:	while ($line = <$fh>) {
 		$currentfile = $filename;
 		$currentline = $linenumber;
 
-		&cleanline;
-		$originalline = $line;
-		$trimline;
-
 		if ($seekend) {
 			$seekend = '' if ($line =~ /$seekend/);
 			next LINE;
@@ -649,10 +648,10 @@ LINE:	while ($line = <$fh>) {
 		
 		&message("LINE $currentline: $line") if ($verbose > 1);
 
-		$line =~ s/&/&amp;/g;		# do first, before writing new amps
-		$line =~ s/\</&lt;/g;
-		$line =~ s/\>/&gt;/g;
-	
+		&cleanline;
+		$originalline = $line;		# must be cleaned but not trimmed!
+		$trimline;
+
 		&markspecial;			# hide @@, @{, @} to ease parsing
 
 		# We have to handle some @-commands on the line when they appear,
@@ -661,7 +660,12 @@ LINE:	while ($line = <$fh>) {
 		# e.g., @footer{foo bar
 		#               @cindex baz
 		#               blah blah}
-		#               
+		#   and @comment, @c
+		#
+		if (($line =~ /\@c\b/) or ($line =~ /\@comment\b/)) {
+			&comment;
+		}
+		
 		($pattern, $action) = &matchpattern();
 		if ($action eq 'DROPLINE') {
 			next LINE;
@@ -697,6 +701,7 @@ LINE:	while ($line = <$fh>) {
 				$literalend = '';
 				&closeliteral;
 			} else {
+				$line = $originalline;
 				&writeline;
 			}
 		} elsif ($inmacro) {
@@ -721,11 +726,6 @@ LINE:	while ($line = <$fh>) {
 				$macrolinecount = 0;
 			} elsif ($line =~ /\@quote-arg/) {
 			} else {
-				# in info output, {foo} is used to indicate a link.
-				# This doesn't appear in the source, but can appear
-				# in macros, so replace them with cross references.
-				#
-				$line =~ s/\@\{(.*?)\@\}/\@ref\{$1\}/g;
 				&message("macro line: $line") if ($verbose > 2);
 				$macrotext .= $line;
 				$macrolinecount++;
@@ -746,10 +746,6 @@ LINE:	while ($line = <$fh>) {
 			} elsif ($action eq 'DROP2') {
 				$line =~ s/\@\w+\s+\w+\s*//;
 				&writeconverted;
-			} elsif ($action eq 'COMMENT') {
-				&comment;
-				&writeline;
-				next LINE;
 			} elsif ($action eq 'SEEKEND') {
 				$seekend = $pattern;
 				$seekend =~ s/\@/\@end /;
@@ -765,16 +761,26 @@ LINE:	while ($line = <$fh>) {
 				&meta;
 			} elsif ($action eq 'NODE') {
 				&node;
-			} elsif ($action eq 'SECT1') {
-				&sect1;
-			} elsif ($action eq 'SECT2') {
-				&sect2;
-			} elsif ($action eq 'SECT3') {
-				&sect3;
-			} elsif ($action eq 'SECT4') {
-				&sect4;
 			} elsif ($action eq 'APPENDIX') {
-				&appendix;
+				$line =~ s/^\@\w+\s+//;
+				&convertinline;
+				&appendix($line);
+			} elsif ($action eq 'SECT1') {
+				$line =~ s/^\@\w+\s+//;
+				&convertinline;
+				&sect1($line);
+			} elsif ($action eq 'SECT2') {
+				$line =~ s/^\@\w+\s+//;
+				&convertinline;
+				&sect2($line);
+			} elsif ($action eq 'SECT3') {
+				$line =~ s/^\@\w+\s+//;
+				&convertinline;
+				&sect3($line);
+			} elsif ($action eq 'SECT4') {
+				$line =~ s/^\@\w+\s+//;
+				&convertinline;
+				&sect4($line);
 			} elsif ($action eq 'PARA') {
 				&closeformalpara;
 				&para;
@@ -836,8 +842,29 @@ LINE:	while ($line = <$fh>) {
 }
 
 sub cleanline {
-	$line =~ s/\x0c//;
-	$line =~ s/\xd7//;
+	$line =~ s/&/&amp;/g;		# do first, before writing new amps
+	$line =~ s/\</&lt;/g;
+	$line =~ s/\>/&gt;/g;
+	$line =~ s/\x0C//;
+	$line =~ s/\xA0/&nbsp;/;
+	$line =~ s/\xD7//;
+	$line =~ s/\xF6/&ouml;/;
+	$line =~ s/\xEF/&auml;/;
+}
+
+sub writeabstract {
+	if ($inabstract) {
+		$inabstract = 0;
+		&message("copying meta-data to docbook") if ($verbose);
+		$template =~ s/%%TITLE/$title/;
+		if ($buf) {
+			$template =~ s/%%ABSTRACT/$buf/;
+		} else {
+			$template =~ s/\<abstract\>%%ABSTRACT\<\/abstract\>//s;
+		}
+		print $outfh $template . "\n";
+		$buf = "";
+	}
 }
 
 sub writefile {
@@ -1015,6 +1042,12 @@ sub markspecial {
 }
 
 sub unmarkspecial {
+	$line =~ s/DCM_AT/\@\@/gi;
+	$line =~ s/DCM_LB/\@\{/gi;
+	$line =~ s/DCM_RB/\@\}/gi;
+}
+
+sub normalizespecial {
 	$line =~ s/DCM_AT/\@/gi;
 	$line =~ s/DCM_LB/\{/gi;
 	$line =~ s/DCM_RB/\}/gi;
@@ -1330,7 +1363,7 @@ sub metaarg {
 	if ($line =~ /$pattern/) {
 		$line =~ s/$pattern//;
 		&convertinline;
-		&unmarkspecial;
+		&normalizespecial;
 		$_[1] = $line;
 		&message("set $pattern to $line") if ($verbose > 2);
 		return 1;
@@ -1350,7 +1383,7 @@ sub writeconverted {
 		&closeformalpara;
 	} else {
 		unless (($inpara) or ($nest[-1] eq 'table') or ($nest[-1] eq 'multi')) {
-			if (($nodename) and ($nodeinit == 0)) {
+			if (($nodename) and ($nodeinit == 0) and !($inabstract)) {
 				&guessnodelevel;
 			}
 			&para;
@@ -1362,7 +1395,7 @@ sub writeconverted {
 }
 
 sub writeline {
-	&unmarkspecial;
+	&normalizespecial;
 	&message("OUT: $line") if ($verbose > 1);
 	$buf .= $line . "\n";
 	if (($linenumber % 1000 == 0) and ($inabstract == 0)) {
@@ -1383,19 +1416,19 @@ sub writeline {
 # 
 sub guessnodelevel {
 	return if ($nodeinit);
-	&message("guessing node level") if ($verbose > 2);
+	&message("guessing level for node: $nodename, title: $nodetitle") if ($verbose > 2);
 
 	my $parentname = $nodeup;
 	my $parentlevel = $nodelevels{$parentname};
 
 	if ($parentlevel == "A") {
-		&sect1;
+		&sect1($nodetitle);
 	} elsif ($parentlevel == 1) {
-		&sect2;
+		&sect2($nodetitle);
 	} elsif ($parentlevel == 2) {
-		&sect3
+		&sect3($nodetitle);
 	} elsif ($parentlevel == 3) {
-		&sect4;
+		&sect4($nodetitle);
 	} else {
 		&raiseerror("The parent node, $parentname, could not be found.");
 	}
@@ -1406,10 +1439,9 @@ sub guessnodelevel {
 # The node isn't actually created until we hit some text in it.
 #
 sub node {
-	&message("setting up node $nodename") if ($verbose > 2);
 	$line =~ s/\@node\s+?//;
 	&convertinline;
-	&unmarkspecial;
+	&normalizespecial;
 	($nodename, $nodenext, $nodeprev, $nodeup) = split(/,/, $line);
 	$nodename = &trim($nodename);
 	$nodetitle = $nodename;
@@ -1420,19 +1452,8 @@ sub node {
 	$nodeinit = 0;
 
 	&message("Node: $nodename") if ($verbose);
+
 	&closeformalpara;
-	if ($inabstract) {
-		$inabstract = 0;
-		&message("copying meta-data to docbook") if ($verbose);
-		$template =~ s/%%TITLE/$title/;
-		if ($buf =~ //) {
-			$template =~ s/%%ABSTRACT/$buf/;
-		} else {
-			$template =~ s/\<abstract\>%%ABSTRACT\<\/abstract\>//s;
-		}
-		print $outfh $template . "\n";
-		$buf = "";
-	}
 }
 
 # Creates the node
@@ -1449,7 +1470,7 @@ sub initnode {
 	$nodeprevs{$nodename} = $nodeprev;
 	$nodeups{$nodename} = $nodeup;
 	$nodeanchors{$nodename} = $nodeid if ($nodeid);
-	$nodetitlelookup{$nodeid} = $nodename;
+	$nodetitlelookup{$nodeid} = $nodetitle;
 	$nodeinit = 1;
 }
 
@@ -1458,12 +1479,13 @@ sub initnode {
 ####################
 
 sub appendix {
+	&writeabstract;
+	$nodetitle = $_[0];
+	&message("appendix: $nodetitle") if ($verbose > 1);
 	&closeappendix;
-	$line =~ s/^\@\w+\s+//;
-	&convertinline;
 	&initnode;
-	&unmarkspecial;
-	$nodetitle = $line;
+	&convertinline;
+	&normalizespecial;
 	if ($nodeid) {
 		$buf .= "\<appendix id='$nodeid'\>\<title id='$nodeid-title'\>$nodetitle<\/title\>\n";
 	} else {
@@ -1473,13 +1495,13 @@ sub appendix {
 }
 
 sub sect1 {
-	&message("opening up sect1") if ($verbose > 2);
+	&writeabstract;
+	$nodetitle = $_[0];
+	&message("sect1: $nodetitle") if ($verbose > 1);
 	&closesect1;
-	$line =~ s/^\@\w+\s+//;
 	&initnode;
 	&convertinline;
-	&unmarkspecial;
-	$nodetitle = $line;
+	&normalizespecial;
 	if ($nodeid) {
 		$buf .= "\<sect1 id='$nodeid'\>\<title id='$nodeid-title'\>$nodetitle\<\/title\>\n";
 	} else {
@@ -1489,12 +1511,13 @@ sub sect1 {
 }
 
 sub sect2 {
+	&writeabstract;
+	$nodetitle = $_[0];
+	&message("sect1: $nodetitle") if ($verbose > 1);
 	&closesect2;
-	$line =~ s/^\@\w+\s+//;
 	&initnode;
 	&convertinline;
-	&unmarkspecial;
-	$nodetitle = $line;
+	&normalizespecial;
 	if ($inappendix) {
 		if ($nodeid) {
 			$buf .= "\<sect1 id='$nodeid'\>\<title id='$nodeid-title'\>$nodetitle\<\/title\>\n";
@@ -1514,12 +1537,13 @@ sub sect2 {
 }
 
 sub sect3 {
+	&writeabstract;
+	$nodetitle = $_[0];
+	&message("sect1: $nodetitle") if ($verbose > 1);
 	&closesect3;
-	$line =~ s/^\@\w+\s+//;
 	&initnode;
 	&convertinline;
-	&unmarkspecial;
-	$nodetitle = $line;
+	&normalizespecial;
 	if ($inappendix) {
 		if ($nodeid) {
 			$buf .= "\<sect2 id='$nodeid'\>\<title id='$nodeid-title'\>$nodetitle\<\/title\>\n";
@@ -1539,12 +1563,13 @@ sub sect3 {
 }
 
 sub sect4 {
+	&writeabstract;
+	$nodetitle = $_[0];
+	&message("sect1: $nodetitle") if ($verbose > 1);
 	&closesect4;
-	$line =~ s/^\@\w+\s+//;
 	&initnode;
 	&convertinline;
-	&unmarkspecial;
-	$nodetitle = $line;
+	&normalizespecial;
 	if ($inappendix) {
 		if ($nodeid) {
 			$buf .= "\<sect3 id='$nodeid'\>\<title id='$nodeid-title'\>$nodetitle\<\/title\>\n";
@@ -1719,10 +1744,10 @@ sub literalblock {
 		&message("start programlisting") if ($verbose > 2);
 		$literal = 'programlisting';
 		$buf .= '<programlisting>';
-	} elsif ($pattern =~ /\bdisplay\b/) {
-		&message("start screen") if ($verbose > 2);
-		$literal = 'screen';
-		$buf .= '<screen>';
+#	} elsif ($pattern =~ /\bdisplay\b/) {
+#		&message("start screen") if ($verbose > 2);
+#		$literal = 'screen';
+#		$buf .= '<screen>';
 	} elsif ($pattern =~ /\bsmallexample\b/) {
 		&message("start programlisting") if ($verbose > 2);
 		$literal = 'programlisting';
@@ -1737,9 +1762,23 @@ sub literalblock {
 }
 
 sub comment {
-	$line =~ s/$pattern//;
-	$line =~ s/--/-/g;
-	$line = "<!-- " . $line . " -->";
+	my $start = '';
+	my $comment = '';
+
+	if ($line =~ /\@c\b/) {
+		($start, $comment) = split(/\@c\b/, $line, 2);
+	} elsif ($line =~ /\@comment\b/) {
+		($start, $comment) = split(/\@comment\b/, $line, 2);
+	} else {
+		&raiseerror("error locating the comment");
+		return;
+	}
+	while ($comment =~ /--/) {
+		$comment =~ s/--/-/g;
+	}
+	$line = '<!-- ' . $comment . ' -->';
+	&writeline;
+	$line = $start;
 }
 
 sub closeappendix {
@@ -1939,7 +1978,7 @@ sub alias {
 	($foo, $alias) = split(/\s/, $line);
 	($alias, $command) = split(/=/, $alias);
 	&message("alias: $alias, command: $command") if ($verbose > 2);
-	$aliases{'@' . $alias} = $command;
+	$aliases{'@' . $alias} = '@' . $command;
 }
 
 sub macro {
@@ -1960,12 +1999,12 @@ sub definfoenclose {
 	    $suffix,
 	    $key,
 	    $replacement);
-	   
+	
 	$line =~ s/\@definfoenclose\s+//;
 	($name, $prefix, $suffix) = split(/,/, $line);
 	$replacement =  $prefix. ',' . $suffix;
 	$definfos{$name} = $replacement;
-	&message("custom definfoenclosure: \[$name\] \[$prefix\] \[$suffix\]") if (verbose > 1);
+	&message("custom definfoenclosure: $name, $replacement") if ($verbose > 2);
 }
 
 ####################
