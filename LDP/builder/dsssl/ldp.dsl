@@ -212,6 +212,24 @@
          (process-node-list author-contrib))))
 )
 
+(define (article-title nd)
+  (let* ((artchild  (children nd))
+         (artheader (select-elements artchild (normalize "artheader")))
+         (artinfo   (select-elements artchild (normalize "articleinfo")))
+         (ahdr (if (node-list-empty? artheader)
+                   artinfo
+                   artheader))
+         (ahtitles  (select-elements (children ahdr)
+                                     (normalize "title")))
+         (artitles  (select-elements artchild (normalize "title")))
+         (titles    (if (node-list-empty? artitles)
+                        ahtitles
+                        artitles)))
+    (if (node-list-empty? titles)
+        ""
+        (node-list-first titles))))
+
+
 </style-specification-body>
 </style-specification>
 
