@@ -79,6 +79,9 @@ class LampadasCollection:
         for key, item in self.items():
             value = getattr(item, attribute)
             temp.append((value, key))
+
+        # Must sort before calling reverse()!
+        temp.sort()
         temp.reverse()
         for v,k in temp :
             result.append(k)
