@@ -15,7 +15,6 @@
 	e-lists</h2></font></td>
   </tr>
   <tr>
-  <tr>
     <td width="100%" colspan="2"><font face="Verdana">Welcome. 
     You are watching our public lists.
     This archive is <a href="/search/">searchable</a>. You could also check 
@@ -23,7 +22,8 @@
     </td>
   </tr>
   <tr>
-    <td width="100%" colspan="2"><font face="Verdana">
+    <td><h3>to subscribe</h3></td>
+    <td><font face="Verdana">
     If you want to subscribe our lists,
     please send an empty message to: <br>
     <br><i>LIST_NAME</i>-subscribe@linuxdoc.org<br>
@@ -32,7 +32,8 @@
     </td>
   </tr>
   <tr>
-    <td width="100%" colspan="2"><font face="Verdana">
+    <td><h3>to unsubscribe</h3></td>
+    <td><font face="Verdana">
     If you want to unsubscribe, please check headers of any 
     message from list in your mailbox, there is info about 
     proper address. Usually it is: <br>
