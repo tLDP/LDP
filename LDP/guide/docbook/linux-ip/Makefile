@@ -53,8 +53,8 @@ print:  dvi
 	dvips -o ${OUTPUT}/${BASE}.ps ${OUTPUT}/${BASE}.dvi
 
 distro: aindex html html-nochunk print
-	( cd .. ; tar --create --compress --verbose --exclude \*CVS \
-          --file ${OUTPUT}/${BASE}-docbook.tar.gz ${BASE} )
+	( cd .. ; tar --create --compress --dereference --exclude \*CVS \
+          --verbose --file ${OUTPUT}/${BASE}-docbook.tar.gz ${BASE}/ )
 	( cd ${OUTPUT} ; tar --create --compress --verbose --exclude \*CVS \
           --exclude html/linux-ip.html --file ${BASE}-chunk-html.tar.gz html )
 	( cd ${OUTPUT} ; tar --create --compress --verbose --exclude \*CVS \
