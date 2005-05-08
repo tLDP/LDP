@@ -1,5 +1,5 @@
 #!/bin/bash
-# burn-cd.sh
+# ex40.sh (burn-cd.sh)
 # Script to automate burning a CDR.
 
 
@@ -7,7 +7,7 @@ SPEED=2          # May use higher speed if your hardware supports it.
 IMAGEFILE=cdimage.iso
 CONTENTSFILE=contents
 DEVICE=cdrom
-# DEVICE="0,0"     for older versions of cdrecord
+# DEVICE="0,0"     For older versions of cdrecord
 DEFAULTDIR=/opt  # This is the directory containing the data to be burned.
                  # Make sure it exists.
                  # Exercise: Add a test for this.
@@ -15,7 +15,7 @@ DEFAULTDIR=/opt  # This is the directory containing the data to be burned.
 # Uses Joerg Schilling's "cdrecord" package:
 # http://www.fokus.fhg.de/usr/schilling/cdrecord.html
 
-#  If this script invoked as an ordinary user, need to suid cdrecord
+#  If this script invoked as an ordinary user, may need to suid cdrecord
 #+ chmod u+s /usr/bin/cdrecord, as root.
 #  Of course, this creates a security hole, though a relatively minor one.
 
@@ -39,8 +39,8 @@ mkisofs -r -o $IMAGEFILE $IMAGE_DIRECTORY
 echo "Creating ISO9660 file system image ($IMAGEFILE)."
 
 # Burn the CDR.
-cdrecord -v -isosize speed=$SPEED dev=$DEVICE $IMAGEFILE
 echo "Burning the disk."
 echo "Please be patient, this will take a while."
+cdrecord -v -isosize speed=$SPEED dev=$DEVICE $IMAGEFILE
 
-exit 0
+exit $?

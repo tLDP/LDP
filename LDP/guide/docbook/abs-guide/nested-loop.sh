@@ -1,5 +1,5 @@
 #!/bin/bash
-# Nested "for" loops.
+# nested-loop.sh: Nested "for" loops.
 
 outer=1             # Set outer loop counter.
 
@@ -10,6 +10,7 @@ do
   echo "---------------------"
   inner=1           # Reset inner loop counter.
 
+  # ===============================================
   # Beginning of inner loop.
   for b in 1 2 3 4 5
   do
@@ -17,9 +18,10 @@ do
     let "inner+=1"  # Increment inner loop counter.
   done
   # End of inner loop.
+  # ===============================================
 
   let "outer+=1"    # Increment outer loop counter. 
-  echo              # Space between output in pass of outer loop.
+  echo              # Space between output blocks in pass of outer loop.
 done               
 # End of outer loop.
 

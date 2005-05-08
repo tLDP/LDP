@@ -77,11 +77,11 @@ randomBetween() {
    fi
 
    #  ---------------------------------------------------------------------
-   #  Now do the real work.
+   #  Now, to do the real work.
 
-   #  Note that to get a proper distribution for the end points, the
-   #+ range of random values has to be allowed to go between 0 and
-   #+ abs(max-min)+divisibleBy, not just abs(max-min)+1.
+   #  Note that to get a proper distribution for the end points,
+   #+ the range of random values has to be allowed to go between
+   #+ 0 and abs(max-min)+divisibleBy, not just abs(max-min)+1.
 
    #  The slight increase will produce the proper distribution for the
    #+ end points.

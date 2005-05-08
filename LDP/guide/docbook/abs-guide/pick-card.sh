@@ -1,7 +1,7 @@
 #!/bin/bash
 # pick-card.sh
 
-# This is an example of choosing a random element of an array.
+# This is an example of choosing random elements of an array.
 
 
 # Pick a card, any card.
@@ -24,6 +24,9 @@ Jack
 Queen
 King
 Ace"
+
+# Note variables spread over multiple lines.
+
 
 suite=($Suites)                # Read into array variable.
 denomination=($Denominations)

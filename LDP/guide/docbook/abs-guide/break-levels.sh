@@ -7,6 +7,7 @@ for outerloop in 1 2 3 4 5
 do
   echo -n "Group $outerloop:   "
 
+  # --------------------------------------------------------
   for innerloop in 1 2 3 4 5
   do
     echo -n "$innerloop "
@@ -17,6 +18,7 @@ do
              # ("Breaks" out of both inner and outer loops.)
     fi
   done
+  # --------------------------------------------------------
 
   echo
 done  

@@ -6,7 +6,7 @@
 
 # Does bash permit recursion?
 # Well, yes, but...
-# You gotta have rocks in your head to try it.
+# It's so slow that you gotta have rocks in your head to try it.
 
 
 MAX_ARG=5
@@ -23,23 +23,23 @@ fi
 if [ "$1" -gt $MAX_ARG ]
 then
   echo "Out of range (5 is maximum)."
-  # Let's get real now.
-  # If you want greater range than this,
-  # rewrite it in a real programming language.
+  #  Let's get real now.
+  #  If you want greater range than this,
+  #+ rewrite it in a Real Programming Language.
   exit $E_RANGE_ERR
 fi  
 
 fact ()
 {
   local number=$1
-  # Variable "number" must be declared as local,
-  # otherwise this doesn't work.
+  #  Variable "number" must be declared as local,
+  #+ otherwise this doesn't work.
   if [ "$number" -eq 0 ]
   then
     factorial=1    # Factorial of 0 = 1.
   else
     let "decrnum = number - 1"
-    fact $decrnum  # Recursive function call.
+    fact $decrnum  # Recursive function call (the function calls itself).
     let "factorial = $number * $?"
   fi
 

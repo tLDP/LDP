@@ -1,7 +1,7 @@
 #!/bin/bash
-# mail-format.sh: Format e-mail messages.
+# mail-format.sh (ver. 1.1): Format e-mail messages.
 
-# Gets rid of carets, tabs, also fold excessively long lines.
+# Gets rid of carets, tabs, and also folds excessively long lines.
 
 # =================================================================
 #                 Standard Check for Script Argument(s)
@@ -24,20 +24,25 @@ else
 fi
 # =================================================================
 
-MAXWIDTH=70          # Width to fold long lines to.
+MAXWIDTH=70          # Width to fold excessively long lines to.
+
+# ---------------------------------
+# A variable can hold a sed script.
+sedscript='s/^>//
+s/^  *>//
+s/^  *//
+s/		*//'
+# ---------------------------------
 
 #  Delete carets and tabs at beginning of lines,
 #+ then fold lines to $MAXWIDTH characters.
-sed '
-s/^>//
-s/^  *>//
-s/^  *//
-s/		*//
-' $1 | fold -s --width=$MAXWIDTH
-          # -s option to "fold" breaks lines at whitespace, if possible.
+sed "$sedscript" $1 | fold -s --width=$MAXWIDTH
+                        #  -s option to "fold"
+                        #+ breaks lines at whitespace, if possible.
+
 
 #  This script was inspired by an article in a well-known trade journal
-#+ extolling a 164K Windows utility with similar functionality.
+#+ extolling a 164K MS Windows utility with similar functionality.
 #
 #  An nice set of text processing utilities and an efficient
 #+ scripting language provide an alternative to bloated executables.

@@ -10,9 +10,11 @@ else
   # At least one of the chained commands returns false.
 fi  
 # Note that "if [ ! -z $1 ]" works, but its supposed equivalent,
-#  if [ -n $1 ] does not. However, quoting fixes this.
-#  if [ -n "$1" ] works.  Careful!
-# It is best to always quote tested variables.
+#   if [ -n $1 ] does not.
+#     However, quoting fixes this.
+#  if [ -n "$1" ] works.
+#     Careful!
+# It is always best to QUOTE tested variables.
 
 
 # This accomplishes the same thing, using "pure" if/then statements.

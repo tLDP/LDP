@@ -28,8 +28,8 @@ wait
 
 locate $1
 
-# Without the wait command, in the worse case scenario,
-# the script would exit while 'updatedb' was still running,
-# leaving it as an orphan process.
+#  Without the 'wait' command, in the worse case scenario,
+#+ the script would exit while 'updatedb' was still running,
+#+ leaving it as an orphan process.
 
 exit 0

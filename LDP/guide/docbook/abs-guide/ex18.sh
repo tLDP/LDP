@@ -4,7 +4,7 @@
 # Does a 'whois domain-name' lookup on any of 3 alternate servers:
 #                    ripe.net, cw.net, radb.net
 
-# Place this script, named 'wh' in /usr/local/bin
+# Place this script -- renamed 'wh' -- in /usr/local/bin
 
 # Requires symbolic links:
 # ln -s /usr/local/bin/wh /usr/local/bin/wh-ripe
@@ -21,7 +21,7 @@ then
 fi
 
 # Check script name and call proper server.
-case `basename $0` in # Or:    case ${0##*/} in
+case `basename $0` in    # Or:    case ${0##*/} in
     "wh"     ) whois $1@whois.ripe.net;;
     "wh-ripe") whois $1@whois.ripe.net;;
     "wh-radb") whois $1@whois.radb.net;;
@@ -29,4 +29,4 @@ case `basename $0` in # Or:    case ${0##*/} in
     *        ) echo "Usage: `basename $0` [domain-name]";;
 esac 
 
-exit 0
+exit $?

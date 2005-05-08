@@ -5,6 +5,7 @@ for outer in I II III IV V           # outer loop
 do
   echo; echo -n "Group $outer: "
 
+  # --------------------------------------------------------------------
   for inner in 1 2 3 4 5 6 7 8 9 10  # inner loop
   do
 
@@ -17,6 +18,7 @@ do
 
     echo -n "$inner "  # 7 8 9 10 will never echo.
   done  
+  # --------------------------------------------------------------------
 
 done
 

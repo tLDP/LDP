@@ -86,6 +86,9 @@ status_report    # Last-in, first-out!
 #+ and increments with each pop.
 
 echo
+
+exit 0
+
 # =======================================================
 
 
@@ -98,7 +101,10 @@ echo
 # 2)  Modify the "pop()" function to permit popping
 #   + multiple element from the stack with a single function call.
 
-# 3)  Using this script as a starting point,
-#   + write a stack-based 4-function calculator.
+# 3)  Add error checking to the critical functions.
+#     That is, return an error code, depending on
+#   + successful or unsuccessful completion of the operation,
+#   + and take appropriate action.
 
-exit 0
+# 4)  Using this script as a starting point,
+#   + write a stack-based 4-function calculator.

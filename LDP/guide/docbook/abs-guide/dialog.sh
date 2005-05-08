@@ -1,6 +1,7 @@
 #!/bin/bash
 # dialog.sh: Using 'gdialog' widgets.
 # Must have 'gdialog' installed on your system to run this script.
+# Version 1.1 (corrected 04/05/05)
 
 # This script was inspired by the following article.
 #     "Scripting for X Productivity," by Marco Fioretti,
@@ -21,9 +22,9 @@ OUTFILE=$0.output
 gdialog --title "Displaying: $0" --textbox $0 $HEIGHT $WIDTH
 
 
+
 # Now, we'll try saving input in a file.
-echo -n "VARIABLE=\"" > $OUTFILE   # Quote it, in case of whitespace
-                                   #+ in the input.
+echo -n "VARIABLE=" > $OUTFILE
 gdialog --title "User Input" --inputbox "Enter variable, please:" \
 $HEIGHT $WIDTH 2>> $OUTFILE
 
@@ -40,16 +41,13 @@ else
 fi
 
 
-echo -n "\"" >> $OUTFILE           # End quotes on saved variable.
-#  This command stuck down here in order not to mess up
-#+ exit status, above.
-
 
 # Now, we'll retrieve and display the saved variable.
 . $OUTFILE   # 'Source' the saved file.
 echo "The variable input in the \"input box\" was: "$VARIABLE""
 
+
 rm $OUTFILE  # Clean up by removing the temp file.
              # Some applications may need to retain this file.
 
-exit 0
+exit $?

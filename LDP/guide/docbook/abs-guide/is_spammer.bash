@@ -2161,3 +2161,12 @@ most of the functions required within the
 "is_spammer.bash" script.
 
 # End Quickstart.
+
+
+
+Additional Note
+========== ====
+
+Michael Zick points out that there is a "makeviz.bash" interactive
+Web site at rediris.es. Can't give the full URL, since this is not
+a publically accessible site.

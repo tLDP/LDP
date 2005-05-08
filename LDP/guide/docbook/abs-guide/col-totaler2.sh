@@ -2,7 +2,7 @@
 
 #  Another version of the "column totaler" script
 #+ that adds up a specified column (of numbers) in the target file.
-#  This uses indirect references.
+#  This one uses indirect references.
 
 ARGS=2
 E_WRONGARGS=65
@@ -37,7 +37,7 @@ END {
 # End awk script.
 
 #  Indirect variable reference avoids the hassles
-#+  of referencing a shell variable within the embedded awk script.
+#+ of referencing a shell variable within the embedded awk script.
 #  Thanks, Stephane Chazelas.
 
 

@@ -22,6 +22,7 @@ echo "hexadecimal number = $hex"         # 50
 # BASE between 2 and 64.
 # NUMBER must use symbols within the BASE range, see below.
 
+
 let "bin = 2#111100111001101"
 echo "binary number = $bin"              # 31181
 
@@ -30,9 +31,9 @@ echo "base-32 number = $b32"             # 231
 
 let "b64 = 64#@_"
 echo "base-64 number = $b64"             # 4031
-#
-# This notation only works for a limited range (2 - 64)
+# This notation only works for a limited range (2 - 64) of ASCII characters.
 # 10 digits + 26 lowercase characters + 26 uppercase characters + @ + _
+
 
 echo
 
@@ -43,11 +44,11 @@ echo $((36#zz)) $((2#10101010)) $((16#AF16)) $((53#1aA))
 #  Important note:
 #  --------------
 #  Using a digit out of range of the specified base notation
-#+ will give an error message.
+#+ gives an error message.
 
 let "bad_oct = 081"
-# Error message output:
-# numbers.sh: let: oct = 081: value too great for base (error token is "081")
-#             Octal numbers use only digits in the range 0 - 7.
+# (Partial) error message output:
+#  bad_oct = 081: value too great for base (error token is "081")
+#              Octal numbers use only digits in the range 0 - 7.
 
 exit 0       # Thanks, Rich Bartell and Stephane Chazelas, for clarification.

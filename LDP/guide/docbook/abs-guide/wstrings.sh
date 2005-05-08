@@ -6,7 +6,7 @@
 #  This effectively eliminates gibberish and noise,
 #+ and outputs only recognized words.
 
-# =================================================================
+# ===========================================================
 #                 Standard Check for Script Argument(s)
 ARGS=1
 E_BADARGS=65
@@ -23,7 +23,7 @@ then
     echo "File \"$1\" does not exist."
     exit $E_NOFILE
 fi
-# =================================================================
+# ===========================================================
 
 
 MINSTRLEN=3                           #  Minimum string length.
@@ -48,14 +48,16 @@ tr -cs '[:alpha:]' Z | tr -s '\173-\377' Z | tr Z ' '`
 #  Finally, "tr Z ' '" converts all those Z's to whitespace,
 #+ which will be seen as word separators in the loop below.
 
+#  ****************************************************************
 #  Note the technique of feeding the output of 'tr' back to itself,
 #+ but with different arguments and/or options on each pass.
+#  ****************************************************************
 
 
 for word in $wlist                    # Important:
                                       # $wlist must not be quoted here.
                                       # "$wlist" does not work.
-                                      # Why?
+                                      # Why not?
 do
 
   strlen=${#word}                     # String length.
@@ -71,4 +73,4 @@ do
 done  
 
 
-exit 0
+exit $?

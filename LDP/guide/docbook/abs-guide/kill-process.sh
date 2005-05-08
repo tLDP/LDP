@@ -23,7 +23,7 @@ fi
 kill $t                  # May need 'kill -9' for stubborn process.
 
 # Need a check here to see if process allowed itself to be killed.
-# Perhaps another " t=`pidof $process` ".
+# Perhaps another " t=`pidof $process` " or ...
 
 
 # This entire script could be replaced by

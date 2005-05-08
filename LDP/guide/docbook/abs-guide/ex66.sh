@@ -5,21 +5,23 @@ area[11]=23
 area[13]=37
 area[51]=UFOs
 
-# Array members need not be consecutive or contiguous.
+#  Array members need not be consecutive or contiguous.
 
-# Some members of the array can be left uninitialized.
-# Gaps in the array are o.k.
+#  Some members of the array can be left uninitialized.
+#  Gaps in the array are okay.
+#  In fact, arrays with sparse data ("sparse arrays")
+#+ are useful in spreadsheet-processing software.
 
 
 echo -n "area[11] = "
-echo ${area[11]}    #  {curly brackets} needed
+echo ${area[11]}    #  {curly brackets} needed.
 
 echo -n "area[13] = "
 echo ${area[13]}
 
 echo "Contents of area[51] are ${area[51]}."
 
-# Contents of uninitialized array variable print blank.
+# Contents of uninitialized array variable print blank (null variable).
 echo -n "area[43] = "
 echo ${area[43]}
 echo "(area[43] unassigned)"

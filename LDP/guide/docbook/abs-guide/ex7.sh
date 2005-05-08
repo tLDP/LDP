@@ -8,7 +8,7 @@ echo "var1 (with everything, up to and including first - stripped out) = $t"
 #  t=${var1#*-}  works just the same,
 #+ since # matches the shortest string,
 #+ and * matches everything preceding, including an empty string.
-# (Thanks, S. C. for pointing this out.)
+# (Thanks, Stephane Chazelas, for pointing this out.)
 
 t=${var1##*-*}
 echo "If var1 contains a \"-\", returns empty string...   var1 = $t"

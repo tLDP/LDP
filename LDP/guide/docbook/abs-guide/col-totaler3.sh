@@ -2,7 +2,9 @@
 
 #  Yet another version of the "column totaler" script (col-totaler.sh)
 #+ that adds up a specified column (of numbers) in the target file.
-#  This uses the environment to pass a script variable to 'awk'.
+#  This uses the environment to pass a script variable to 'awk' . . .
+#+ and places the awk script in a variable.
+
 
 ARGS=2
 E_WRONGARGS=65
@@ -22,14 +24,14 @@ export column_number
 # Export column number to environment, so it's available for retrieval.
 
 
-# Begin awk script.
-# ------------------------------------------------
-awk '{ total += $ENVIRON["column_number"]
-}
-END { print total }' $filename
-# ------------------------------------------------
-# End awk script.
+# -----------------------------------------------
+awkscript='{ total += $ENVIRON["column_number"] }
+END { print total }'
+# Yes, a variable can hold an awk script.
+# -----------------------------------------------
 
+# Now, run the awk script.
+awk "$awkscript" "$filename"
 
 # Thanks, Stephane Chazelas.
 

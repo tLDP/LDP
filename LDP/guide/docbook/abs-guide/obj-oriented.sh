@@ -2,6 +2,12 @@
 # obj-oriented.sh: Object-oriented programming in a shell script.
 # Script by Stephane Chazelas.
 
+#  Important Note:
+#  --------- ----
+#  If running this script under version 3 or later of Bash,
+#+ replace all periods in function names with a "legal" character,
+#+ for example, an underscore.
+
 
 person.new()        # Looks almost like a class declaration in C++.
 {

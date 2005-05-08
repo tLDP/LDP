@@ -1,5 +1,5 @@
 #!/bin/bash
-# Invoke with command line parameter to exercise last section of this script.
+# alias.sh
 
 shopt -s expand_aliases
 # Must set this option, else script will not expand aliases.
@@ -20,7 +20,7 @@ ll /usr/X11R6/bin/mk*   #* Alias works.
 echo
 
 directory=/usr/X11R6/bin/
-prefix=mk*  # See if wild-card causes problems.
+prefix=mk*  # See if wild card causes problems.
 echo "Variables \"directory\" + \"prefix\" = $directory$prefix"
 echo
 
@@ -28,7 +28,7 @@ alias lll="ls -l $directory$prefix"
 
 echo "Trying aliased \"lll\":"
 lll         # Long listing of all files in /usr/X11R6/bin stating with mk.
-# Alias handles concatenated variables, including wild-card o.k.
+# An alias can handle concatenated variables -- including wild card -- o.k.
 
 
 

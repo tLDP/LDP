@@ -20,6 +20,14 @@ URL='http://finance.yahoo.com/q?s='
 wget -O ${stock_symbol}${file_suffix} "${URL}${stock_symbol}"
 # -----------------------------------------------------------
 
+
+# To look up stuff on http://search.yahoo.com:
+# -----------------------------------------------------------
+# URL="http://search.yahoo.com/search?fr=ush-news&amp;p=${query}"
+# wget -O "$savefilename" "${URL}"
+# -----------------------------------------------------------
+# Saves a list of relevant URLs.
+
 exit $?
 
 # Exercises:

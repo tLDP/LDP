@@ -1,9 +1,9 @@
 #!/bin/bash
-# blot-out.sh: Erase all traces of a file.
+# blot-out.sh: Erase "all" traces of a file.
 
 #  This script overwrites a target file alternately
 #+ with random bytes, then zeros before finally deleting it.
-#  After that, even examining the raw disk sectors
+#  After that, even examining the raw disk sectors by conventional methods
 #+ will not reveal the original file data.
 
 PASSES=7         #  Number of file-shredding passes.
@@ -80,7 +80,7 @@ exit 0
 #+ sophisticated forensic analysis.
 
 #  This script may not play well with a journaled file system.
-#  Exercise: Fix it so it does.
+#  Exercise (difficult): Fix it so it does.
 
 
 

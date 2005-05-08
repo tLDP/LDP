@@ -21,3 +21,6 @@ popd
 echo "Now back in original working directory `pwd`."
 
 exit 0
+
+# What happens if you don't 'popd' -- then exit the script?
+# Which directory do you end up in? Why?

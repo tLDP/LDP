@@ -23,9 +23,9 @@
 
   # ==> The end result is this backs up the main directories, from / on down.
 
-  # ==> What are the advantages of a "named pipe" in this situation,
-  # ==> as opposed to an "anonymous pipe", with |?
-  # ==> Will an anonymous pipe even work here?
+  # ==>  What are the advantages of a "named pipe" in this situation,
+  # ==>+ as opposed to an "anonymous pipe", with |?
+  # ==>  Will an anonymous pipe even work here?
 
 
   exit 0

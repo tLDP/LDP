@@ -11,12 +11,12 @@ while [ $a -le "$LIMIT" ]
 do
  a=$(($a+1))
 
- if [ "$a" -eq 3 ] || [ "$a" -eq 11 ]  # Excludes 3 and 11
+ if [ "$a" -eq 3 ] || [ "$a" -eq 11 ]  # Excludes 3 and 11.
  then
-   continue  # Skip rest of this particular loop iteration.
+   continue      # Skip rest of this particular loop iteration.
  fi
 
- echo -n "$a "
+ echo -n "$a "   # This will not execute for 3 and 11.
 done 
 
 # Exercise:

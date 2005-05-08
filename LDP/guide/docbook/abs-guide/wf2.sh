@@ -39,6 +39,6 @@ sort | uniq -c | sort -nr
 ########################################################
 
 #  This does the same job as the "wf.sh" example,
-#+ but a bit more ponderously, and it runs more slowly.
+#+ but a bit more ponderously, and it runs more slowly (why?).
 
 exit 0

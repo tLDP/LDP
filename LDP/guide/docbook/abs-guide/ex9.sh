@@ -58,9 +58,9 @@ echo "\$hello (null value) = $hello"
 #+ if separated by white space.
 #  Caution, this may reduce legibility, and may not be portable.
 
-var1=variable1  var2=variable2  var3=variable3
+var1=21  var2=22  var3=$V3
 echo
-echo "var1=$var1   var2=$var2  var3=$var3"
+echo "var1=$var1   var2=$var2   var3=$var3"
 
 # May cause problems with older versions of "sh".
 
@@ -72,7 +72,8 @@ numbers="one two three"
 #           ^   ^
 other_numbers="1 2 3"
 #               ^ ^
-# If there is whitespace within a variable, then quotes are necessary.
+#  If there is whitespace embedded within a variable,
+#+ then quotes are necessary.
 echo "numbers = $numbers"
 echo "other_numbers = $other_numbers"   # other_numbers = 1 2 3
 echo

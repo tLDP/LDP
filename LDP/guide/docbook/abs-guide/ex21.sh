@@ -26,6 +26,7 @@ echo
 
 number=$RANDOM
 let "number %= $RANGE"
+#           ^^
 echo "Random number less than $RANGE  ---  $number"
 
 echo
@@ -44,7 +45,7 @@ echo "Random number greater than $FLOOR ---  $number"
 echo
 
 
-# May combine above two techniques to retrieve random number between two limits.
+# Combine above two techniques to retrieve random number between two limits.
 number=0   #initialize
 while [ "$number" -le $FLOOR ]
 do
@@ -57,8 +58,8 @@ echo
 
 # Generate binary choice, that is, "true" or "false" value.
 BINARY=2
-number=$RANDOM
 T=1
+number=$RANDOM
 
 let "number %= $BINARY"
 #  Note that    let "number >>= 14"    gives a better random distribution
@@ -84,6 +85,8 @@ die2=0
 
     let "die1 = $RANDOM % $SPOTS +1" # Roll first one.
     let "die2 = $RANDOM % $SPOTS +1" # Roll second one.
+    #  Which arithmetic operation, above, has greater precedence --
+    #+ modulo (%) or addition (+)?
 
 let "throw = $die1 + $die2"
 echo "Throw of the dice = $throw"

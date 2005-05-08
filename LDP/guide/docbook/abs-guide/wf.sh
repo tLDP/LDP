@@ -51,4 +51,5 @@ exit 0
 # ---------
 # 1) Add 'sed' commands to filter out other punctuation,
 #+   such as semicolons.
-# 2) Modify to also filter out multiple spaces and other whitespace.
+# 2) Modify the script to also filter out multiple spaces and
+#    other whitespace.

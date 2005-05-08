@@ -1,9 +1,5 @@
 #!/bin/bash
-
-#                 rfe
-#                 ---
-
-# Renaming file extensions.
+# rfe.sh: Renaming file extensions.
 #
 #         rfe old_extension new_extension
 #
@@ -11,14 +7,16 @@
 # To rename all *.gif files in working directory to *.jpg,
 #          rfe gif jpg
 
-ARGS=2
+
 E_BADARGS=65
 
-if [ $# -ne "$ARGS" ]
-then
+case $# in
+  0|1)             # The vertical bar means "or" in this context.
   echo "Usage: `basename $0` old_file_suffix new_file_suffix"
-  exit $E_BADARGS
-fi
+  exit $E_BADARGS  # If 0 or 1 arg, then bail out.
+  ;;
+esac
+
 
 for filename in *.$1
 # Traverse list of files ending with 1st argument.

@@ -2,7 +2,7 @@
 # prepend.sh: Add text at beginning of file.
 #
 #  Example contributed by Kenny Stauffer,
-#  and slightly modified by document author.
+#+ and slightly modified by document author.
 
 
 E_NOSUCHFILE=65
@@ -21,7 +21,7 @@ echo "Modified file is $file.new"
 
 exit 0
 
-# from "man bash"
+# from 'man bash':
 # Here Strings
 # 	A variant of here documents, the format is:
 # 
