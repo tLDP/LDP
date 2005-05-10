@@ -19,7 +19,7 @@
 
 ;; ------------------------------------------------------------------------
 ;; ldp.dsl - LDP Customized DSSSL Stylesheet
-;; v1.11, 2003-02-03
+;; v1.12, 2003-03-19
 ;; Copyright (C) 2000-2003
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -116,6 +116,7 @@
         (normalize "edition")
         (normalize "pubdate")
         (normalize "copyright")
+        (normalize "isbn")
         (normalize "abstract")
         (normalize "legalnotice")
         (normalize "revhistory")))
@@ -141,6 +142,10 @@
 (declare-flow-object-class element
   ;; for redhat
   "UNREGISTERED::James Clark//Flow Object Class::element")
+
+(define %html-pubid%
+  ;; put the public identifier in each HTML file
+  "-//W3C//DTD HTML 4.0 Transitional//EN")
 
 (define %generate-legalnotice-link%
   ;; put the legal notice in a separate file
@@ -232,6 +237,7 @@
         (normalize "authorgroup")
         (normalize "author")
         (normalize "othercredit")
+        (normalize "contrib")
         (normalize "edition")
         (normalize "releaseinfo")
         (normalize "publisher")
