@@ -13,15 +13,14 @@
 	kernel module which is in memory anyway.</para>
 
 	<indexterm><primary>task</primary></indexterm>
-	<indexterm><primary>tq_struct</primary></indexterm>
-	<indexterm><primary>queue_task</primary></indexterm>
-	<indexterm><primary>tq_timer</primary></indexterm>
+	<indexterm><primary>workqueue_struct</primary></indexterm>
+	<indexterm><primary>queue_delayed_work</primary></indexterm>
 
 	<para>Instead of doing that, we can create a function that will be called once for every timer interrupt.  The way we do this
-	is we create a task, held in a <structname>tq_struct</structname> structure, which will hold a pointer to the function.  Then,
-	we use <function>queue_task</function> to put that task on a task list called <structname>tq_timer</structname>, which is the
-	list of tasks to be executed on the next timer interrupt.  Because we want the function to keep on being executed, we need to
-	put it back on <structname>tq_timer</structname> whenever it is called, for the next timer interrupt.</para>
+	is we create a task, held in a <structname>workqueue_struct</structname> structure, which will hold a pointer to the function.  Then,
+	we use <function>queue_delayed_work</function> to put that task on a task list called <structname>my_workqueue</structname>, 
+	which is the list of tasks to be executed on the next timer interrupt.  Because we want the function to keep on being executed,
+	we need to put it back on <structname>my_workqueue</structname> whenever it is called, for the next timer interrupt.</para>
 
 	<indexterm><primary>rmmod</primary></indexterm>
 	<indexterm><primary>reference count</primary></indexterm>
@@ -29,22 +28,8 @@
 
 	<para>There's one more point we need to remember here.  When a module is removed by <command>rmmod</command>, first its
 	reference count is checked.  If it is zero, <function>module_cleanup</function> is called.  Then, the module is removed from
-	memory with all its functions.  Nobody checks to see if the timer's task list happens to contain a pointer to one of those
-	functions, which will no longer be available.  Ages later (from the computer's perspective, from a human perspective it's
-	nothing, less than a hundredth of a second), the kernel has a timer interrupt and tries to call the function on the task list.
-	Unfortunately, the function is no longer there.  In most cases, the memory page where it sat is unused, and you get an ugly
-	error message.  But if some other code is now sitting at the same memory location, things could get <emphasis>very</emphasis>
-	ugly.  Unfortunately, we don't have an easy way to unregister a task from a task list.</para>
-
-	<indexterm><primary>sleep_on</primary></indexterm>
-	<indexterm><primary>module_sleep_on</primary></indexterm>
-
-	<para>Since <function>cleanup_module</function> can't return with an error code (it's a void function), the solution is to not
-	let it return at all.  Instead, it calls <function>sleep_on</function> or
-	<function>module_sleep_on</function><footnote><para>They're really the same.</para></footnote> to put the
-	<command>rmmod</command> process to sleep.  Before that, it informs the function called on the timer interrupt to stop
-	attaching itself by setting a global variable.  Then, on the next timer interrupt, the <command>rmmod</command> process will
-	be woken up, when our function is no longer in the queue and it's safe to remove the module.</para>
+	memory with all its functions. Things need to be shut down properly, or bad things will happen. See the code below how
+	this can be done in a safe way.  </para>
 
 	<indexterm><primary>source file</primary><secondary>sched.c</secondary></indexterm>
 

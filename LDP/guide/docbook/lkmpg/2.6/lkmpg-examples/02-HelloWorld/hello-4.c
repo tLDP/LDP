@@ -1,21 +1,21 @@
 /*  
  *  hello-4.c - Demonstrates module documentation.
  */
-#include <linux/module.h>
-#include <linux/kernel.h>
-#include <linux/init.h>
+#include <linux/module.h>	/* Needed by all modules */
+#include <linux/kernel.h>	/* Needed for KERN_INFO */
+#include <linux/init.h>		/* Needed for the macros */
 #define DRIVER_AUTHOR "Peter Jay Salzman <p@dirac.org>"
 #define DRIVER_DESC   "A sample driver"
 
 static int __init init_hello_4(void)
 {
-	printk(KERN_ALERT "Hello, world 4\n");
+	printk(KERN_INFO "Hello, world 4\n");
 	return 0;
 }
 
 static void __exit cleanup_hello_4(void)
 {
-	printk(KERN_ALERT "Goodbye, world 4\n");
+	printk(KERN_INFO "Goodbye, world 4\n");
 }
 
 module_init(init_hello_4);

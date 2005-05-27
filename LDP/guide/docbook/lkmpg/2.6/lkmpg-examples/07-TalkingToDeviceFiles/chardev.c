@@ -36,7 +36,7 @@ static char *Message_Ptr;
 static int device_open(struct inode *inode, struct file *file)
 {
 #ifdef DEBUG
-	printk("device_open(%p)\n", file);
+	printk(KERN_INFO "device_open(%p)\n", file);
 #endif
 
 	/* 
@@ -57,7 +57,7 @@ static int device_open(struct inode *inode, struct file *file)
 static int device_release(struct inode *inode, struct file *file)
 {
 #ifdef DEBUG
-	printk("device_release(%p,%p)\n", inode, file);
+	printk(KERN_INFO "device_release(%p,%p)\n", inode, file);
 #endif
 
 	/* 
@@ -85,7 +85,7 @@ static ssize_t device_read(struct file *file,	/* see include/linux/fs.h   */
 	int bytes_read = 0;
 
 #ifdef DEBUG
-	printk("device_read(%p,%p,%d)\n", file, buffer, length);
+	printk(KERN_INFO "device_read(%p,%p,%d)\n", file, buffer, length);
 #endif
 
 	/* 
@@ -113,7 +113,7 @@ static ssize_t device_read(struct file *file,	/* see include/linux/fs.h   */
 	}
 
 #ifdef DEBUG
-	printk("Read %d bytes, %d left\n", bytes_read, length);
+	printk(KERN_INFO "Read %d bytes, %d left\n", bytes_read, length);
 #endif
 
 	/* 
@@ -134,7 +134,7 @@ device_write(struct file *file,
 	int i;
 
 #ifdef DEBUG
-	printk("device_write(%p,%s,%d)", file, buffer, length);
+	printk(KERN_INFO "device_write(%p,%s,%d)", file, buffer, length);
 #endif
 
 	for (i = 0; i < length && i < BUF_LEN; i++)
@@ -247,20 +247,20 @@ int init_module()
 	 * Negative values signify an error 
 	 */
 	if (ret_val < 0) {
-		printk("%s failed with %d\n",
+		printk(KERN_ALERT "%s failed with %d\n",
 		       "Sorry, registering the character device ", ret_val);
 		return ret_val;
 	}
 
-	printk("%s The major device number is %d.\n",
+	printk(KERN_INFO "%s The major device number is %d.\n",
 	       "Registeration is a success", MAJOR_NUM);
-	printk("If you want to talk to the device driver,\n");
-	printk("you'll have to create a device file. \n");
-	printk("We suggest you use:\n");
-	printk("mknod %s c %d 0\n", DEVICE_FILE_NAME, MAJOR_NUM);
-	printk("The device file name is important, because\n");
-	printk("the ioctl program assumes that's the\n");
-	printk("file you'll use.\n");
+	printk(KERN_INFO "If you want to talk to the device driver,\n");
+	printk(KERN_INFO "you'll have to create a device file. \n");
+	printk(KERN_INFO "We suggest you use:\n");
+	printk(KERN_INFO "mknod %s c %d 0\n", DEVICE_FILE_NAME, MAJOR_NUM);
+	printk(KERN_INFO "The device file name is important, because\n");
+	printk(KERN_INFO "the ioctl program assumes that's the\n");
+	printk(KERN_INFO "file you'll use.\n");
 
 	return 0;
 }
@@ -281,5 +281,5 @@ void cleanup_module()
 	 * If there's an error, report it 
 	 */
 	if (ret < 0)
-		printk("Error in module_unregister_chrdev: %d\n", ret);
+		printk(KERN_ALERT "Error: unregister_chrdev: %d\n", ret);
 }

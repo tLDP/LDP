@@ -76,10 +76,8 @@ procfile_read(char *buffer,
 	 */
 	static char my_buffer[80];
 
-	static int count = 1;
-
 	/* 
-	 * We give all of our information in one go, so if the anybody asks us
+	 * We give all of our information in one go, so if anybody asks us
 	 * if we have more information the answer should always be no.
 	 */
 	if (offset > 0)
@@ -89,7 +87,6 @@ procfile_read(char *buffer,
 	 * Fill the buffer and get its length 
 	 */
 	len = sprintf(my_buffer, "Timer called %d times so far\n", TimerIntrpt);
-	count++;
 
 	/* 
 	 * Tell the function which called us where the buffer is 
@@ -107,23 +104,18 @@ procfile_read(char *buffer,
  */
 int __init init_module()
 {
-	int rv = 0;
-	/* 
-	 * Put the task in the work_timer task queue, so it will be executed at
-	 * next timer interrupt
+	/*
+	 * Create our /proc file
 	 */
-	my_workqueue = create_workqueue(MY_WORK_QUEUE_NAME);
-	queue_delayed_work(my_workqueue, &Task, 100);
-
 	Our_Proc_File = create_proc_entry(PROC_ENTRY_FILENAME, 0644, NULL);
+	
 	if (Our_Proc_File == NULL) {
-		rv = -ENOMEM;
 		remove_proc_entry(PROC_ENTRY_FILENAME, &proc_root);
-		printk(KERN_INFO "Error: Could not initialize /proc/%s\n",
+		printk(KERN_ALERT "Error: Could not initialize /proc/%s\n",
 		       PROC_ENTRY_FILENAME);
+		return -ENOMEM;
 	}
-	
-	
+
 	Our_Proc_File->read_proc = procfile_read;
 	Our_Proc_File->owner = THIS_MODULE;
 	Our_Proc_File->mode = S_IFREG | S_IRUGO;
@@ -131,7 +123,17 @@ int __init init_module()
 	Our_Proc_File->gid = 0;
 	Our_Proc_File->size = 80;
 
-	return rv;
+	/* 
+	 * Put the task in the work_timer task queue, so it will be executed at
+	 * next timer interrupt
+	 */
+	my_workqueue = create_workqueue(MY_WORK_QUEUE_NAME);
+	queue_delayed_work(my_workqueue, &Task, 100);
+	
+	
+	printk(KERN_INFO "/proc/%s created\n", PROC_ENTRY_FILENAME);
+	
+	return 0;
 }
 
 /* 

@@ -165,10 +165,12 @@ int init_module()
 	Our_Proc_File->gid = 0;
 	Our_Proc_File->size = 80;
 
+	printk(KERN_INFO "/proc/rw_test created\n");
 	return 0;	/* success */
 }
 
 void cleanup_module()
 {
 	remove_proc_entry(PROC_ENTRY_FILENAME, &proc_root);
+	printk(KERN_INFO "/proc/rw_test removed\n");
 }

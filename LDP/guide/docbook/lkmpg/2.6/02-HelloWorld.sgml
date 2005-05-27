@@ -72,51 +72,91 @@
 
 	<indexterm><primary>insmod</primary></indexterm>
 
-	<para>Kernel modules need to be compiled with certain gcc options to make them work. In addition, they also need to be
-	compiled with certain symbols defined. Former kernel versions required us to care much about these settings,
-	which are usually stored in Makefiles. Although hierarchically organized, many redundant settings accumulated in
-	sublevel Makefiles and made them large and rather difficult to maintain.
+	<para>Kernel modules need to be compiled a bit different than regular userspace apps. Former kernel versions required us
+	to care much about these settings, which are usually stored in Makefiles. Although hierarchically organized, many redundant
+	settings accumulated in	sublevel Makefiles and made them large and rather difficult to maintain.
 
-	Fortunately, there is a new way of doing these things, called kbuild, and the build process for external loadable modules is now 
-	fully integrated into the standard kernel build mechanism.  To learn more on how to compile modules which are not part of the
-	official kernel (as ours), see file <filename>linux/Documentation/kbuild/modules.txt</filename>.</para>
+	Fortunately, there is a new way of doing these things, called kbuild, and the build process for external loadable modules 
+	is now fully integrated into the standard kernel build mechanism.  To learn more on how to compile modules which are not
+	part of the official kernel (such as all the examples you'll find in this guide), see file 
+	<filename>linux/Documentation/kbuild/modules.txt</filename>.</para>
 	
 	<para>So, let's look at a simple Makefile for compiling a module named <filename>hello-1.c</filename>:</para>
 
 <example><title>Makefile for a basic kernel module</title><programlisting><inlinegraphic fileref="lkmpg-examples/02-HelloWorld/Makefile.1" format="linespecific"/></inlinegraphic></programlisting></example>
 
-	<para>Now you can compile the module by issuing the command <command> make -C /usr/src/linux-`uname -r` SUBDIRS=$PWD modules </command>.
+	<para>From a technical point of view just the first line is really necessary, 
+	the "all" and "clean" targets were added for pure convenience.</para>
+
+	<para>Now you can compile the module by issuing the command <command> make </command>.
 	You should obtain an output which resembles the following:</para>
 
 	<screen>
-[root@pcsenonsrv test_module]# make -C /usr/src/linux-`uname -r` SUBDIRS=$PWD modules
-make: Entering directory `/usr/src/linux-2.6.x
-  CC [M]  /root/test_module/hello-1.o
-  Building modules, stage 2.
+hostname:~/lkmpg-examples/02-HelloWorld# make
+make -C /lib/modules/2.6.11/build M=/root/lkmpg-examples/02-HelloWorld modules
+make[1]: Entering directory `/usr/src/linux-2.6.11'
+  CC [M]  /root/lkmpg-examples/02-HelloWorld/hello-1.o
+ Building modules, stage 2.
   MODPOST
-  CC      /root/test_module/hello-1.mod.o
-  LD [M]  /root/test_module/hello-1.ko
-make: Leaving directory `/usr/src/linux-2.6.x
+  CC      /root/lkmpg-examples/02-HelloWorld/hello-1.mod.o
+  LD [M]  /root/lkmpg-examples/02-HelloWorld/hello-1.ko
+make[1]: Leaving directory `/usr/src/linux-2.6.11'
+hostname:~/lkmpg-examples/02-HelloWorld#
 	</screen>
 
-	<para>Please note that kernel 2.6 introduces a new file naming convention: kernel modules now have a <filename>.ko</filename> 
-	extension (in place of the old <filename>.o</filename> extension) which easily distinguishes them from conventional object files.
-	Additional details about Makefiles for kernel modules are available in <filename>linux/Documentation/kbuild/makefiles.txt</filename>.
-	Be sure to read this and the related files before starting to dig into Makefiles.</para>
+	<para>Note that kernel 2.6 introduces a new file naming convention: kernel modules now have a <filename>.ko</filename>
+	extension (in place of the old <filename>.o</filename> extension) which easily distinguishes them from conventional object 
+	files. The reason for this is that they contain an additional .modinfo section that where additional information about the
+	module is kept. We'll soon see what this information is good for. </para>
+	 
+	<para> Use <command> modinfo hello-*.ko </command> to see what kind of information it is. </para>
+	
+<screen>
+hostname:~/lkmpg-examples/02-HelloWorld# modinfo hello-1.ko
+filename:       hello-1.ko
+vermagic:       2.6.11 preempt PENTIUMII 4KSTACKS gcc-3.3
+depends:
+</screen>
+
+	<para> Nothing spectacular, so far. That changes once we're using modinfo on one of our the later examples, 
+	<filename> hello-5.ko </filename>. </para>
+	
+<screen>
+hostname:~/lkmpg-examples/02-HelloWorld# modinfo hello-5.ko
+filename:       hello-5.ko
+license:        GPL
+author:         Peter Jay Salzman
+vermagic:       2.6.11 preempt PENTIUMII 4KSTACKS gcc-3.3
+depends:
+parm:           myintArray:An array of integers (array of int)
+parm:           mystring:A character string (charp)
+parm:           mylong:A long integer (long)
+parm:           myint:An integer (int)
+parm:           myshort:A short integer (short)
+hostname:~/lkmpg-examples/02-HelloWorld# 
+</screen>
+
+	<para> Lot's of useful information to see here. An author string for bugreports,
+	license information, even a short description of the parameters it accepts. </para>
+		
+	<para> Additional details about Makefiles for kernel modules are available in 
+	<filename>linux/Documentation/kbuild/makefiles.txt</filename>.
+	Be sure to read this and the related files before starting to hacking Makefiles.
+	It'll probably save you lots of work. </para>
 
 	<para>Now it is time to insert your freshly-compiled module it into the kernel with <command>insmod ./hello-1.ko</command> 
 	(ignore anything you see about tainted kernels; we'll cover that shortly).</para>
 
 	<para>
-	All modules 
-	loaded into the kernel are listed in <filename>/proc/modules</filename>.  Go ahead and cat that file to see that your module
-	is really a part of the kernel.  Congratulations, you are now the author of Linux kernel code!  When the novelty wares off,
+	All modules loaded into the kernel are listed in <filename>/proc/modules</filename>.  
+	Go ahead and cat that file to see that your module is really a part of the kernel.  
+	Congratulations, you are now the author of Linux kernel code!  When the novelty wares off,
 	remove your module from the kernel by using <command>rmmod hello-1</command>.  Take a look at
 	<filename>/var/log/messages</filename> just to see that it got logged to your system logfile.</para>
 
 	<para>Here's another exercise to the reader.  See that comment above the return statement in
-	<function>init_module()</function>?  Change the return value to something non-zero, recompile and load the module again.  What
-	happens?</para>
+	<function>init_module()</function>?  Change the return value to something non-zero, recompile and load the module again. 
+	What happens?</para>
 
 </sect1>
 
@@ -129,8 +169,8 @@ make: Leaving directory `/usr/src/linux-2.6.x
 	<para>As of Linux 2.4, you can rename the init and cleanup functions of your modules; they no longer have to be called
 	<function>init_module()</function> and <function>cleanup_module()</function> respectively.  This is done with the
 	<function>module_init()</function> and <function>module_exit()</function> macros.  These macros are defined in <filename
-	role="header">linux/init.h</filename>.  The only caveat is that your init and cleanup functions must be defined before calling
-	the macros, otherwise you'll get compilation errors.  Here's an example of this technique:</para>
+	role="header">linux/init.h</filename>.  The only caveat is that your init and cleanup functions must be defined before 
+	calling	the macros, otherwise you'll get compilation errors. Here's an example of this technique:</para>
 
 	<indexterm><primary>source file</primary><secondary>hello-2.c</secondary></indexterm>
 
@@ -191,23 +231,21 @@ make: Leaving directory `/usr/src/linux-2.6.x
 
 <sect1><title>Hello World (part 4): Licensing and Module Documentation</title>
 
-	<para>If you're running kernel 2.4 or later, you might have noticed something like this when you loaded the previous example
-	modules:</para>
+	<para>If you're running kernel 2.4 or later, you might have noticed something like this when you loaded	proprietary modules:</para>
 	
 	<screen>
-# insmod hello-3.o
-Warning: loading hello-3.o will taint the kernel: no license
+# insmod xxxxxx.o
+Warning: loading xxxxxx.ko will taint the kernel: no license
   See http://www.tux.org/lkml/#export-tainted for information about tainted modules
-Hello, world 3
-Module hello-3 loaded, with warnings
+Module xxxxxx loaded, with warnings
 	</screen>
 
 	<indexterm><primary><function>MODULE_LICENSE()</function></primary></indexterm>
 
-	<para>In kernel 2.4 and later, a mechanism was devised to identify code licensed under the GPL (and friends) so people can be
-	warned that the code is non open-source.  This is accomplished by the <function>MODULE_LICENSE()</function> macro which is
-	demonstrated in the next piece of code.  By setting the license to GPL, you can keep the warning from being printed.  This
-	license mechanism is defined and documented in <filename role="headerfile">linux/module.h</filename>:
+	<para>In kernel 2.4 and later, a mechanism was devised to identify code licensed under the GPL (and friends) so people can
+	be warned that the code is non open-source. This is accomplished by the <function>MODULE_LICENSE()</function> macro which 
+	is demonstrated in the next piece of code. By setting the license to GPL, you can keep the warning from being printed. 
+	This license mechanism is defined and documented in <filename role="headerfile">linux/module.h</filename>:
 
 <screen>
 /*
@@ -248,10 +286,20 @@ Module hello-3 loaded, with warnings
 	declares what types of devices the module supports.</para>
 
 	<para>These macros are all defined in <filename role="headerfile">linux/module.h</filename> and aren't used by the kernel
-	itself.  They're simply for documentation and can be viewed by a tool like <application>objdump</application>.  As an exercise
-	to the reader, try grepping through <filename role="directory">linux/drivers</filename> to see how module authors use these
-	macros to document their modules.</para>
+	itself.  They're simply for documentation and can be viewed by a tool like <application>objdump</application>.
+	As an exercise to the reader, try and search for this macros in <filename role="directory">linux/drivers</filename> 
+	to see how module authors use these macros to document their modules.</para>
 
+	<para> I'd recommend to use something like <command> grep -inr MODULE_AUTHOR * </command> in 
+	<filename> /usr/src/linux-2.6.x/ </filename>. People unfamiliar with command line tools will probably like
+	some web base solution, search for sites that offer kernel trees that got indexed with LXR. (or setup it up on your 
+	local machine).</para>
+	
+	<para> Users of traditional Unix editors, like <command> emacs </command> or <command> vi </command> will also find 
+	tag files useful. They can be generated by <command> make tags </command> or <command> make TAGS </command> in 
+	<filename> /usr/src/linux-2.6.x/ </filename>. Once you've got such a tagfile in your kerneltree you can put the cursor
+	on some function call and use some key combination to directly jump to the definition function. </para>
+	
 	<indexterm><primary>source file</primary><secondary>hello-4.c</secondary></indexterm>
 
 
@@ -271,9 +319,9 @@ Module hello-3 loaded, with warnings
 	<para>To allow arguments to be passed to your module, declare the variables that will take the values of the command line
 	arguments as global and then use the <functioN>MODULE_PARM()</function> macro, (defined in <filename
 	role="headerfile">linux/module.h</filename>) to set the mechanism up.  At runtime, insmod will fill the variables with any
-	command line arguments that are given, like <command>./insmod mymodule.o myvariable=5</command>.  The variable declarations
-	and macros should be placed at the beginning of the module for clarity.  The example code should clear up my admittedly lousy
-	explanation.</para>
+	command line arguments that are given, like <command>./insmod mymodule.ko myvariable=5</command>.  The variable 
+	declarations and macros should be placed at the beginning of the module for clarity.  The example code should clear up my 
+	admittedly lousy explanation.</para>
 
 	<para>The <function>MODULE_PARM()</function> macro takes 2 arguments: the name of the variable and its type.  The supported
 	variable types are "<literal>b</literal>": single byte, "<literal>h</literal>": short int, "<literal>i</literal>": integer,
@@ -314,7 +362,7 @@ MODULE_PARM (myintArray, "3-9i");
 	<para>I would recommend playing around with this code:</para>
 
 	<screen>
-satan# insmod hello-5.o mystring="bebop" mybyte=255 myintArray=-1
+satan# insmod hello-5.ko mystring="bebop" mybyte=255 myintArray=-1
 mybyte is an 8 bit integer: 255
 myshort is a short integer: 1
 myint is an integer: 20
@@ -325,7 +373,7 @@ myintArray is -1 and 420
 satan# rmmod hello-5
 Goodbye, world 5
 
-satan# insmod hello-5.o mystring="supercalifragilisticexpialidocious" \
+satan# insmod hello-5.ko mystring="supercalifragilisticexpialidocious" \
 > mybyte=256 myintArray=-1,-1
 mybyte is an 8 bit integer: 0
 myshort is a short integer: 1
@@ -337,7 +385,7 @@ myintArray is -1 and -1
 satan# rmmod hello-5
 Goodbye, world 5
 
-satan# insmod hello-5.o mylong=hello
+satan# insmod hello-5.ko mylong=hello
 hello-5.o: invalid argument syntax for mylong: 'h'
 </screen>
 
@@ -350,31 +398,8 @@ hello-5.o: invalid argument syntax for mylong: 'h'
 <sect1><title>Modules Spanning Multiple Files</title>
 
 	<indexterm><primary>source files</primary><secondary>multiple</secondary></indexterm>
-	<indexterm><primary>__NO_VERSION__</primary></indexterm>
-	<indexterm><primary>module.h</primary></indexterm>
-	<indexterm><primary>version.h</primary></indexterm>
-	<indexterm><primary>kernel\_version</primary></indexterm>
-	<indexterm><primary>ld</primary></indexterm>
-	<indexterm><primary>elf_i386</primary></indexterm>
-
-	<para>Sometimes it makes sense to divide a kernel module between several source files.  In this case, you need to:</para>
-
-	<orderedlist>
-
-		<listitem><para>In all the source files but one, add the line <command>#define __NO_VERSION__</command>. This is important
-			because <filename role="headerfile">module.h</filename> normally includes the definition of
-			<varname>kernel_version</varname>, a global variable with the kernel version the module is compiled for.  If you need
-			<filename role="headerfile">version.h</filename>, you need to include it yourself, because <filename
-			role="headerfile">module.h</filename> won't do it for you with <varname>__NO_VERSION__</varname>.</para></listitem>
-
-		<listitem><para>Compile all the source files as usual.</para></listitem>
-
-		<listitem><para>Combine all the object files into a single one.  Under x86, use <command>ld -m elf_i386 -r -o &lt;module
-			name.o&gt; &lt;1st src file.o&gt; &lt;2nd src file.o&gt;</command>.</para></listitem>
-
-	</orderedlist>
-
-	<para>The makefile will, once again, save us from having to get our hands dirty with compiling and linking the object files.</para>
+	
+	<para>Sometimes it makes sense to divide a kernel module between several source files.</para>
 
 	<para>Here's an example of such a kernel module.</para>
 
@@ -393,6 +418,10 @@ hello-5.o: invalid argument syntax for mylong: 'h'
 
 <example><title>Makefile</title><programlisting><inlinegraphic fileref="lkmpg-examples/02-HelloWorld/Makefile" format="linespecific"/></inlinegraphic></programlisting></example>
 
+	<para>This is the complete makefile for all the examples we've seen so far. The first five lines are nothing special,
+	but for the last example we'll need two lines. First we invent an object name for our combined module, second we tell
+	<command> make </command> what object files are part of that module. </para>
+	
 </sect1>
 
 <sect1><title>Building modules for a precompiled kernel</title>
@@ -518,3 +547,4 @@ CC      scripts/empty.o
 <!--
 vim: tw=128
 -->
+

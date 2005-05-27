@@ -28,7 +28,7 @@ static struct workqueue_struct *my_workqueue;
  */
 static void got_char(void *scancode)
 {
-	printk("Scan Code %x %s.\n",
+	printk(KERN_INFO "Scan Code %x %s.\n",
 	       (int)*((char *)scancode) & 0x7F,
 	       *((char *)scancode) & 0x80 ? "Released" : "Pressed");
 }

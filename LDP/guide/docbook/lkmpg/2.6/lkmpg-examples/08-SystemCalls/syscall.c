@@ -112,13 +112,13 @@ int init_module()
 	 * Warning - too late for it now, but maybe for
 	 * next time... 
 	 */
-	printk("I'm dangerous. I hope you did a ");
-	printk("sync before you insmod'ed me.\n");
-	printk("My counterpart, cleanup_module(), is even");
-	printk("more dangerous. If\n");
-	printk("you value your file system, it will ");
-	printk("be \"sync; rmmod\" \n");
-	printk("when you remove this module.\n");
+	printk(KERN_ALERT "I'm dangerous. I hope you did a ");
+	printk(KERN_ALERT "sync before you insmod'ed me.\n");
+	printk(KERN_ALERT "My counterpart, cleanup_module(), is even");
+	printk(KERN_ALERT "more dangerous. If\n");
+	printk(KERN_ALERT "you value your file system, it will ");
+	printk(KERN_ALERT "be \"sync; rmmod\" \n");
+	printk(KERN_ALERT "when you remove this module.\n");
 
 	/* 
 	 * Keep a pointer to the original function in
@@ -133,7 +133,7 @@ int init_module()
 	 * call foo, go to sys_call_table[__NR_foo]. 
 	 */
 
-	printk("Spying on UID:%d\n", uid);
+	printk(KERN_INFO "Spying on UID:%d\n", uid);
 
 	return 0;
 }
@@ -147,10 +147,10 @@ void cleanup_module()
 	 * Return the system call back to normal 
 	 */
 	if (sys_call_table[__NR_open] != our_sys_open) {
-		printk("Somebody else also played with the ");
-		printk("open system call\n");
-		printk("The system may be left in ");
-		printk("an unstable state.\n");
+		printk(KERN_ALERT "Somebody else also played with the ");
+		printk(KERN_ALERT "open system call\n");
+		printk(KERN_ALERT "The system may be left in ");
+		printk(KERN_ALERT "an unstable state.\n");
 	}
 
 	sys_call_table[__NR_open] = original_call;

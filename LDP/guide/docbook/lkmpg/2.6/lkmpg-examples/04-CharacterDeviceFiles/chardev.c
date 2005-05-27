@@ -40,29 +40,30 @@ static struct file_operations fops = {
 };
 
 /*
- * Functions
+ * This function is called when the module is loaded
  */
-
 int init_module(void)
 {
-	Major = register_chrdev(0, DEVICE_NAME, &fops);
+        Major = register_chrdev(0, DEVICE_NAME, &fops);
 
 	if (Major < 0) {
-		printk("Registering the character device failed with %d\n",
-		       Major);
-		return Major;
+	  printk(KERN_ALERT "Registering char device failed with %d\n", Major);
+	  return Major;
 	}
 
-	printk("<1>I was assigned major number %d.  To talk to\n", Major);
-	printk("<1>the driver, create a dev file with\n");
-	printk("'mknod /dev/hello c %d 0'.\n", Major);
-	printk("<1>Try various minor numbers.  Try to cat and echo to\n");
-	printk("the device file.\n");
-	printk("<1>Remove the device file and module when done.\n");
+	printk(KERN_INFO "I was assigned major number %d. To talk to\n", Major);
+	printk(KERN_INFO "the driver, create a dev file with\n");
+	printk(KERN_INFO "'mknod /dev/%s c %d 0'.\n", DEVICE_NAME, Major);
+	printk(KERN_INFO "Try various minor numbers. Try to cat and echo to\n");
+	printk(KERN_INFO "the device file.\n");
+	printk(KERN_INFO "Remove the device file and module when done.\n");
 
-	return 0;
+	return SUCCESS;
 }
 
+/*
+ * This function is called when the module is unloaded
+ */
 void cleanup_module(void)
 {
 	/* 
@@ -70,7 +71,7 @@ void cleanup_module(void)
 	 */
 	int ret = unregister_chrdev(Major, DEVICE_NAME);
 	if (ret < 0)
-		printk("Error in unregister_chrdev: %d\n", ret);
+		printk(KERN_ALERT "Error in unregister_chrdev: %d\n", ret);
 }
 
 /*
@@ -84,8 +85,10 @@ void cleanup_module(void)
 static int device_open(struct inode *inode, struct file *file)
 {
 	static int counter = 0;
+
 	if (Device_Open)
 		return -EBUSY;
+
 	Device_Open++;
 	sprintf(msg, "I already told you %d times Hello world!\n", counter++);
 	msg_Ptr = msg;
@@ -160,6 +163,6 @@ static ssize_t device_read(struct file *filp,	/* see include/linux/fs.h   */
 static ssize_t
 device_write(struct file *filp, const char *buff, size_t len, loff_t * off)
 {
-	printk("<1>Sorry, this operation isn't supported.\n");
+	printk(KERN_ALERT "Sorry, this operation isn't supported.\n");
 	return -EINVAL;
 }
