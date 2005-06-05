@@ -10,11 +10,22 @@ echo "Just initialized \"\$variable\" to $variable."
 let "variable *= 3"
 echo "Just multiplied \"\$variable\" by 3."
 
-# The "trap 'commands' DEBUG" construct would be more useful
-# in the context of a complex script,
-# where placing multiple "echo $variable" statements might be
-# clumsy and time-consuming.
+exit $?
+
+#  The "trap 'command1 . . . command2 . . .' DEBUG" construct is
+#+ more appropriate in the context of a complex script,
+#+ where placing multiple "echo $variable" statements might be
+#+ clumsy and time-consuming.
 
 # Thanks, Stephane Chazelas for the pointer.
 
-exit 0
+
+Output of script:
+
+VARIABLE-TRACE> $variable = ""
+VARIABLE-TRACE> $variable = "29"
+Just initialized "$variable" to 29.
+VARIABLE-TRACE> $variable = "29"
+VARIABLE-TRACE> $variable = "87"
+Just multiplied "$variable" by 3.
+VARIABLE-TRACE> $variable = "87"

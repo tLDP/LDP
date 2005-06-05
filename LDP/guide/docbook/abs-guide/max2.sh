@@ -34,9 +34,11 @@ echo $retval        # Echoes (to stdout), rather than returning value.
 
 
 return_val=$(max2 33001 33997)
+#            ^^^^             Function name
+#                 ^^^^^ ^^^^^ Params passed
 #  This is actually a form of command substitution:
 #+ treating a function as if it were a command,
-#+ and assigning the stdout of the function to the variable 'return_val.'
+#+ and assigning the stdout of the function to the variable "return_val."
 
 
 # ========================= OUTPUT ========================

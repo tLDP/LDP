@@ -15,3 +15,6 @@ echo "Second line in $File is:"
 echo "$line2"
 
 exit 0
+
+# Now, how do you parse the separate fields of each line?
+# Hint: use awk.

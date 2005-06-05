@@ -38,23 +38,23 @@ No_WSP=$'\x0A'$'\x0D'
 # Field separator for dotted decimal ip addresses
 ADR_IFS=${No_WSP}'.'
 
-# Get the dns text resource record
+# Get the dns text resource record.
 # get_txt &lt;error_code&gt; &lt;list_query&gt;
 get_txt() {
 
-    # parse $1 by assignment at the dots
+    # Parse $1 by assignment at the dots.
     local -a dns
     IFS=$ADR_IFS
     dns=( $1 )
     IFS=$WSP_IFS
     if [ "${dns[0]}" == '127' ]
     then
-        # see if there is a reason
+        # See if there is a reason.
         echo $(dig +short $2 -t txt)
     fi
 }
 
-# Get the dns address resource record
+# Get the dns address resource record.
 # chk_adr &lt;rev_dns&gt; &lt;list_server&gt;
 chk_adr() {
     local reply
@@ -64,7 +64,7 @@ chk_adr() {
     server=${1}${2}
     reply=$( dig +short ${server} )
 
-    # if reply might be an error code . . .
+    # If reply might be an error code . . .
     if [ ${#reply} -gt 6 ]
     then
         reason=$(get_txt ${reply} ${server} )

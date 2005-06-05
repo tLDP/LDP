@@ -1,6 +1,7 @@
 #!/bin/bash
-# Starting the script with "#!/bin/bash -r"
-# runs entire script in restricted mode.
+
+#  Starting the script with "#!/bin/bash -r"
+#+ runs entire script in restricted mode.
 
 echo
 

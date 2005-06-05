@@ -1,6 +1,8 @@
 #!/bin/bash
 # logon.sh: A quick 'n dirty script to check whether you are on-line yet.
 
+umask 177  # Make sure temp files are not world readable.
+
 
 TRUE=1
 LOGFILE=/var/log/messages
@@ -8,6 +10,9 @@ LOGFILE=/var/log/messages
 #+ (as root, chmod 644 /var/log/messages).
 TEMPFILE=temp.$$
 #  Create a "unique" temp file name, using process id of the script.
+#     Using 'mktemp' is an alternative.
+#     For example:
+#     TEMPFILE=`mktemp temp.XXXXXX`
 KEYWORD=address
 #  At logon, the line "remote IP address xxx.xxx.xxx.xxx"
 #                      appended to /var/log/messages.

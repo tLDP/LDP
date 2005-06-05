@@ -1,10 +1,10 @@
-#! /bin/bash
+#!/bin/bash
 #
-# Changes every filename in working directory to all lowercase.
+#  Changes every filename in working directory to all lowercase.
 #
-# Inspired by a script of John Dubois,
-# which was translated into into Bash by Chet Ramey,
-# and considerably simplified by Mendel Cooper, author of this document.
+#  Inspired by a script of John Dubois,
+#+ which was translated into Bash by Chet Ramey,
+#+ and considerably simplified by the author of the ABS Guide.
 
 
 for filename in *                # Traverse all files in directory.
@@ -17,7 +17,7 @@ do
    fi  
 done   
 
-exit 0
+exit $?
 
 
 # Code below this line will not execute because of "exit".
@@ -25,7 +25,6 @@ exit 0
 # To run it, delete script above line.
 
 # The above script will not work on filenames containing blanks or newlines.
-
 # Stephane Chazelas therefore suggests the following alternative:
 
 
@@ -41,4 +40,4 @@ do n=`echo "$filename/" | tr '[:upper:]' '[:lower:]'`
                      # Checks if filename already lowercase.
 done
 
-exit 0
+exit $?

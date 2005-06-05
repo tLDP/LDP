@@ -2,6 +2,7 @@
 # $Id$ 
 # Script to perform batch anonymous ftp. Essentially converts a list of
 # of command line arguments into input to ftp.
+# ==> This script is nothing but a shell wrapper around "ftp" . . .
 # Simple, and quick - written as a companion to ftplist 
 # -h specifies the remote host (default prep.ai.mit.edu) 
 # -d specifies the remote directory to cd to - you can provide a sequence 
@@ -24,8 +25,7 @@
 # Obviously, the sequence of the options is important, since the equivalent
 # commands are executed by ftp in corresponding order
 #
-# Mark Moraes (moraes@csri.toronto.edu), Feb 1, 1989 
-# ==> Angle brackets changed to parens, so Docbook won't get indigestion.
+# Mark Moraes &lt;moraes@csri.toronto.edu&gt;, Feb 1, 1989 
 #
 
 
@@ -34,6 +34,8 @@
 # PATH=/local/bin:/usr/ucb:/usr/bin:/bin
 # export PATH
 # ==> Above 2 lines from original script probably superfluous.
+
+E_BADARGS=65
 
 TMPFILE=/tmp/ftp.$$
 # ==> Creates temp file, using process id of script ($$)
@@ -51,10 +53,11 @@ set -f 		# So we can use globbing in -m
 set x `getopt vh:d:c:m:f: $*`
 if [ $? != 0 ]; then
 	echo $usage
-	exit 65
+	exit $E_BADARGS
 fi
 shift
 trap 'rm -f ${TMPFILE} ; exit' 0 1 2 3 15
+# ==> Delete tempfile in case of abnormal exit from script.
 echo "user anonymous ${USER-gnu}@${SITE} > ${TMPFILE}"
 # ==> Added quotes (recommended in complex echoes).
 echo binary >> ${TMPFILE}
@@ -74,17 +77,19 @@ do
 	    echo get ${f1} ${f2} >> ${TMPFILE}; shift 2;;
 	--) shift; break;;
 	esac
+        # ==> 'lcd' and 'mget' are ftp commands. See "man ftp" . . .
 done
 if [ $# -ne 0 ]; then
 	echo $usage
-	exit 65   # ==> Changed from "exit 2" to conform with standard.
+	exit $E_BADARGS
+        # ==> Changed from "exit 2" to conform with style standard.
 fi
 if [ x${verbflag} != x ]; then
 	ftpflags="${ftpflags} -v"
 fi
 if [ x${remhost} = x ]; then
 	remhost=prep.ai.mit.edu
-	# ==> Rewrite to match your favorite ftp site.
+	# ==> Change to match appropriate ftp site.
 fi
 echo quit >> ${TMPFILE}
 # ==> All commands saved in tempfile.

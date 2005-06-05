@@ -14,7 +14,7 @@ var1=2367
 echo "var1 declared as $var1"
 var1=var1+1       # Integer declaration eliminates the need for 'let'.
 echo "var1 incremented by 1 is $var1."
-# Attempt to change variable declared as integer
+# Attempt to change variable declared as integer.
 echo "Attempting to change var1 to floating point value, 2367.1."
 var1=2367.1       # Results in error message, with no change to variable.
 echo "var1 is still $var1"

@@ -2,7 +2,7 @@
 # pb.sh: phone book
 
 # Written by Rick Boivie, and used with permission.
-# Modifications by document author.
+# Modifications by ABS Guide author.
 
 MINARGS=1     #  Script needs at least one argument.
 DATAFILE=./phonebook

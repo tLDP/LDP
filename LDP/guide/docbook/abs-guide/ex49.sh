@@ -16,3 +16,7 @@ tr a-z A-Z <"$1"
 # Thanks, S.C.
 
 exit 0
+
+#  Exercise:
+#  Rewrite this script to give the option of changing a file
+#+ to *either* upper or lowercase.

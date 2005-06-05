@@ -4,15 +4,15 @@ echo
 
 echo "Enter a string terminated by a \\, then press &lt;ENTER&gt;."
 echo "Then, enter a second string, and again press &lt;ENTER&gt;."
-read var1     # The "\" suppresses the newline, when reading "var1".
+read var1     # The "\" suppresses the newline, when reading $var1.
               #     first line \
               #     second line
 
 echo "var1 = $var1"
 #     var1 = first line second line
 
-# For each line terminated by a "\",
-# you get a prompt on the next line to continue feeding characters into var1.
+#  For each line terminated by a "\"
+#+ you get a prompt on the next line to continue feeding characters into var1.
 
 echo; echo
 

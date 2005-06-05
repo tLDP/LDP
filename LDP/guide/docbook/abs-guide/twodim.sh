@@ -58,7 +58,7 @@ do                             #+ columns vary,
 done  
 
 # The simpler equivalent is
-#   echo ${alpha[*]} | xargs -n $Columns
+#     echo ${alpha[*]} | xargs -n $Columns
 
 echo
 }
@@ -67,7 +67,7 @@ filter ()     # Filter out negative array indices.
 {
 
 echo -n "  "  # Provides the tilt.
-              # Explain why.
+              # Explain how.
 
 if [[ "$1" -ge 0 &&  "$1" -lt "$Rows" && "$2" -ge 0 && "$2" -lt "$Columns" ]]
 then
@@ -102,7 +102,8 @@ for (( row = Rows; row > -Rows; row-- ))
       let "t2 = $column + $row"
     fi  
 
-    filter $t1 $t2   # Filter out negative array indices. Why?
+    filter $t1 $t2   # Filter out negative array indices.
+                     # What happens if you don't do this?
   done
 
   echo; echo

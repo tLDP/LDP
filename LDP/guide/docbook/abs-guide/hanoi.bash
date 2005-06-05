@@ -12,7 +12,9 @@
 #  Slightly modified and commented by ABS author.
 
 #=================================================================#
-#  The Tower of Hanoi is an old mathematical puzzle.
+#  The Tower of Hanoi is a mathematical puzzle attributed to
+#+ Edouard Lucas, a nineteenth-century French mathematician.
+#
 #  There are three vertical posts set in a base.
 #  The first post has a set of annular rings stacked on it.
 #  These rings are flat disks with a hole drilled out of the center,

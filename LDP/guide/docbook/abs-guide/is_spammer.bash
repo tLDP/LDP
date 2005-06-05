@@ -3,7 +3,7 @@
 # $Id$
 # Above line is RCS info.
 
-# The latest version of this script is available from ftp://ftp.morethan.org.
+# The latest version of this script is available from http://www.morethan.org.
 #
 # Spammer-identification
 # by Michael S. Zick
@@ -172,7 +172,7 @@ pend_dummy() { : ; }
 pend_init() {
     unset _pending_[@]
     pend_func pend_stop_mark
-    _pend_hook_='pend_dummy'  # Debug only
+    _pend_hook_='pend_dummy'  # Debug only.
 }
 
 # Discard the top function on the stack.
@@ -211,7 +211,7 @@ pend_release() {
        _top_=${#_pending_[@]}-1
        _pend_current_=${_pending_[$_top_]}
        unset _pending_[$_top_]
-       $_pend_hook_            # Debug only
+       $_pend_hook_            # Debug only.
        eval $_pend_current_
     done
 }
@@ -969,7 +969,7 @@ name_fixup(){
     IFS=${WSP_IFS}
     _nf_end=${#_nf_tmp[@]}
     case ${_nf_end} in
-    0) # No dots, only dots
+    0) # No dots, only dots.
         echo
         return 1
     ;;

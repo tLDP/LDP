@@ -6,14 +6,14 @@
 # Try it with one two-word quoted command line parameter,
 #                           ./scriptname "Mortimer Jones"
 
-CMDLINEPARAM=1     # Expect at least command line parameter.
+CMDLINEPARAM=1     #  Expect at least command line parameter.
 
 if [ $# -ge $CMDLINEPARAM ]
 then
-  NAME=$1          # If more than one command line param,
-                   # then just take the first.
+  NAME=$1          #  If more than one command line param,
+                   #+ then just take the first.
 else
-  NAME="John Doe"  # Default, if no command line parameter.
+  NAME="John Doe"  #  Default, if no command line parameter.
 fi  
 
 RESPONDENT="the author of this fine script"  
