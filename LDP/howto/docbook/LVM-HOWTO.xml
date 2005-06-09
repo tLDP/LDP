@@ -18,6 +18,17 @@
 
     <revhistory>
       <revision>
+        <revnumber>0.15</revnumber>
+        <date>2005-06-09</date>
+        <authorinitials>ajl</authorinitials>
+        <revremark>
+          Removed references to xfs_freeze - it is no longer needed;
+          Updated snapshots subsection in Anatomy of LVM section;
+          Added a couple entries to the LVM2 FAQ;
+          Fixed a couple typos
+        </revremark>
+      </revision>
+      <revision>
         <revnumber>0.14</revnumber>
         <date>2004-10-06</date>
         <authorinitials>ajl</authorinitials>
@@ -705,17 +716,51 @@ swap      /dev/vg00/swap   256 Megabytes
 
     <sect1 id="snapshotintro"><title>Snapshots</title>
       <para>
-        A wonderful facility provided by LVM is 'snapshots'.  This allows
-        the administrator to create a new block device which is an exact
-        copy of a logical volume, frozen at some point in time.  Typically
-        this would be used when some batch processing, a backup for
-        instance, needs to be performed on the logical volume, but you
-        don't want to halt a live system that is changing the data.  When
-        the snapshot device has been finished with the system administrator
-        can just remove the device.  This facility does require that the
-        snapshot be made at a time when the data on the logical volume is
-        in a consistent state, later sections of this document give some
-        examples of this.
+        A wonderful facility provided by LVM is 'snapshots'.  This
+        allows the administrator to create a new block device which
+        presents an exact copy of a logical volume, frozen at some
+        point in time.  Typically this would be used when some batch
+        processing, a backup for instance, needs to be performed on
+        the logical volume, but you don't want to halt a live system
+        that is changing the data.  When the snapshot device has been
+        finished with the system administrator can just remove the
+        device.  This facility does require that the snapshot be made
+        at a time when the data on the logical volume is in a
+        consistent state - the VFS-lock patch for LVM1 makes sure that
+        some filesystems do this automatically when a snapshot is
+        created, and many of the filesystems in the 2.6 kernel do this
+        automatically when a snapshot is created without patching.
+      </para>
+
+      <para>
+        LVM1 has read-only snapshots.  Read-only snapshots work by
+        creating an <emphasis>exception table</emphasis>, which is
+        used to keep track of which blocks have been changed.  If a
+        block is to be changed on the origin, it is first copied to
+        the snapshot, marked as copied in the exception table, and
+        then the new data is written to the original volume.
+      </para>
+
+      <para>
+        In LVM2, snapshots are read/write by default.  Read/write
+        snapshots work like read-only snapshots, with the additional
+        feature that if data is written to the snapshot, that block is
+        marked in the exception table as used, and never gets copied
+        from the original volume.  This opens up many new
+        possibilities that were not possible with LVM1's read-only
+        snapshots.  One example is to snapshot a volume, mount the
+        snapshot, and try an experimental program that change files on
+        that volume.  If you don't like what it did, you can unmount
+        the snapshot, remove it, and mount the original filesystem in
+        its place.  It is also useful for creating volumes for use
+        with <ulink
+        url="http://www.cl.cam.ac.uk/Research/SRG/netos/xen/">Xen</ulink>.
+        You can create a disk image, then snapshot it and modify the
+        snapshot for a particular domU instance.  You can then create
+        another snapshot of the original volume, and modify that one
+        for a different domU instance.  Since the only storage used by
+        a snapshot is blocks that were changed on the origin or the
+        snapshot, the majority of the volume is shared by the domU's.
       </para>
 
       <warning> <title> LVM 1 -> LVM 2 Upgrade Info </title>
@@ -725,10 +770,6 @@ swap      /dev/vg00/swap   256 Megabytes
         </para>
       </warning>
 
-      <para>
-        More information on snapshots can be found in
-        <xref linkend="Snapshots_Backup"/> Taking a Backup Using Snapshots.
-      </para>
     </sect1>
   </chapter>
 
@@ -812,6 +853,23 @@ swap      /dev/vg00/swap   256 Megabytes
         <qandaentry>
           <question>
             <para>
+              Do I need a special lvm2 kernel module?
+            </para>
+          </question>
+          <answer>
+            <para>
+              No.  You need device-mapper.  The lvm2 tools use
+              device-mapper to interface with the kernel and do all
+              their device mapping (hence the name device-mapper).  As
+              long as you have device-mapper, you should be able to
+              use LVM2.
+            </para>
+          </answer>
+        </qandaentry>
+        
+        <qandaentry>
+          <question>
+            <para>
               I get errors about
               <filename>/dev/mapper/control</filename> when I try to
               use the LVM 2 tools.  What's going on?
@@ -820,14 +878,16 @@ swap      /dev/vg00/swap   256 Megabytes
           <answer>
             <para>
               The primary cause of this is not having run the
-              devmap_mknod.sh script after rebooting into a dm capable
-              kernel.  This script generates the control node for device
-              mapper.
+              <quote>dmsetup mknodes</quote> after rebooting into a dm
+              capable kernel.  This script generates the control node
+              for device mapper.
             </para>
             <para>
-              If you don't have the devmap_mknod.sh script, don't
-              despair!  It's pretty easy to create the
-              <filename>/dev/mapper/control</filename> file on your own:
+              If you don't have the <quote>dmsetup mknodes</quote>,
+              don't despair! (Though you should probably upgrade to
+              the latest version of device-mapper.)  It's pretty easy
+              to create the <filename>/dev/mapper/control</filename>
+              file on your own:
               <orderedlist>
                 <listitem>
                   <para>
@@ -901,7 +961,6 @@ swap      /dev/vg00/swap   256 Megabytes
           </answer>
         </qandaentry>
 
-        
         <qandaentry>
           <question>
             <para>
@@ -1107,6 +1166,21 @@ swap      /dev/vg00/swap   256 Megabytes
               number of extents to the end of the vgs listing.  Use
               the free extent number the same way you would in the
               above vgdisplay case.
+            </para>
+          </answer>
+        </qandaentry>
+
+        <qandaentry>
+          <question>
+            <para>
+              How are snapshots in LVM2 different from LVM1?
+            </para>
+          </question>
+          <answer>
+            <para>
+              In LVM2 snapshots are read/write by default, whereas in
+              LVM1, snapshots were only read-only.  See <xref
+              linkend="snapshotintro"/> for more details
             </para>
           </answer>
         </qandaentry>
@@ -1491,7 +1565,15 @@ update -d -P
 
     <sect1 id="builddmmod"><title>Building the device-mapper module</title>
       <para>
-        FIXME: This needs to be filled in still
+        Device mapper is in 2.6.9 and later, so you just need to make
+        sure it is enabled either as a module or builtin to the
+        kernel.  Look for /sys/class/misc/device-mapper or look in
+        /proc/devices for a device-mapper entry to see if it is
+        enabled.  If neither are there, try modprobe dm_mod, then
+        check again.  For versions previous to 2.6.9, either you or
+        your distro must patch the kernel to support it.  Check the
+        <ulink url="http://sources.redhat.com/dm/">device
+        mapper</ulink> web page for more information.
       </para>
     </sect1>
 
@@ -2622,7 +2704,7 @@ lvextend -- logical volume "/dev/myvg/homevol" successfully extended</computerou
             and use that:
             <screen>
    <command># umount /dev/myvg/homevol/dev/myvg/homevol
-   # resize2fs /dev/myvg/homevol
+   # ext2resize /dev/myvg/homevol
    # mount /dev/myvg/homevol /home</command>
             </screen>
           </para>
@@ -3507,13 +3589,23 @@ e2fsadm -- ext2fs in logical volume "/dev/dev/users" successfully extended to 2.
       </para>
 
       <para>
-        This type of volume is a read-only copy of another volume that
-        contains all the data that was in the volume at the time the
-        snapshot was created. This means we can back up that volume without
-        having to worry about data being changed while the backup is going
-        on, and we don't have to take the database volume offline while the
-        backup is taking place.
+        A snapshot volume is a special type of volume that presents
+        all the data that was in the volume at the time the snapshot
+        was created.  For a more detailed description, see       
+        <xref linkend="snapshotintro"/>, Snapshots.
+        This means we
+        can back up that volume without having to worry about data
+        being changed while the backup is going on, and we don't have
+        to take the database volume offline while the backup is taking
+        place.
       </para>
+
+      <note>
+        <para>
+          In LVM1, this type of volume was read-only, but
+          LVM2 creates read/write snapshots by default.
+        </para>
+      </note>
 
       <sect2><title>Create the snapshot volume</title>
         <para>
@@ -3534,17 +3626,6 @@ lvcreate -- logical volume "/dev/ops/dbbackup" successfully created</computerout
           </screen>
         </para>
         
-        <note>
-          <para>
-            If the snapshot is of an XFS filesystem, the xfs_freeze
-            command should be used to quiesce the filesystem before
-            creating the snapshot. (if the filesystem is mounted)
-            <screen>
-<command># xfs_freeze -f /mnt/point; lvcreate -L592M -s -n dbbackup /dev/ops/databases; xfs_freeze -u /mnt/point </command>
-            </screen>
-          </para>
-        </note>
-
         <warning><title>Full snapshot are automatically disabled</title>
           <para>
             If the snapshot logical volume becomes full it will become
@@ -3570,15 +3651,6 @@ lvcreate -- logical volume "/dev/ops/dbbackup" successfully created</computerout
           <screen>
 <command># mount /dev/ops/dbbackup /mnt/ops/dbbackup -onouuid,ro</command>
           </screen>
-          <note>
-            <para>
-              Previously, the norecovery option was suggested to allow the 
-              mounting of
-              XFS snapshots.  It has been recommended not to use this
-              option, but to instead use xfs_freeze to quiesce the
-              filesystem before creating the snapshot.
-            </para>
-          </note>
         </para>
       </sect2>
 
@@ -3605,7 +3677,7 @@ lvcreate -- logical volume "/dev/ops/dbbackup" successfully created</computerout
 # lvremove /dev/ops/dbbackup </command>
 <prompt>lvremove -- do you really want to remove "/dev/ops/dbbackup"? [y/n]: </prompt>y
 <computeroutput>lvremove -- doing automatic backup of volume group "ops"
-lvremove -- logical volume "/dev/ops/dbbackup" successfully removed</computeroutput>
+              lvremove -- logical volume "/dev/ops/dbbackup" successfully removed</computeroutput>
           </screen>
         </para>
       </sect2>
@@ -3874,7 +3946,7 @@ pvscan -- total: 8 [13.67 GB] / in use: 8 [13.67 GB] / in no VG: 0 [0]</computer
 
         <para>
           Move all the used physical extents from /dev/sdg1 to /dev/sde
-          and from /dev/sdg2 to /dev/sde
+          and from /dev/sdg2 to /dev/sdf
           <screen>
 <command># pvmove /dev/sdg1 /dev/sde</command>
 <computeroutput>pvmove -- moving physical extents in active volume group "ops"
