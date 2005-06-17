@@ -1,4 +1,5 @@
 #include <curses.h>
+#include <stdlib.h>
 
 #define STARTX 9
 #define STARTY 3

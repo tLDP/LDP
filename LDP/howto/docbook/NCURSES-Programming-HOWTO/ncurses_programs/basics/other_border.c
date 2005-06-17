@@ -14,7 +14,7 @@ typedef struct _WIN_struct {
 
 void init_win_params(WIN *p_win);
 void print_win_params(WIN *p_win);
-void create_box(WIN *win, int bool);
+void create_box(WIN *win, bool flag);
 
 int main(int argc, char *argv[])
 {	WIN win;
@@ -90,7 +90,7 @@ void print_win_params(WIN *p_win)
 	refresh();
 #endif
 }
-void create_box(WIN *p_win, int bool)
+void create_box(WIN *p_win, bool flag)
 {	int i, j;
 	int x, y, w, h;
 
@@ -99,7 +99,7 @@ void create_box(WIN *p_win, int bool)
 	w = p_win->width;
 	h = p_win->height;
 
-	if(bool == TRUE)
+	if(flag == TRUE)
 	{	mvaddch(y, x, p_win->border.tl);
 		mvaddch(y, x + w, p_win->border.tr);
 		mvaddch(y + h, x, p_win->border.bl);
@@ -118,4 +118,3 @@ void create_box(WIN *p_win, int bool)
 	refresh();
 
 }
-

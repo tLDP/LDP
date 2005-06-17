@@ -5,7 +5,7 @@ int main(int argc, char *argv[])
 {	initscr();			/* Start curses mode 		*/
 	if(has_colors() == FALSE)
 	{	endwin();
-		printf("You terminal does not support color\n");
+		printf("Your terminal does not support color\n");
 		exit(1);
 	}
 	start_color();			/* Start color 			*/

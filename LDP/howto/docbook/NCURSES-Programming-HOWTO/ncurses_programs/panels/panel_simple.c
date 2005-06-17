@@ -18,7 +18,7 @@ int main()
 	 * Create borders around the windows so that you can see the effect
 	 * of panels
 	 */
-	for(i = 0; i < 3; +++i)
+	for(i = 0; i < 3; ++i)
 		box(my_wins[i], 0, 0);
 
 	/* Attach a panel to each window */ 	/* Order is bottom up */
