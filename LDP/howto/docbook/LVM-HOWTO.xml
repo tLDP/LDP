@@ -18,6 +18,16 @@
 
     <revhistory>
       <revision>
+        <revnumber>0.16</revnumber>
+	<date>2005-07-15</date>
+	<authorinitials>ajl</authorinitials>
+	<revremark>
+          Added lvm2 boot-time scripts info;
+          Added "Recover physical volume metadata" section - thanks to
+          Maximilian Attems for the patch
+        </revremark>
+      </revision>
+      <revision>
         <revnumber>0.15</revnumber>
         <date>2005-06-09</date>
         <authorinitials>ajl</authorinitials>
@@ -187,7 +197,7 @@
       <holder>Sistina Software, Inc</holder>
     </copyright>
     <copyright> 
-      <year>2004</year>
+      <year>2004-2005</year>
       <holder>Red Hat, Inc</holder>
     </copyright>
 
@@ -2051,7 +2061,21 @@ then
 
   <chapter id="lvm2_boot"> <title> LVM 2 Boot Time Scripts </title>
     <para>
-      None yet
+
+      For initrds, you should have:
+      <screen>
+      dmsetup mknodes
+      vgscan --ignorelockingfailure
+      vgchange -ay --ignorelockingfailure
+      </screen>
+
+      in the linuxrc to get the root LV activated before the root
+      volume is accessed.
+
+      Most distros seem to have this setup in their mkinitrd scripts
+      now, and they also tend to have them in rc.sysinit or
+      equivilant, so all volumes get activated on bootup.
+
     </para>
   </chapter>
 
@@ -4372,6 +4396,48 @@ default=lvm
         </para>
       </sect2>
     </sect1>
+    <sect1 id="recovermetadata"><title>Recover physical volume metadata</title>
+      <title>Restore physical volume:</title>
+      <para>
+        If you get the warning "incorrect metadata area header checksum"
+	or something about not being able to find PV with UUID foo,
+	you probably toasted the volume group descriptor area and lvm
+	startup can't occur. 
+      </para>
+    <warning><title>Only run on non-functional VG</title>
+      <para>
+        Don't do this on a properly working lvm.
+        You need to specify the correct physical volume to 
+	<command>pvcreate</command> or you may lose your data.
+      </para>
+    </warning>
+      <para>
+	Extract the exact uuid for the PV that was overwritten from the file 
+	<filename>/etc/lvm/archive/VolumeGroupName_XXXXX.vg</filename>.
+	(Where XXXXX represents the number of the last known good archived lvm
+	metadata).
+      </para>
+
+      <para>
+	 Use <command>pvcreate</command> to restore the metadata:
+	 <command>pvcreate --uuid "&lt;some_long_string&gt;" --restorefile /etc/lvm/archive/VolumeGroupName_XXXXX.vg &lt;PhysicalVolume&gt;</command>
+      </para>
+      <para>
+	If you are lucky you'll find that the on-disk lvm metadata takes 
+	at least so much space as what it was overwritten with. The above
+	command has been know to recover a PV overwritten with mkswap.  If
+	whatever overwrote the VGDA writes past that area, LVs may be affected.
+	In this case, fsck might be able to fix the filesystem on the LV, or
+	you may need more drastic measures to pull data off of it.  Contact
+	your local friendly filesystem expert for help in that case.
+      </para>
+      <note>
+        <para><command>pvcreate</command> only overwrites the lvm metadata
+	areas on disk and doesn't touch the data areas (the logical
+        volumes).
+        </para>
+      </note>
+   </sect1>
   </chapter>
 
   <appendix id="dangerousops"><title>Dangerous Operations</title>
