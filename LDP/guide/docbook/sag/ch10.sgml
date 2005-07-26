@@ -1,0 +1,252 @@
+<chapter id="log-in-and-out">
+<title>Logging In And Out</title>
+
+	<blockquote><para><quote>I don't care to belong to a club
+	that accepts people like me as a member.</quote>
+	(Groucho Marx)</para></blockquote>
+
+	<para>
+	This section describes what happens when a user logs
+	in or out.  The various interactions of background processes,
+	log files, configuration files, and so on are described in
+	some detail.
+	</para>
+
+<sect1 id="login-via-terminal">
+<title>Logins via terminals</title>
+
+	<para><xref linkend="terminal-logins"> shows how logins happen via
+	terminals.  First, <command>init</command> makes sure there is
+	a <command>getty</command> program for the terminal connection
+	(or console).  <command>getty</command> listens at the terminal
+	and waits for the user to notify that he is ready to login in
+	(this usually means that the user must type something).  When it
+	notices a user, <command>getty</command> outputs a welcome message
+	(stored in <filename>/etc/issue</filename>), and prompts for
+	the username, and finally runs the <command>login</command>
+	program.  <command>login</command> gets the username as a
+	parameter, and prompts the user for the password.  If these
+	match, <command>login</command> starts the shell configured
+	for the user; else it just exits and terminates the process
+	(perhaps after giving the user another chance at entering the
+	username and password).  <command>init</command> notices that
+	the process terminated, and starts a new <command>getty</command>
+	for the terminal.
+	</para>
+	
+		<figure id="terminal-logins-table" float="1">
+		<title>Logins via terminals: the interaction of 
+<command>init</command>, 
+<command>getty</command>, <command>login</command>, and the 
+shell.</title>
+		<graphic fileref="logins-via-terminals.png">
+		</figure>
+
+	<para> Note that the only new process is the
+	one created by <command>init</command> (using the
+	<function>fork</function> system call); <command>getty</command>
+	and <command>login</command> only replace the program running in
+	the process (using the <function>exec</function> system call).
+	</para>
+
+	<para> A separate program, for noticing the user, is needed
+	for serial lines, since it can be (and traditionally was)
+	complicated to notice when a terminal becomes active.
+	<command>getty</command> also adapts to the speed and other
+	settings of the connection, which is important especially for
+	dial-in connections, where these parameters may change from call
+	to call.  </para>
+
+	<para> There are several versions of <command>getty</command>
+	and <command>init</command> in use, all with their good and
+	bad points.  It is a good idea to learn about the versions on
+	your system, and also about the other versions (you could use the
+	Linux Software Map to search them).  If you don't have dial-ins,
+	you probably don't have to worry about <command>getty</command>,
+	but <command>init</command> is still important.  </para>
+
+</sect1>
+
+<sect1 id="login-via-network">
+<title>Logins via the network</title>
+
+	<para>Two computers in the same network are usually linked via a
+	single physical cable.	When they communicate over the network,
+	the programs in each computer that take part in the communication
+	are linked via a <glossterm>virtual connection</glossterm>, a sort
+	of imaginary cable.  As far as the programs at either end of the
+	virtual connection are concerned, they have a monopoly on their
+	own cable.  However, since the cable is not real, only imaginary,
+	the operating systems of both computers can have several virtual
+	connections share the same physical cable.  This way, using just
+	a single cable, several programs can communicate without having
+	to know of or care about the other communications.  It is even
+	possible to have several computers use the same cable; the virtual
+	connections exist between two computers, and the other computers
+	ignore those connections that they don't take part in.	</para>
+
+	<para> That's a complicated and over-abstracted description of
+	the reality.  It might, however, be good enough to understand
+	the important reason why network logins are somewhat different
+	from normal logins.  The virtual connections are established
+	when there are two programs on different computers that wish
+	to communicate.  Since it is in principle possible to login
+	from any computer in a network to any other computer, there is
+	a huge number of potential virtual communications.  Because of
+	this, it is not practical to start a <command>getty</command>
+	for each potential login.  </para>
+
+	<para> There is a single process inetd (corresponding to
+	<command>getty</command>) that handles all network logins.
+	When it notices an incoming network login (i.e., it notices
+	that it gets a new virtual connection to some other computer),
+	it starts a new process to handle that single login.  The original
+	process remains and continues to listen for new logins.  </para>
+
+	<para> To make things a bit more complicated, there is
+	more than one communication protocol for network logins.
+	The two most important ones are <command>telnet</command> and
+	<command>rlogin</command>.  In addition to logins, there are many
+	other virtual connections that may be made (for FTP, Gopher, HTTP,
+	and other network services).  It would be ineffective to have a
+	separate process listening for a particular type of connection,
+	so instead there is only one listener that can recognize the type
+	of the connection and can start the correct type of program to
+	provide the service.  This single listener is called 
+<command>inetd</command>;
+	see the <citetitle>Linux Network Administrators' Guide</citetitle>
+	for more information.  </para>
+
+</sect1>
+
+<sect1 id="what-login-does">
+<title>What <command>login</command> does</title>
+
+	<para>The <command>login</command> program takes care of
+	authenticating the user (making sure that the username and
+	password match), and of setting up an initial environment for
+	the user by setting permissions for the serial line and starting
+	the shell.  </para>
+
+	<para> Part of the initial setup is outputting the contents of
+	the file <filename>/etc/motd</filename> (short for message of the
+	day) and checking for electronic mail.	These can be disabled
+	by creating a file called <filename>.hushlogin</filename> in
+	the user's home directory.  </para>
+
+	<para> If the file <filename>/etc/nologin</filename>
+	exists, logins are disabled.  That file is typically
+	created by <command>shutdown</command> and relatives.
+	<command>login</command> checks for this file, and will
+	refuse to accept a login if it exists.	If it does exist,
+	<command>login</command> outputs its contents to the terminal
+	before it quits.  </para>
+
+	<para> <command>login</command> logs all failed login attempts in
+	a system log file (via <command>syslog</command>).  It also logs
+	all logins by root.  Both of these can be useful when tracking
+	down intruders.  </para>
+
+	<para> Currently logged in people are listed in
+	<filename>/var/run/utmp</filename>.  This file is valid only
+	until the system is next rebooted or shut down; it is cleared
+	when the system is booted.  It lists each user and the terminal
+	(or network connection) he is using, along with some other useful
+	information.  The <command>who</command>, <command>w</command>,
+	and other similar commands look in <filename>utmp</filename>
+	to see who are logged in.  </para>
+
+	<para> All successful logins are recorded into
+	<filename>/var/log/wtmp</filename>.  This file will grow without
+	limit, so it must be cleaned regularly, for example by having
+	a weekly <command>cron</command> job to clear it.
+	The <command>last</command> command browses
+	<filename>wtmp</filename>.  </para>
+
+	<para> Both <filename>utmp</filename> and
+	<filename>wtmp</filename> are in a binary format (see the
+	<filename>utmp</filename> manual page); it is unfortunately not
+	convenient to examine them without special programs.  </para>
+
+</sect1>
+
+<sect1 id="X-xdm">
+<title>X and xdm</title>
+
+	<para> XXX X implements logins via xdm; also: xterm -ls </para>
+
+	<para>TO BE ADDED</para>
+
+</sect1>
+
+<sect1 id="access-control">
+<title>Access control</title>
+
+	<para> The user database is traditionally contained in the
+	<filename>/etc/passwd</filename> file.	Some systems use
+	<glossterm>shadow passwords</glossterm>, and have moved the
+	passwords to <command>/etc/shadow</command>.  Sites with many
+	computers that share the accounts use NIS or some other method
+	to store the user database; they might also automatically copy
+	the database from one central location to all other computers.
+	</para>
+
+	<para> The user database contains not only the passwords, but
+	also some additional information about the users, such as their
+	real names, home directories, and login shells.  This other
+	information needs to be public, so that anyone can read it.
+	Therefore the password is stored encrypted.  This does have
+	the drawback that anyone with access to the encrypted password
+	can use various cryptographic methods to guess it, without
+	trying to actually log into the computer.  Shadow passwords try
+	to avoid this by moving the password into another file, which
+	only root can read (the password is still stored encrypted).
+	However, installing shadow passwords later onto a system that
+	did not support them can be difficult.	</para>
+
+	<para> With or without passwords, it is important to make
+	sure that all passwords in a system are good, i.e., not easily
+	guessed.  The <command>crack</command> program can be used
+	to crack passwords; any password it can find is by definition
+	not a good one.  While <command>crack</command> can be run
+	by intruders, it can also be run by the system administrator
+	to avoid bad passwords.  Good passwords can also be enforced
+	by the <command>passwd</command> program; this is in fact more
+	effective in CPU cycles, since cracking passwords requires quite
+	a lot of computation.  </para>
+
+	<para> The user group database is kept in
+	<filename>/etc/group</filename>; for systems with shadow
+	passwords, there can be a <filename>/etc/shadow.group</filename>.
+	</para>
+
+	<para> root usually can't login via most terminals
+	or the network, only via terminals listed in the
+	<filename>/etc/securetty</filename> file.  This makes it necessary
+	to get physical access to one of these terminals.  It is, however,
+	possible to log in via any terminal as any other user, and use
+	the <command>su</command> command to become root.  </para>
+
+</sect1>
+
+<sect1 id="shell-startup">
+<title>Shell startup</title>
+
+	<para> When an interactive login shell starts, it automatically
+	executes one or more pre-defined files.  Different shells execute
+	different files; see the documentation of each shell for further
+	information.  </para>
+
+	<para> Most shells first run some global file, for example, the
+	Bourne shell (<command>/bin/sh</command>) and its derivatives
+	execute <filename>/etc/profile</filename>; in addition,
+	they execute <filename>.profile</filename> in the user's
+	home directory.  <filename>/etc/profile</filename> allows the
+	system administrator to have set up a common user environment,
+	especially by setting the <envar>PATH</envar> to include local
+	command directories in addition to the normal ones.  On the other
+	hand, <filename>.profile</filename> allows the user to customize
+	the environment to his own tastes by overriding, if necessary,
+	the default environment.  </para>
+
+</chapter>

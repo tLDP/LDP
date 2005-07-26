@@ -1,0 +1,2561 @@
+<chapter id="disk-usage">
+<title>Using Disks and Other Storage Media</title>
+
+	<blockquote><para><quote>On a clear disk you can seek forever.
+	</quote></para></blockquote>
+
+<!--
+% the following metas need too much work for the next version
+%
+%	\meta copying a directory/disk verbatim
+%
+%	\meta disaster recovery: program to scan for ext2 superblocks
+%
+%	\meta explain lost+found; how to fix a filesystem; what to do when
+%	there is a bad block; identifying the file that has the bad block
+%	
+%	\meta chart that shows characteristics of various fs: max size,
+%	max file size, usable as root, max name length, speed, support
+%
+%	\meta 
+%	Recovering from a bad MBR or super block.
+%	Manually remounting (ro->w, rw->ro, when, why)
+%	automounting
+%	MD patches
+%	Why does Linux read/write disk in background?
+%	how to mount a dos disk so that everyone can access it?
+%	supermount
+%	ide disks map away bad sectors (until they're too many, then
+%	use badblocks)
+%	mounting: mountee root becomes mount point, e.g. 
+permissions/ownership
+-->
+
+        <para>When you install or upgrade your system, you need to do a
+        fair amount of work on your disks<indexterm id="ch05-disks">
+	<primary>disks</primary></indexterm>.  You have to make filesystems on
+	your disks so that files can be stored on them and reserve
+        space for the different parts of your system.</para>
+
+        <para>This chapter explains all these initial activities.  Usually,
+        once you get your system set up, you won't have to go through the
+	work again, except for using floppies.  You'll need to come back to
+	this chapter if you add a new disk or want to fine-tune your disk 
+	usage.<para>
+
+        <para>The basic tasks in administering disks are:
+
+	<itemizedlist>
+
+	<listitem><para>
+        Format your disk.  This does various things to prepare it for use,
+	such as checking for bad sectors.  (Formatting is nowadays
+	not necessary for most hard disks.)</para></listitem>
+
+	<listitem><para>
+        Partition a hard disk, if you want to use it for several activities
+	that aren't supposed to interfere with one another. One reason for
+	partitioning is to store different operating systems on the same
+	disk.  Another reason is to keep user files separate from system
+	files, which simplifies back-ups and helps protect the system files
+	from corruption.
+	</para></listitem>
+
+	<listitem><para>
+        Make a filesystem (of a suitable type) on each disk or partition.
+	The disk means nothing to Linux until you make a filesystem; then
+	files can be created and accessed on it.
+	</para></listitem>
+
+	<listitem><para>
+        Mount different filesystems to form a single tree structure, either
+	automatically, or manually as needed.  (Manually mounted filesystems
+	usually need to be unmounted manually as well.)
+	</para></listitem>
+
+	</itemizedlist>
+
+	<para><xref linkend="memory-management"> contains information
+	about virtual memory and disk caching, of which you also need
+	to be aware when using disks.</para>
+
+<sect1 id="block-char-dev">
+<title>Two kinds of devices</title>
+
+	<para>UNIX, and therefore Linux, recognizes two different
+	kinds of device: random-access block devices (such as disks),
+	<indexterm id="ch05-block"><primary>devices</primary>
+	<secondary>block</secondary></indexterm> and
+	character devices (such as tapes and serial lines)
+	<indexterm id="ch05-char"><primary>devices</primary>
+	<secondary>character</secondary></indexterm>, some of which
+	may be serial, and some random-access.  Each supported device is
+	represented in the filesystem as a <glossterm>device file</glossterm>. 
+	  When you read or write a device file, the data
+	comes from or goes to the device it represents.  This way no special
+	programs (and no special application programming methodology, such
+	as catching interrupts or polling a serial port) are necessary to
+	access devices; for example, to send a file to the printer, one
+	could just say
+
+<screen>
+<prompt>$</prompt> <userinput>cat filename &gt; /dev/lp1</userinput>
+<prompt>$</prompt>
+</screen>
+
+	and the contents of the file are printed (the file must, of course,
+	be in a form that the printer understands).  However, since it is
+	not a good idea to have several people cat their files to the
+	printer at the same time, one usually uses a special program to send
+	the files to be printed (usually <command>lpr</command>
+	<indexterm id="ch05-lpr"><primary>commands</primary>
+	<secondary>lpr</secondary></indexterm>). This
+	program makes sure that only one file is being printed at a time,
+	and will automatically send files to the printer as soon as it
+	finishes with the previous file.  Something similar is needed for
+	most devices.  In fact, one seldom needs to worry
+	about device files at all.</para>
+
+	<para>Since devices show up as files in the filesystem (in the
+	<filename>/dev</filename><indexterm id="ch05-dev">
+	<primary>filesystem</primary><secondary>/dev</secondary></indexterm> 
+	directory), it is easy to see just what
+	device files exist, using <command>ls</command><indexterm id="ch05-ls">
+        <primary>commands</primary><secondary>ls</secondary></indexterm> or another suitable
+	command.  In the output of <command>ls -l</command>, the first
+	column contains the type of the file and its permissions.  For
+	example, inspecting a serial device might give
+
+	<screen>
+	<prompt>$</prompt> <userinput>ls -l /dev/ttyS0</userinput>
+	<computeroutput>
+	crw-rw-r--    1 root     dialout    4,  64 Aug 19 18:56 /dev/ttyS0
+	</computeroutput>
+	<prompt>$</prompt>
+	</screen>
+
+	The first character in the first column, i.e.,
+	`<literal>c</literal>' in <literal>crw-rw-rw-</literal> above, tells
+	an informed user the type of the file, in this case a character
+	device.  For ordinary files, the first character is
+	`<literal>-</literal>', for directories it is
+	`<literal>d</literal>', and for block devices
+	`<literal>b</literal>'; see the <command>ls</command> man page
+	for further information.</para>
+
+	<para>Note that usually all device files exist even though the
+	device itself might be not be installed.  So just because you have a
+	file <filename>/dev/sda</filename><indexterm id="ch05-sda">
+	<primary>filesystem</primary><secondary>/dev</secondary>
+	<tertiary>/dev/sda</tertiary></indexterm>, it doesn't mean that you really
+	do have an SCSI hard disk.  Having all the device files makes the
+	installation programs simpler, and makes it easier to add new
+	hardware (there is no need to find out the correct parameters
+	for and create the device files for the new device).</para>
+
+</sect1>
+
+<sect1 id="hard-disk">
+<title>Hard disks</title>
+
+	<para>This subsection introduces terminology related to hard
+	disks.	If you already know the terms and concepts, you can skip
+	this subsection.</para>
+
+	<para>See <xref linkend="hd-schematic"> for a schematic picture
+	of the important parts in a hard disk.	A hard disk consists of one
+	or more circular aluminum <glossterm>platters</glossterm>\
+	<indexterm id="ch05-disk-internals">
+        <primary>disks</primary><secondary>components</secondary></indexterm>,
+	of which either or both <glossterm>surfaces</glossterm> are coated
+	with a magnetic substance used for recording the data.	For each
+	surface, there is a <glossterm>read-write head</glossterm> that
+	examines or alters the recorded data.  The platters rotate on a
+	common axis; typical rotation speed is 5400 or 7200 rotations per
+	minute, although high-performance hard disks have higher speeds and
+	older disks may have lower speeds. The heads move along the radius
+	of the platters; this movement combined with the rotation of the
+	platters allows the head to access all parts of the surfaces.</para>
+
+	<para>The processor (CPU)<indexterm id="ch05-cpu">
+	<primary>hardware</primary><secondary>Central Processing Unit (CPU)</secondary>
+	</indexterm> and the actual disk communicate through a
+	<glossterm>disk controller</glossterm><indexterm id="ch05-disk-cont">
+        <primary>hardware</primary><secondary>disk controller</secondary>
+        </indexterm>
+	.  This relieves the rest of
+	the computer from knowing how to use the drive, since the
+	controllers for different types of disks can be made to use the same
+	interface towards the rest of the computer.  Therefore, the computer
+	can say just ``hey disk, give me what I want'', instead of a long
+	and complex series of electric signals to move the head to the
+	proper location and waiting for the correct position to come under
+	the head and doing all the other unpleasant stuff necessary. (In
+	reality, the interface to the controller is still complex, but much
+	less so than it would otherwise be.) The controller may also do
+	other things, such as caching, or automatic bad sector 
+	replacement.</para>
+
+	<para>The above is usually all one needs to understand about the
+	hardware.  There are also other things, such as the motor that
+	rotates the platters and moves the heads, and the electronics that
+	control the operation of the mechanical parts, but they are mostly
+	not relevant for understanding the working principles of a hard 
+	disk.</para>
+
+	<para>The surfaces are usually divided into concentric rings,
+	called <glossterm>tracks</glossterm><indexterm id="ch05-tracks">
+        <primary>disks</primary><secondary>tracks</secondary>
+        </indexterm>, and these in turn are divided
+	into <glossterm>sectors</glossterm><indexterm id="ch05-sectors">
+        <primary>disks</primary><secondary>sectors</secondary>
+        </indexterm>.  This division is used to
+	specify locations on the hard disk and to allocate disk space to
+	files.  To find a given place on the hard disk, one might say
+	``surface 3, track 5, sector 7''.  Usually the number of sectors is
+	the same for all tracks, but some hard disks put more sectors in
+	outer tracks (all sectors are of the same physical size, so more of
+	them fit in the longer outer tracks). Typically, a sector will hold
+	512 bytes of data.  The disk itself
+	can't handle smaller amounts of data than one sector.</para>
+
+		<figure id="hd-schematic" float="1">
+		<title>A schematic picture of a hard disk.</title>
+		<graphic fileref="hd-schematic.png">
+		</figure>
+
+	<para>Each surface is divided into tracks (and sectors) in
+	the same way.  This means that when the head for one surface is on a
+	track, the heads for the other surfaces are also on the
+	corresponding tracks.  All the corresponding tracks taken together
+	are called a <glossterm>cylinder</glossterm><indexterm id="ch05-cylinders">
+        <primary>disks</primary><secondary>cylinders</secondary>
+        </indexterm>.	It takes time to
+	move the heads from one track (cylinder) to another, so by placing
+	the data that is often accessed together (say, a file) so that it is
+	within one cylinder, it is not necessary to move the heads to read
+	all of it.  This improves performance. It is not always possible to
+	place files like this; files that are stored in several places on
+	the disk are called
+	<glossterm>fragmented</glossterm>.</para>
+
+	<para>The number of surfaces (or heads, which is the same thing),
+	cylinders, and sectors vary a lot; the specification of the number
+	of each is called the <glossterm>geometry</glossterm><indexterm id="ch05-geometry">
+        <primary>disks</primary><secondary>geometry</secondary>
+        </indexterm> of a hard
+	disk.  The geometry is usually stored in a special, battery-powered
+	memory location called the <glossterm>CMOS RAM</glossterm>
+	<indexterm id="ch05-tracks2"><primary>CMOS</primary>
+        </indexterm>, from
+	where the operating system can fetch it during bootup or driver 
+	initialization.</para>
+
+	<para>Unfortunately, the BIOS<indexterm id="ch05-bios2">
+	<primary>BIOS</primary></indexterm>
+	has a design limitation, which makes it impossible to specify a
+	track number that is larger than 1024 in the CMOS RAM, which is too
+	little for a large hard disk.  To overcome this, the hard disk
+	controller lies about the geometry<indexterm id="ch05-geometry2">
+        <primary>disks</primary><secondary>geometry</secondary>
+        </indexterm>, and <glossterm>translates the
+	addresses</glossterm> given by the computer into something that fits
+	reality.  For example, a hard disk might have 8 heads, 2048 tracks,
+	and 35 sectors per track.
+	Its controller could lie to the computer and claim that it has 16
+	heads, 1024 tracks, and 35 sectors per track, thus not exceeding the
+	limit on tracks, and translates the address that the computer gives
+	it by halving the head number, and doubling the track number.  The
+	mathematics can be more complicated in reality, because the numbers
+	are not as nice as here (but again, the details are not relevant for
+	understanding the principle). This translation distorts the
+	operating system's view of how the disk is organized, thus making it
+	impractical to use the all-data-on-one-cylinder trick to boost 
+	performance.</para>
+
+	<para>The translation is only a problem for IDE disks.	SCSI disks
+	use a sequential sector number (i.e., the controller translates a
+	sequential sector number to a head, cylinder, and sector triplet),
+	and a completely different method for the CPU to talk with the
+	controller, so they are insulated from the problem. Note, however,
+	that the computer might not know the real geometry of an SCSI disk 
+	either.</para>
+
+	<para>Since Linux often will not know the real geometry of a disk,
+	its filesystems don't even try to keep files within a single
+	cylinder.  Instead, it tries to assign sequentially numbered sectors
+	to files, which almost always gives similar performance. The issue
+	is further complicated by on-controller caches, and automatic 
+	prefetches done by the controller.</para>
+
+	<para>Each hard disk is represented by a separate device
+	file.  There can (usually) be only two or four IDE hard disks. These
+	are known as <filename>/dev/hda</filename><indexterm id="ch05-hda">
+	<primary>filesystem</primary><secondary>/dev</secondary>
+	<tertiary>/dev/hda</tertiary></indexterm>,
+	<filename>/dev/hdb</filename><indexterm id="ch05-hdb">
+        <primary>filesystem</primary><secondary>/dev</secondary>
+        <tertiary>/dev/hdb</tertiary></indexterm>, 
+	<filename>/dev/hdc</filename><indexterm id="ch05-hdc">
+        <primary>filesystem</primary><secondary>/dev</secondary>
+        <tertiary>/dev/hdc</tertiary></indexterm>, and
+	<filename>/dev/hdd</filename><indexterm id="ch05-hdd">
+        <primary>filesystem</primary><secondary>/dev</secondary>
+        <tertiary>/dev/hdd</tertiary></indexterm>, 
+	respectively.  SCSI hard disks are
+	known as <filename>/dev/sda</filename><indexterm id="ch05-sda22">
+        <primary>filesystem</primary><secondary>/dev</secondary>
+        <tertiary>/dev/sda</tertiary></indexterm>,
+	<filename>/dev/sdb</filename><indexterm id="ch05-sdb">
+        <primary>filesystem</primary><secondary>/dev</secondary>
+        <tertiary>/dev/sdb</tertiary></indexterm>, and so on.  Similar naming
+	conventions exist for other hard disk types; see <xref
+	linkend="device-list"> for more information.  Note that the device
+	files for the hard disks give access to the entire disk, with no
+	regard to partitions (which will be discussed below), and it's easy
+	to mess up the partitions or the data in them if you aren't careful.
+	The disks' device files are usually used only to get access to the
+	master boot record (which will also be discussed below).</para>
+
+</sect1>
+
+
+<sect1 id="san">
+<title>Storage Area Networks<indexterm id="ch05-san-chapt">
+<primary>Storage Area Network (SAN)</primary></indexterm> - Draft</title>
+	
+	<para>A SAN<indexterm id="ch05-san1">
+        <primary>Storage Area Network (SAN)</primary></indexterm> 
+        is a dedicated storage network that provides block level
+        access to LUNs. A LUN<indexterm id="ch05-san2">
+        <primary>Storage Area Network (SAN)</primary><secondary>LUN</secondary>
+	</indexterm>, 
+	or logical unit number, is a virtual disk
+	provided by the SAN.
+        The system administrator the same access and rights to the LUN as if
+        it were a disk directly attached to it.  The administrator can partition, and
+        format the disk in any means he or she chooses.</para>
+
+        <para>Two networking protocols commonly used in a SAN are
+        <glossterm>fibre channel</glossterm>
+	<indexterm id="ch05-FC"><primary>hardware</primary><secondary>fibre channel</secondary></indexterm>
+	<indexterm id="ch05-FC2"><primary>fibre channel</primary></indexterm> and
+        <glossterm>iSCSI</glossterm>
+	<indexterm id="ch05-iSCSI"><primary>iSCSI</primary></indexterm>. 
+        A fibre channel network is very fast and is not
+        burdened by the other network traffic in a company's LAN. However, it's
+        very expensive.  Fibre channel cards cost around $1000.00 USD each.  They
+        also require special fibre channel switches. </para>
+
+        <para>iSCSI is a newer technology that sends SCSI commands over a TCP/IP
+        network.  While this method may not be as fast as a Fibre Channel network,
+        it does save money by using less expensive network hardware.</para>
+
+	<para>More To Be Added</para>
+
+</sect1>
+
+<sect1 id="net-attached">
+<title>Network Attached Storage<indexterm id="ch05-nas-chapt">
+<primary>Network Attached Storage (NAS)</primary></indexterm> - Draft</title>
+
+	<para>A NAS<indexterm id="ch05-nas1">
+        <primary>Network Attached Storage (NAS)</primary></indexterm>
+         uses your companies existing Ethernet network to allow
+        access to shared disks.  This is filesystem level access.
+        The system administrator does not have the ability to partition or format
+        the disks since they are potentially shared by multiple computers. 
+	This technology is commonly used to provide multiple workstations 
+	access to the same data.</para>
+
+        <para>Similar to a SAN<indexterm id="ch05-san3">
+        <primary>Storage Area Network (SAN)</primary></indexterm>, 
+        a NAS need to make use of a protocol to allow access
+        to it's disks.  With a NAS this is either CIFS/Samba
+        <indexterm id="ch05-cifs2"><primary>Common Internet File System (CIFS)</primary>
+        </indexterm><indexterm id="ch05-samba2"><primary>Samba</primary>
+        </indexterm>, or NFS<indexterm id="ch05-nfs2">
+	<primary>Network File System (NFS)</primary>
+        </indexterm>.</para>
+
+        <para>Traditionally CIFS was used with Microsoft Windows networks, and
+        NFS was used with UNIX & Linux networks.  However, with Samba, Linux
+        machines can also make use of CIFS shares.</para>
+
+        <para>Does this mean that your Windows 2003 server or your Linux box
+        are NAS servers because they provide access to shared drives over your
+        network?  Yes, they are.  You could also purchase a NAS device from a
+        number of manufacturers.  These devices are specifically designed to 
+	provide high speed access to data.</para>
+
+	<para>More To Be Added</para>
+
+<sect2 id="net-file-sys">
+<title>NFS<indexterm id="ch05-nfs"><primary>Network File System (NFS)</primary>
+</indexterm></title>
+
+	<para>TO BE ADDED</para>
+
+</sect2>
+
+<sect2 id="cifs">
+<title>CIFS<indexterm id="ch05-cifs"><primary>Common Internet File System (CIFS)</primary>
+</indexterm><indexterm id="ch05-samba"><primary>Samba</primary>
+</indexterm></title>
+
+	<para>TO BE ADDED</para>
+
+</sect2>
+
+
+</sect1>
+
+<sect1 id="floppies">
+<title>Floppies</title>
+
+	<para>A floppy disk<indexterm id="ch05-floppy"><primary>hardware</primary>
+	<secondary>floppy disk</secondary></indexterm> 
+	consists of a flexible membrane covered on one
+	or both sides with similar magnetic substance as a hard disk. The
+	floppy disk itself doesn't have a read-write head, that is included
+	in the drive.  A floppy corresponds to one platter in a hard disk,
+	but is removable and one drive can be used to access different
+	floppies, and the same floppy can be read by many drives, whereas
+	the hard disk is one indivisible unit.</para>
+
+	<para>Like a hard disk, a floppy is divided into tracks and sectors
+	(and the two corresponding tracks on either side of a floppy
+	form a cylinder), but there are many fewer of them than on a
+	hard disk.</para>
+
+	<para>A floppy drive can usually use several different types of disks;
+	for example, a 3.5 inch drive can use both 720 KB and 1.44 MB disks.
+	Since the drive has to operate a bit differently and the operating
+	system must know how big the disk is, there are many device files
+	for floppy drives, one per combination of drive and disk type.
+	Therefore, <filename>/dev/fd0H1440</filename> is the first floppy 
+	drive (fd0), which must be a 3.5 inch drive, using a 3.5 inch, high
+	density disk (H) of size 1440 KB (1440), i.e., a normal 3.5 inch HD
+	floppy.
+	</para>
+
+	<para>The names for floppy drives are complex, however, and Linux
+	therefore has a special floppy device type that automatically
+	detects the type of the disk in the drive.  It works by trying to
+	read the first sector of a newly inserted floppy using different
+	floppy types until it finds the correct one. This naturally requires
+	that the floppy is formatted first. The automatic devices are called
+	<filename>/dev/fd0</filename><indexterm id="ch05-fd0">
+	<primary>filesystem</primary><secondary>/dev</secondary>
+	<tertiary>/dev/fd0</tertiary></indexterm>, 
+	<filename>/dev/fd1</filename><indexterm id="ch05-fd1">
+        <primary>filesystem</primary><secondary>/dev</secondary>
+        <tertiary>/dev/fd1</tertiary></indexterm>, and so 
+	on.</para>
+
+	<para>The parameters the automatic device uses to access a disk can
+	also be set using the program <command>setfdprm</command>
+	<indexterm id="ch05-setfdparm"><primary>commands</primary>
+	<secondary>setfdparm</secondary></indexterm>.  This can
+	be useful if you need to use disks that do not follow any usual
+	floppy sizes, e.g., if they have an unusual number of sectors, or if
+	the autodetecting for some reason fails and the proper device file is 
+	missing.</para>
+
+	<para>Linux can handle many nonstandard floppy disk formats
+	in addition to all the standard ones.  Some of these require using
+	special formatting programs.  We'll skip these disk types for now,
+	but in the mean time you can examine the
+	<filename>/etc/fdprm</filename><indexterm id="ch05-fdprm">
+	<primary>filesystem</primary><secondary>/etc</secondary>
+	<tertiary>/etc/fdprm</tertiary></indexterm> file.  It specifies the settings
+	that <command>setfdprm</command><indexterm id="ch05-setfdparm2">
+	<primary>commands</primary><secondary>setfdparm</secondary>
+        </indexterm> recognizes.</para>
+
+	<para>The operating system must know when a disk has been changed in
+	a floppy drive, for example, in order to avoid using cached data
+	from the previous disk.  Unfortunately, the signal line that is used
+	for this is sometimes broken, and worse, this won't always be
+	noticeable when using the drive from within MS-DOS. If you are
+	experiencing weird problems using floppies, this might be the
+	reason.  The only way to correct it is to repair the floppy drive.</para>
+
+</sect1>
+
+<sect1 id="cdrom">
+<title>CD-ROMs</title>
+
+	<para>A CD-ROM<indexterm id="ch05-cdrom"><primary>hardware</primary>
+	<secondary>CD-ROM</secondary></indexterm> drive uses an 
+	optically read, plastic coated disk.
+	The information is recorded on the surface of the disk
+	in small `holes' aligned along a spiral from the center to the edge.
+	The drive directs a laser beam along the spiral to read the disk.
+	When the laser hits a hole, the laser is reflected in one way; when
+	it hits smooth surface, it is reflected in another way.  This makes
+	it easy to code bits, and therefore information.  The rest is easy, 
+	mere mechanics.</para>
+
+	<para>CD-ROM drives are slow compared to hard disks.  Whereas a
+	typical hard disk will have an average seek time less than 15
+	milliseconds, a fast CD-ROM drive can use tenths of a second for
+	seeks.  The actual data transfer rate is fairly high at hundreds of
+	kilobytes per second.  The slowness means that CD-ROM drives are not
+	as pleasant to use as hard disks (some Linux distributions provide
+	`live' filesystems on CD-ROMs, making it unnecessary to copy the
+	files to the hard disk, making installation easier and saving a lot
+	of hard disk space), although it is still possible.  For installing
+	new software, CD-ROMs are very good, since maximum speed is not
+	essential during installation.</para>
+
+	<para>There are several ways to arrange data on a CD-ROM.  The most
+	popular one is specified by the international standard ISO 9660
+	<indexterm id="ch05-iso9660"><primary>ISO 9660</primary></indexterm>.
+	This standard specifies a very minimal filesystem, which is even
+	more crude than the one MS-DOS uses.  On the other hand, it is so
+	minimal that every operating system should be able to map it to its 
+	native system.</para>
+
+	<para>For normal UNIX use, the ISO 9660 filesystem is not usable, so
+	an extension to the standard has been developed, called the Rock
+	Ridge extension<indexterm id="ch05-rockridge"><primary>ISO 9660</primary>
+	<secondary>Rock Ridge extensions</secondary></indexterm>.  Rock Ridge 
+	allows longer filenames, symbolic
+	links, and a lot of other goodies, making a CD-ROM look more or less
+	like any contemporary UNIX filesystem. Even better, a Rock Ridge
+	filesystem is still a valid ISO 9660 filesystem, making it usable by
+	non-UNIX systems as well. Linux supports both ISO 9660 and the Rock
+	Ridge extensions;  the extensions are recognized and used 
+	automatically.</para>
+
+	<para>The filesystem is only half the battle, however.  Most CD-ROMs 
+	contain data that requires a special program to access, and most of
+	these programs do not run under Linux (except, possibly, under
+	dosemu, the Linux MS-DOS emulator, or wine, the Windows emulator.
+	</para>
+	
+	<para>Ironically perhaps, wine actually stands for ``Wine Is Not an 
+	Emulator''<indexterm id="ch05-wine"><primary>WINE</primary></indexterm>.  
+	Wine, more strictly, is an API (Application Program 
+	Interface) replacement. Please see the wine documentation at 
+	<ulink url="http://www.winehq.com">http://www.winehq.com</ulink>
+	for more information.</para>
+	
+	<para>There is also VMWare<indexterm id="ch05-vmware"> 
+	<primary>VMWare</primary></indexterm>, a commercial product, which emulates
+	an entire x86 machine in software.  See the VMWare website, 
+	<ulink url="http://www.vmware.com">http://www.vmware.com</ulink>
+	for more information.</para>
+
+	<para>A CD-ROM drive is accessed via the corresponding device file.
+	There are several ways to connect a CD-ROM drive to the computer:
+	via SCSI, via a sound card, or via EIDE.  The hardware hacking
+	needed to do this is outside the scope of this book, but the
+	type of connection decides the device file.</para>
+	
+</sect1>
+
+<sect1 id="tapes">
+<title>Tapes</title>
+
+	<para>A tape drive<indexterm id="ch05-tapes"><primary>hardware</primary>
+	<secondary>tape drive</secondary></indexterm> uses a tape, similar
+	to cassettes used for music.  A tape is serial in nature, which
+	means that in order to get to any given part of it, you first have
+	to go through all the parts in between.  A disk can be accessed
+	randomly, i.e., you can jump directly to any place on the disk.
+	The serial access of tapes makes them slow.</para>
+
+	<para>On the other hand, tapes are relatively cheap to make,
+	since they do not need to be fast.  They can also easily be made
+	quite long, and can therefore contain a large amount of data. This
+	makes tapes very suitable for things like archiving and backups,
+	which do not require large speeds, but benefit from
+	low costs and large storage capacities.</para>
+
+</sect1>
+
+<sect1 id="formatting">
+<title>Formatting</title>
+
+	<para><glossterm>Formatting</glossterm><indexterm id="ch05-formatting">
+	<primary>disks</primary><secondary>formatting</secondary></indexterm>
+	 is the process of writing marks 
+	on the magnetic media that are used to mark tracks and sectors.
+	Before a disk is formatted, its magnetic surface is a complete mess
+	of magnetic signals.  When it is formatted, some order is brought
+	into the chaos by essentially drawing lines where the tracks go, and
+	where they are divided into sectors.  The actual details are not
+	quite exactly like this, but that is irrelevant.  What is important
+	is that a disk cannot be used unless it has been formatted.</para>
+
+	<para>The terminology is a bit confusing here: in MS-DOS and MS 
+	Windows, the word formatting is used to cover also the process of
+	creating a filesystem (which will be discussed below).  There, the
+	two processes are often combined, especially for floppies.  When the
+	distinction needs to be made, the real formatting is called
+	<glossterm>low-level formatting</glossterm><indexterm id="ch05-formatting2">
+        <primary>disks</primary><secondary>formatting</secondary>
+	<tertiary>low-level</tertiary></indexterm>, while making the 
+	filesystem is called <glossterm>high-level formatting</glossterm>
+	<indexterm id="ch05-formatting333"><primary>disks</primary>
+        <secondary>formatting</secondary><tertiary>high-level</tertiary>
+	</indexterm>.
+	In UNIX circles, the two are called formatting and making a
+	filesystem, so that's what is used in this book as well.</para>
+
+	<para>For IDE and some SCSI disks the formatting is actually
+	done at the factory and doesn't need to be repeated; hence most
+	people rarely need to worry about it.  In fact, formatting a hard
+	disk can cause it to work less well, for example because a disk
+	might need to be formatted in some very special way to
+	allow automatic bad sector replacement to work.</para>
+
+	<para>Disks that need to be or can be formatted often require a
+	special program anyway, because the interface to the formatting
+	logic inside the drive is different from drive to drive. The
+	formatting program is often either on the controller BIOS, or is
+	supplied as an MS-DOS program; neither of these can easily
+	be used from within Linux.</para>
+
+	<para>During formatting one might encounter bad spots on the
+	disk, called <glossterm>bad blocks</glossterm><indexterm id="ch05-bblocks">
+	<primary>disks</primary><secondary>bad blocks</secondary></indexterm>
+	 or <glossterm>bad sectors</glossterm><indexterm id="ch05-bsect">
+	<primary>disks</primary><secondary>bad sectors</secondary></indexterm>.
+	These are sometimes handled by the drive
+	itself, but even then, if more of them develop, something needs to
+	be done to avoid using those parts of the disk.  The logic to do
+	this is built into the filesystem; how to add the information into
+	the filesystem is described below.  Alternatively, one might create
+	a small partition that covers just the bad part of the disk; this
+	approach might be a good idea if the bad spot is very large, since
+	filesystems can sometimes have trouble with very large bad areas.</para>
+
+	<para>Floppies are formatted with <command>fdformat</command>
+	<indexterm id="ch05-fdformat"><primary>commands</primary>
+	<secondary>fdformat</secondary></indexterm>.  The 
+	floppy device file to use is given as the parameter.  For example,
+	the following command would format a high density, 3.5 inch floppy
+	in the first floppy drive:
+
+        <screen>
+	<prompt>$</prompt> <userinput>fdformat /dev/fd0H1440</userinput>
+	<computeroutput>Double-sided, 80 tracks, 18 sec/track. Total capacity 
+	1440 kB.</computeroutput>
+	<computeroutput>Formatting ... done</computeroutput>
+	<computeroutput>Verifying ... done</computeroutput>
+	<prompt>$</prompt>
+	</screen>
+
+	Note that if you want to use an autodetecting device (e.g.,
+	<filename>/dev/fd0</filename>)<indexterm id="ch05-fd02">
+	<primary>filesystem</primary><secondary>/dev</secondary>
+	<tertiary>/dev/fd0</tertiary></indexterm>,
+        you <emphasis>must</emphasis> set 
+	the parameters of the device with <command>setfdprm</command>
+	<indexterm id="ch05-setfdprm"><primary>commands</primary>
+        <secondary>setfdprm</secondary></indexterm> first.
+	To achieve the same effect as above, one would have to do the
+	following:
+
+        <screen>
+	<prompt>$</prompt> <userinput>setfdprm /dev/fd0 1440/1440</userinput>
+	<prompt>$</prompt> <userinput>fdformat /dev/fd0</userinput>
+	<computeroutput>Double-sided, 80 tracks, 18 sec/track. Total capacity 
+	1440 KB.</computeroutput>
+	<computeroutput>Formatting ... done</computeroutput>
+	<computeroutput>Verifying ... done</computeroutput>
+	<prompt>$</prompt>
+	</screen>
+
+	It is usually more convenient to choose the correct device file that
+	matches the type of the floppy.  Note that it is unwise to format
+	floppies to contain more information than what they are
+	designed for.</para>
+
+	<para><command>fdformat</command><indexterm id="ch05-fdformat2">
+	<primary>commands</primary><secondary>fdformat</secondary>
+        </indexterm>also validate the floppy, 
+	i.e., check it for bad blocks.  It will try a bad block several
+	times (you can usually hear this, the drive noise changes
+	dramatically). If the floppy is only marginally bad (due to dirt on
+	the read/write head, some errors are false signals),
+	<command>fdformat</command> won't complain, but a real error will
+	abort the validation process. The kernel will print log messages for
+	each I/O error it finds; these will go to the console or, if
+	<command>syslog</command><indexterm id="ch05-syslog2">
+        <primary>commands</primary><secondary>syslog</secondary>
+        </indexterm> is being used, to the file
+	<filename>/var/log/messages</filename><indexterm id="ch05-messages">
+	<primary>logs</primary><secondary>/var/log/messages</secondary>.  
+	<command>fdformat</command>
+	itself won't tell where the error is (one usually doesn't care,
+	floppies are cheap enough that a bad one is automatically thrown
+	away).
+
+        <screen>
+	<prompt>$</prompt> <userinput>fdformat /dev/fd0H1440</userinput>
+	<computeroutput>Double-sided, 80 tracks, 18 sec/track. Total capacity 
+	1440 KB.</computeroutput>
+	<computeroutput>Formatting ... done</computeroutput>
+	<computeroutput>Verifying ... read: Unknown error</computeroutput>
+	<prompt>$</prompt>
+	</screen>
+
+	The <command>badblocks</command><indexterm id="ch05-badblockcmd">
+        <primary>commands</primary><secondary>badblocks</secondary>
+        </indexterm> command can be used to search any 
+	disk or partition for bad blocks (including a floppy).  It does not
+	format the disk, so it can be used to check even existing
+	filesystems.  The example below checks a 3.5 inch floppy with two
+	bad blocks.
+
+        <screen>
+	<prompt>$</prompt> <userinput>badblocks /dev/fd0H1440 1440</userinput>
+	<computeroutput>718</computeroutput>
+	<computeroutput>719</computeroutput>
+	<prompt>$</prompt>
+	</screen>
+
+	<command>badblocks</command> outputs the block numbers of the bad
+	blocks it finds.  Most filesystems can avoid such bad blocks. They
+	maintain a list of known bad blocks, which is initialized when the
+	filesystem is made, and can be modified later.	The initial search
+	for bad blocks can be done by the <command>mkfs</command>
+	<indexterm id="ch05-mkfs">
+        <primary>commands</primary><secondary>mkfs</secondary>
+        </indexterm> command
+	(which initializes the filesystem), but later checks should be done
+	with <command>badblocks</command><indexterm id="ch05-badblockscmd2">
+        <primary>commands</primary><secondary>badblocks</secondary>
+        </indexterm> and the new blocks should be added
+	with <command>fsck</command><indexterm id="ch05-fsck">
+        <primary>commands</primary><secondary>fsck</secondary>
+        </indexterm>.	We'll describe
+	<command>mkfs</command>
+	and <command>fsck</command> later.</para>
+
+	<para>Many modern disks automatically notice bad blocks, and attempt
+	to fix them by using a special, reserved good block instead. This is
+	invisible to the operating system.  This feature should be
+	documented in the disk's manual, if you're curious if it is
+	happening.  Even such disks can fail, if the number of bad blocks
+	grows too large, although chances are that by then the disk
+	will be so rotten as to be unusable.</para>
+
+</sect1>
+
+<sect1 id="partitions">
+<title>Partitions</title>
+
+	<para>A hard disk can be divided into several
+	<glossterm>partitions</glossterm><indexterm id="ch05-diskpart">
+        <primary>disks</primary><secondary>partitions</secondary>
+        </indexterm>.  Each partition functions as if
+	it were a separate hard disk.  The idea is that if you have one hard
+	disk, and want to have, say, two operating systems on it, you can
+	divide the disk into two partitions.  Each operating system uses its
+	partition as it wishes and doesn't touch the other ones.  This way
+	the two operating systems can co-exist peacefully on the same hard
+	disk. Without partitions one would have to buy a hard disk for each 
+	operating system.</para>
+
+	<para>Floppies are not usually partitioned. There is no technical reason
+	against this, but since they're so small, partitions would be useful
+	only very rarely.  CD-ROMs are usually also not partitioned, since
+	it's easier to use them as one big disk, and there is seldom a need
+	to have several operating systems on one.</para>
+
+<sect2 id="mbr">
+<title>The MBR<indexterm id="ch05-mbr">
+        <primary>disks</primary><secondary>MBR</secondary>
+        </indexterm>, boot sectors<indexterm id="ch05-bootsect">
+        <primary>disks</primary><secondary>boot sectors</secondary>
+        </indexterm> and partition table<indexterm id="ch05-parttbl">
+        <primary>disks</primary><secondary>partition table</secondary>
+        </indexterm></title>
+
+	<para>The information about how a hard disk has been partitioned
+	is stored in its first sector (that is, the first sector of the
+	first track on the first disk surface).  The first sector is the
+	<glossterm>master boot record</glossterm> (MBR) of the disk; this is
+	the sector that the BIOS reads in and starts when the machine is
+	first booted.  The master boot record contains a small program that
+	reads the partition table, checks which partition is active (that
+	is, marked bootable), and reads the first sector of that partition,
+	the partition's <glossterm>boot sector</glossterm> (the MBR is also
+	a boot sector, but it has a special status and therefore a special
+	name).  This boot sector contains another small program that reads
+	the first part of the operating system stored on that partition
+	(assuming it is bootable), and then starts it.</para>
+
+	<para>The partitioning scheme is not built into the hardware, or
+	even into the BIOS.  It is only a convention that many operating
+	systems follow.  Not all operating systems do follow it, but they
+	are the exceptions.  Some operating systems support partitions, but
+	they occupy one partition on the hard disk, and use their internal
+	partitioning method within that partition.  The latter type exists
+	peacefully with other operating systems (including Linux), and does
+	not require any special measures, but an operating system that
+	doesn't support partitions cannot co-exist on the same disk with any 
+	other operating system.</para>
+
+	<para>As a safety precaution, it is a good idea to write down the
+	partition table on a piece of paper, so that if it ever corrupts you
+	don't have to lose all your files.  (A bad partition table can be
+	fixed with <command>fdisk</command><indexterm id="ch05-fdisk2">
+	<primary>commands</primary><secondary>fdisk</secondary></indexterm>).  
+	The relevant information is
+	given by the <command>fdisk -l</command> command:
+
+        <screen>
+	<prompt>$</prompt> <userinput>fdisk -l /dev/hda</userinput>
+	<computeroutput></computeroutput>
+	<computeroutput>Disk /dev/hda: 15 heads, 57 sectors, 790 cylinders</computeroutput>
+	<computeroutput>Units = cylinders of 855 * 512 bytes</computeroutput>
+	<computeroutput></computeroutput>
+	<computeroutput>   Device Boot  Begin   Start     End  Blocks   Id  System</computeroutput>
+	<computeroutput>/dev/hda1           1       1      24   10231+  82  Linux swap</computeroutput>
+	<computeroutput>/dev/hda2          25      25      48   10260   83  Linux native</computeroutput>
+	<computeroutput>/dev/hda3          49      49     408  153900   83  Linux native</computeroutput>
+	<computeroutput>/dev/hda4         409     409     790  163305    5  Extended</computeroutput>
+	<computeroutput>/dev/hda5         409     409     744  143611+  83  Linux native</computeroutput>
+	<computeroutput>/dev/hda6         745     745     790   19636+  83  Linux native</computeroutput>
+	<prompt>$</prompt>
+	</screen>
+
+</sect2>
+
+<sect2 id="extended-logical-part">
+<title>Extended and logical partitions</title>
+
+	<para>The original partitioning scheme for PC hard disks allowed
+	only four partitions.  This quickly turned out to be too little in
+	real life, partly because some people want more than four operating
+	systems (Linux, MS-DOS, OS/2, Minix, FreeBSD, NetBSD, or Windows/NT,
+	to name a few), but primarily because sometimes it is a good idea to
+	have several partitions for one operating system.  For example, swap
+	space is usually best put in its own partition for Linux instead of
+	in the main Linux partition for reasons of speed (see below).</para>
+
+	<para>To overcome this design problem, <glossterm>extended 
+	partitions</glossterm><indexterm id="ch05-extendedpart">
+        <primary>disks</primary><secondary>extended partition</secondary>
+        </indexterm> were invented.  This trick allows
+	partitioning a <glossterm>primary partition</glossterm>
+	<indexterm id="ch05-extendedpart2"><primary>disks</primary>
+        <secondary>extended partition</secondary></indexterm> into
+	sub-partitions.  The primary partition thus subdivided is the
+	<glossterm>extended partition</glossterm>; the sub-partitions are
+	<glossterm>logical partitions</glossterm>.  They behave like primary
+	partitions, but are created differently.  There is no speed
+	difference between them.  By using an extended partition you can now 
+	have up to 15 partitions per disk.</para>
+
+	<para>The partition structure of a hard disk might look like that
+	in <xref linkend="hard-disk-layout">.  The disk is divided into
+	three primary partitions, the second of which is divided into two
+	logical partitions.  Part of the disk is not partitioned at all.
+	The disk as a whole and each primary partition has a boot sector.</para>
+
+		<figure id="hard-disk-layout" float="1">
+		<title>A sample hard disk partitioning.</title>
+		<graphic fileref="hd-layout.png">
+		</figure>
+
+</sect2>
+
+<sect2 id="part-types">
+<title>Partition types</title>
+
+	<para>The partition tables (the one in the MBR, and the ones for
+	extended partitions) contain one byte per partition that identifies
+	the type of that partition<indexterm id="ch05-parttype">
+        <primary>disks</primary><secondary>partition type</secondary>
+        </indexterm>.  This attempts to identify the operating
+	system that uses the partition, or what it uses it for.  The purpose
+	is to make it possible to avoid having two operating systems
+	accidentally using the same partition.  However, in reality,
+	operating systems do not really care about the partition type byte;
+	e.g., Linux doesn't care at all what it is.  Worse, some of them use
+	it incorrectly; e.g., at least some versions of DR-DOS ignore the
+	most significant bit of the byte, while others don't.</para>
+
+	<para>There is no standardization agency to specify what each byte
+	value means, but as far as Linux is concerned, here is a list of partition 
+	types as per the <command>fdisk</command><indexterm id="ch05-fdisk3">
+        <primary>commands</primary><secondary>fdisk</secondary>
+        </indexterm> program.</para>
+
+<screen>
+<computeroutput> 0  Empty           1c  Hidden Win95 FA 70  DiskSecure Mult bb  Boot Wizard hid
+ 1  FAT12           1e  Hidden Win95 FA 75  PC/IX           be  Solaris boot
+ 2  XENIX root      24  NEC DOS         80  Old Minix       c1  DRDOS/sec (FAT-
+ 3  XENIX usr       39  Plan 9          81  Minix / old Lin c4  DRDOS/sec (FAT-
+ 4  FAT16 <32M      3c  PartitionMagic  82  Linux swap      c6  DRDOS/sec (FAT-
+ 5  Extended        40  Venix 80286     83  Linux           c7  Syrinx
+ 6  FAT16           41  PPC PReP Boot   84  OS/2 hidden C:  da  Non-FS data
+ 7  HPFS/NTFS       42  SFS             85  Linux extended  db  CP/M / CTOS / .
+ 8  AIX             4d  QNX4.x          86  NTFS volume set de  Dell Utility
+ 9  AIX bootable    4e  QNX4.x 2nd part 87  NTFS volume set df  BootIt
+ a  OS/2 Boot Manag 4f  QNX4.x 3rd part 8e  Linux LVM       e1  DOS access
+ b  Win95 FAT32     50  OnTrack DM      93  Amoeba          e3  DOS R/O
+ c  Win95 FAT32 (LB 51  OnTrack DM6 Aux 94  Amoeba BBT      e4  SpeedStor
+ e  Win95 FAT16 (LB 52  CP/M            9f  BSD/OS          eb  BeOS fs
+ f  Win95 Ext'd (LB 53  OnTrack DM6 Aux a0  IBM Thinkpad hi ee  EFI GPT
+10  OPUS            54  OnTrackDM6      a5  FreeBSD         ef  EFI (FAT-12/16/
+11  Hidden FAT12    55  EZ-Drive        a6  OpenBSD         f0  Linux/PA-RISC b
+12  Compaq diagnost 56  Golden Bow      a7  NeXTSTEP        f1  SpeedStor
+14  Hidden FAT16 <3 5c  Priam Edisk     a8  Darwin UFS      f4  SpeedStor
+16  Hidden FAT16    61  SpeedStor       a9  NetBSD          f2  DOS secondary
+17  Hidden HPFS/NTF 63  GNU HURD or Sys ab  Darwin boot     fd  Linux raid auto
+18  AST SmartSleep  64  Novell Netware  b7  BSDI fs         fe  LANstep
+1b  Hidden Win95 FA 65  Novell Netware  b8  BSDI swap       ff  BBT
+</computeroutput>
+</screen>
+
+<indexterm id="pt1"><primary>partition types</primary>
+<secondary>FAT32</secondary></indexterm>
+<indexterm id="pt2"><primary>partition types</primary>
+<secondary>FAT16</secondary></indexterm>
+<indexterm id="pt3"><primary>partition types</primary>
+<secondary>AIX</secondary></indexterm>
+<indexterm id="pt4"><primary>partition types</primary>
+<secondary>NTFS</secondary></indexterm>
+<indexterm id="pt5"><primary>partition types</primary>
+<secondary>HPFS</secondary></indexterm>
+<indexterm id="pt6"><primary>partition types</primary>
+<secondary>Minix</secondary></indexterm>
+<indexterm id="pt7"><primary>partition types</primary>
+<secondary>Linux Swap</secondary></indexterm>
+<indexterm id="pt8"><primary>partition types</primary>
+<secondary>Linux</secondary></indexterm>
+<indexterm id="pt9"><primary>partition types</primary>
+<secondary>Linux LVM</secondary></indexterm>
+<indexterm id="pt10"><primary>partition types</primary>
+<secondary>FreeBSD</secondary></indexterm>
+<indexterm id="pt11"><primary>partition types</primary>
+<secondary>NetBSD</secondary></indexterm>
+
+
+</sect2>
+
+<sect2 id="part-hd">
+<title>Partitioning a hard disk</title>
+
+	<para>There are many programs for creating and removing
+	partitions.  Most operating systems have their own, and it can be a
+	good idea to use each operating system's own, just in case it does
+	something unusual that the others can't. Many of the programs are
+	called <command>fdisk</command><indexterm id="ch05-fdisk4">
+        <primary>commands</primary><secondary>fdisk</secondary>
+        </indexterm>, including the Linux one, or
+	variations thereof.  Details on using the Linux
+	<command>fdisk</command> given on its man page.  The
+	<command>cfdisk</command><indexterm id="ch05-cfdisk">
+        <primary>commands</primary><secondary>cfdisk</secondary>
+        </indexterm> command is similar to
+	<command>fdisk</command>, but has a nicer (full screen) user 
+	interface.</para>
+
+	<para>When using IDE disks<indexterm id="ch05-IDE">
+	<primary>disks</primary><secondary>IDE</secondary></indexterm>, 
+	the boot partition (the partition
+	with the bootable kernel image files) must be completely within the
+	first 1024 cylinders.  This is because the disk is used via the BIOS
+	during boot (before the system goes into protected mode), and BIOS
+	can't handle more than 1024 cylinders. It is sometimes possible to
+	use a boot partition that is only partly within the first 1024
+	cylinders.  This works as long as all the files that are read with
+	the BIOS are within the first 1024 cylinders.  Since this is
+	difficult to arrange, it is <emphasis>a very bad idea</emphasis> to
+	do it; you never know when a kernel update or disk defragmentation
+	will result in an unbootable system.  Therefore, make sure your boot
+	partition is completely within the first 1024 cylinders.</para>
+		
+	<para>However, this may no longer be true with newer versions of 
+	LILO<indexterm id="ch05-lilo"><primary>LILO</primary></indexterm>
+	 that support LBA (Logical Block Addressing)<indexterm id="ch05-lba">
+	<primary>disks</primary><secondary>Logical Block Addressing (LBA)</secondary>
+	</indexterm>.  Consult the
+	documentation for your distribution to see if it has a version
+	of LILO where LBA is supported.</para>
+
+	<para>Some newer versions of the BIOS<indexterm id="ch05-bios">
+	<primary>BIOS</primary></indexterm> and IDE disks can, in fact,
+	handle disks with more than 1024 cylinders.  If you have such a
+	system, you can forget about the problem; if you aren't quite
+	sure of it, put it within the first 1024 cylinders.</para>
+
+	<para>Each partition should have an even number of sectors,
+	since the Linux filesystems use a 1 kilobyte block size, i.e., two
+	sectors.  An odd number of sectors will result in the last sector
+	being unused.  This won't result in any problems, but it is ugly,
+	and some versions of <command>fdisk</command> will warn about it.</para>
+
+	<para>Changing a partition's size<indexterm id="ch05-partsize">
+	<primary>disks</primary><secondary>changing partition size</secondary>
+	</indexterm> usually requires first backing up
+	everything you want to save from that partition (preferably the
+	whole disk, just in case), deleting the partition, creating new
+	partition, then restoring everything to the new partition. If the
+	partition is growing, you may need to adjust the sizes (and backup and 
+	restore) of the adjoining partitions as well.</para>
+
+	<para>Since changing partition sizes is painful, it is preferable to
+	get the partitions right the first time, or have an effective and
+	easy to use backup system.  If you're installing from a media that
+	does not require much human intervention (say, from CD-ROM, as
+	opposed to floppies), it is often easy to play with different
+	configuration at first. Since you don't already have data to back
+	up, it is not so painful to modify partition sizes several times.</para>
+
+	<para>There is a program for MS-DOS, called <command>fips</command>
+	<indexterm id="ch05-fips"><primary>commands</primary>
+	<secondary>fips</secondary></indexterm>,
+	which resizes an MS-DOS partition without requiring the backup and
+        restore, but for other filesystems it is still necessary.</para>
+		
+	<para>The <command>fips</command> program is included in most Linux
+	distributions.  The commercial partition manager ``Partition Magic'' 
+	also has a similar facility but with a nicer interface.  Please do 
+	remember that partitioning is dangerous.  Make
+	<emphasis>sure</emphasis> you have a recent backup of any important 
+	data before you try changing partition sizes ``on the fly''.  The 
+	program <command>parted</command><indexterm id="ch05-parted">
+	<primary>commands</primary><secondary>parted</secondary>
+        </indexterm> can resize other types of partitions
+	as well as MS-DOS, but sometimes in a limited manner.  Consult the 
+	<command>parted</command> documentation before using it, better safe
+	than sorry.
+	</para>
+	
+</sect2>
+
+<sect2 id="dev-files-parts">
+<title>Device files and partitions</title>
+
+	<para>Each partition and extended partition<indexterm id="ch05-extendedpart3">
+        <primary>disks</primary><secondary>extended partition</secondary>
+        </indexterm> has its own
+	device file.  The naming convention for these files is that a
+	partition's number is appended after the name of the whole disk,
+	with the convention that 1-4 are primary partitions (regardless of
+	how many primary partitions there are) and number greater than 5 are
+	logical partitions (regardless of within which primary partition
+	they reside).  For example, <filename>/dev/hda1</filename> is the
+	first primary partition on the first IDE hard disk, and
+	<filename>/dev/sdb7</filename> is the third extended partition on
+	the second SCSI hard disk.</para>
+
+</sect2>
+
+</sect1>
+
+<sect1 id="filesystems">
+<title>Filesystems</title>
+
+<sect2 id="fs-intro">
+<title>What are filesystems?</title>
+
+	<para>A <glossterm>filesystem</glossterm><indexterm id="ch05-fs">
+        <primary>disks</primary><secondary>filesystem</secondary>
+        </indexterm> is the methods and
+	data structures that an operating system uses to keep track of files
+	on a disk or partition; that is, the way the files are organized on
+	the disk.  The word is also used to refer to a partition or disk
+	that is used to store the files or the type of the filesystem.
+	Thus, one might say ``I have two filesystems'' meaning one has two
+	partitions on which one stores files, or that one is using the
+	``extended filesystem'', meaning the type of the filesystem.</para>
+
+        <para>The difference between a disk or partition and the 
+	filesystem it contains is important.  A few programs (including,
+	reasonably enough, programs that create filesystems) operate
+	directly on the raw sectors of a disk or partition; if there is an
+	existing file system there it will be destroyed or seriously
+	corrupted.  Most programs operate on a filesystem, and therefore
+	won't work on a partition that doesn't contain one (or that contains 
+	one of the wrong type).</para>
+
+	<para>Before a partition or disk can be used as a filesystem, it
+	needs to be initialized, and the bookkeeping data structures need to
+	be written to the disk.  This process is called
+	<glossterm>making a filesystem</glossterm>.</para>
+
+	<para>Most UNIX filesystem types have a similar general
+	structure, although the exact details vary quite a bit. The central
+	concepts are <glossterm>superblock</glossterm><indexterm id="ch05-sblock">
+	<primary>disks</primary><secondary>filesystem</secondary>
+	<tertiary>superblock</tertiary>, <glossterm>inode</glossterm>
+	<indexterm id="ch05-inode"><primary>disks</primary>
+	<secondary>filesystem</secondary><tertiary>inode</tertiary>
+	</indexterm>, <glossterm>data block</glossterm><indexterm id="ch05-dblock">
+	<primary>disks</primary><secondary>filesystem</secondary>
+        <tertiary>data block</tertiary></indexterm>,
+	<glossterm>directory block</glossterm> <indexterm id="ch05-dirblock">
+	<primary>disks</primary><secondary>filesystem</secondary>
+	<tertiary>directory block</tertiary></indexterm>, and <glossterm>indirection
+	block</glossterm><indexterm id="ch05-indirblock"><primary>disks</primary>
+	<secondary>filesystem</secondary><tertiary>indirection block</tertiary>  
+	</indexterm>.  The superblock contains information about the
+	filesystem as a whole, such as its size (the exact information here
+	depends on the filesystem).  An inode contains all information about
+	a file, except its name.  The name is stored in the directory,
+	together with the number of the inode. A directory entry consists of
+	a filename and the number of the inode which represents the file.
+	The inode contains the numbers of several data blocks, which are
+	used to store the data in the file.  There is space only for a few
+	data block numbers in the inode, however, and if more are needed,
+	more space for pointers to the data blocks is allocated dynamically.
+	These dynamically allocated blocks are indirect blocks; the name
+	indicates that in order to find the data block, one has to find
+	its number in the indirect block first.</para>
+
+	<para>UNIX filesystems usually allow one to create a
+	<glossterm>hole</glossterm> in a file (this is done with the 
+	<function>lseek()</function> system call; check the manual page),
+	which means that the filesystem just pretends that at a particular
+	place in the file there is just zero bytes, but no actual disk
+	sectors are reserved for that place in the file (this means that the
+	file will use a bit less disk space). This happens especially often
+	for small binaries, Linux shared libraries, some databases, and a
+	few other special cases.  (Holes are implemented by storing a
+	special value as the address of the data block in the indirect block
+	or inode.  This special address means that no data block is
+	allocated for that part of the file, ergo, there is a hole in the 
+	file.)</para>
+
+</sect2>
+
+<sect2 id="fs-galore">
+<title>Filesystems galore</title>
+
+	<para>Linux supports several types of filesystems.  As of this
+	writing the most important ones are:
+
+	<glosslist>
+	<glossentry>
+	<glossterm>minix<indexterm id="ch05-fs01">
+	<primary>filesystem types</primary><secondary>minix</secondary>
+	</indexterm></glossterm>
+		<glossdef><para>The oldest, presumed to be the most 
+		reliable, but quite limited in features (some time stamps
+		are missing, at most 30 character filenames) and restricted
+		in capabilities (at most 64 MB per filesystem).
+		</para></glossdef></glossentry>
+		
+	<glossentry>
+	<glossterm>xia<indexterm id="ch05-fs02">
+        <primary>filesystem types</primary><secondary>xia</secondary>
+        </indexterm></glossterm>
+		<glossdef><para>A modified version of the minix filesystem 
+		that lifts the limits on the filenames and filesystem sizes,
+		but does not otherwise introduce new features.  It is not
+		very popular, but is reported to work very well.
+		</para></glossdef></glossentry>
+
+	<glossentry>
+	<glossterm>ext3<indexterm id="ch05-fs03">
+        <primary>filesystem types</primary><secondary>ext3</secondary>
+        </indexterm></glossterm>
+		<glossdef><para>The ext3 filesystem has all the features of 
+		the ext2 filesystem.  The difference is, journaling has been 
+		added.  This improves performance and recovery time in case 
+		of a system crash.  This has become more popular than ext2.
+		</para></glossdef></glossentry>
+
+	<glossentry>
+	<glossterm>ext2<indexterm id="ch05-fs04">
+        <primary>filesystem types</primary><secondary>ext2</secondary>
+        </indexterm></glossterm>
+		<glossdef><para>The most featureful of the native Linux 
+		filesystems.  It is designed to be easily upwards compatible, 
+		so that new versions of the filesystem code do not require 
+		re-making the existing filesystems.</para></glossdef>
+		</glossentry>
+
+	<glossentry>
+	<glossterm>ext<indexterm id="ch05-fs05">
+        <primary>filesystem types</primary><secondary>ext</secondary>
+        </indexterm></glossterm>
+		<glossdef><para>An older version of ext2 that wasn't upwards
+		compatible.  It is hardly ever used in new installations any
+		more, and most people have converted to ext2.
+		</para></glossdef></glossentry>
+	
+	<glossentry>
+	<glossterm>reiserfs<indexterm id="ch05-fs06">
+        <primary>filesystem types</primary><secondary>reiserfs</secondary>
+        </indexterm></glossterm>
+	        <glossdef><para>A more robust filesystem.  Journaling is
+		used which makes data loss less likely.  Journaling is a
+		mechanism whereby a record is kept of transaction which are
+		to be performed, or which have been performed.  This allows
+		the filesystem to reconstruct itself fairly easily after
+		damage caused by, for example, improper
+		shutdowns.</para></glossdef></glossentry>
+
+	<glossentry>
+	<glossterm>jfs<indexterm id="ch05-fs07">
+        <primary>filesystem types</primary><secondary>jfs</secondary>
+        </indexterm></glossterm>
+		<glossdef><para>JFS is a journaled filesystem designed
+		by IBM to to work in high performance environments></para>
+		</glossdef></glossentry>
+
+	<glossentry>
+	<glossterm>xfs<indexterm id="ch05-fs08">
+        <primary>filesystem types</primary><secondary>xfs</secondary>
+        </indexterm></glossterm>
+		<glossdef><para>XFS was originally designed by Silicon Graphics
+		to work as a 64-bit journaled filesystem. XFS was also designed
+		to maintain high performance with large files and filesystems.
+		</para></glossdef></glossentry>
+	</para>
+
+	<para>In addition, support for several foreign filesystems exists,
+	to make it easier to exchange files with other operating systems.
+	These foreign filesystems work just like native ones, except that
+	they may be lacking in some usual UNIX features, or have curious
+	limitations, or other oddities.
+
+	<glosslist>
+
+	<glossentry>
+	<glossterm>msdos<indexterm id="ch05-fs09">
+        <primary>filesystem types</primary><secondary>msdos</secondary>
+        </indexterm></glossterm>
+		<glossdef><para>Compatibility with MS-DOS (and OS/2 and
+		Windows NT) FAT filesystems.</para></glossdef></glossentry>
+
+	<glossentry>
+	<glossterm>umsdos<indexterm id="ch05-fs10">
+        <primary>filesystem types</primary><secondary>umsdos</secondary>
+        </indexterm></glossterm>
+		<glossdef><para>Extends the msdos filesystem driver under
+		Linux to get long filenames, owners, permissions, links, and
+		device files. This allows a normal msdos filesystem to be
+		used as if it were a Linux one, thus removing the need for a
+		separate partition for Linux.</para></glossdef></glossentry>
+		
+	<glossentry>
+	<glossterm>vfat<indexterm id="ch05-fs11">
+        <primary>filesystem types</primary><secondary>vfat</secondary>
+        </indexterm></glossterm>
+		<glossdef><para>This is an extension of the FAT filesystem
+		known as FAT32.  It supports larger disk sizes than FAT.
+		Most MS Windows disks are vfat.</para></glossdef>
+	</glossentry>
+
+	<glossentry>
+	<glossterm>iso9660<indexterm id="ch05-fs12">
+        <primary>filesystem types</primary><secondary>iso9660</secondary>
+        </indexterm></glossterm>
+		<glossdef><para>The standard CD-ROM filesystem; the popular
+		Rock Ridge extension to the CD-ROM standard that allows
+		longer file names is supported automatically.
+		</para></glossdef></glossentry>
+
+	<glossentry>
+	<glossterm>nfs<indexterm id="ch05-fs13">
+        <primary>filesystem types</primary><secondary>nfs</secondary>
+        </indexterm></glossterm>
+		<glossdef><para>A networked filesystem that allows sharing a
+		filesystem between many computers to allow easy access to
+		the files from all of them.</para></glossdef></glossentry>
+
+	<glossentry>
+	<glossterm>smbfs<indexterm id="ch05-fs14">
+        <primary>filesystem types</primary><secondary>smbfs</secondary>
+        </indexterm></glossterm>
+		<glossdef><para>A networks filesystem which allows sharing
+		of a filesystem with an MS Windows computer.  It is
+		compatible with the Windows file sharing protocols.
+		</para></glossdef></glossentry>
+
+	<glossentry>
+	<glossterm>hpfs<indexterm id="ch05-fs15">
+        <primary>filesystem types</primary><secondary>hpfs</secondary>
+        </indexterm></glossterm>
+		<glossdef><para>The OS/2 filesystem.
+		</para></glossdef></glossentry>
+
+	<glossentry>
+	<glossterm>sysv<indexterm id="ch05-fs16">
+        <primary>filesystem types</primary><secondary>sysv</secondary>
+        </indexterm></glossterm>
+		<glossdef><para>SystemV/386, Coherent, and Xenix filesystems.
+		</para></glossdef></glossentry>
+
+	<glossentry>
+	<glossterm>NTFS<indexterm id="ch05-fs17">
+        <primary>filesystem types</primary><secondary>ntfs</secondary>
+        </indexterm></glossterm>
+		<glossdef><para>The most advanced Microsoft journaled filesystem
+		providing faster file access and stability over previous
+		Microsoft filesystems. 
+		</para></glossdef></glossentry>
+
+	</glosslist>
+	</para>
+
+	<para>The choice of filesystem to use depends on the situation.  If
+	compatibility or other reasons make one of the non-native
+	filesystems necessary, then that one must be used.  If one can
+	choose freely, then it is probably wisest to use ext3, since it has
+	all the features of ext2, and is a journaled filesystem.  For more 
+	information on filesystems, see <xref linkend="fs-compare">.  You 
+	can also read the Filesystems HOWTO located at
+	<ulink url="http://www.tldp.org/HOWTO/Filesystems-HOWTO.html">
+	http://www.tldp.org/HOWTO/Filesystems-HOWTO.html</ulink></para>
+
+	<para>There is also the proc filesystem, usually accessible as
+	the <filename>/proc</filename><indexterm id="ch05-proc">
+	<primary>filesystem</primary><secondary>/proc</secondary>
+	</indexterm> directory, which is not really a
+	filesystem at all, even though it looks like one.  The proc
+	filesystem makes it easy to access certain kernel data structures,
+	such as the process list (hence the name). It makes these data
+	structures look like a filesystem, and that filesystem can be
+	manipulated with all the usual file tools.  For example, to get a
+	listing of all processes one might use the command
+
+<screen>
+<prompt>$</prompt> <userinput>ls -l /proc</userinput>
+<computeroutput>total 0
+dr-xr-xr-x   4 root     root            0 Jan 31 20:37 1
+dr-xr-xr-x   4 liw      users           0 Jan 31 20:37 63
+dr-xr-xr-x   4 liw      users           0 Jan 31 20:37 94
+dr-xr-xr-x   4 liw      users           0 Jan 31 20:37 95
+dr-xr-xr-x   4 root     users           0 Jan 31 20:37 98
+dr-xr-xr-x   4 liw      users           0 Jan 31 20:37 99
+-r--r--r--   1 root     root            0 Jan 31 20:37 devices
+-r--r--r--   1 root     root            0 Jan 31 20:37 dma
+-r--r--r--   1 root     root            0 Jan 31 20:37 filesystems
+-r--r--r--   1 root     root            0 Jan 31 20:37 interrupts
+-r--------   1 root     root      8654848 Jan 31 20:37 kcore
+-r--r--r--   1 root     root            0 Jan 31 11:50 kmsg
+-r--r--r--   1 root     root            0 Jan 31 20:37 ksyms
+-r--r--r--   1 root     root            0 Jan 31 11:51 loadavg
+-r--r--r--   1 root     root            0 Jan 31 20:37 meminfo
+-r--r--r--   1 root     root            0 Jan 31 20:37 modules
+dr-xr-xr-x   2 root     root            0 Jan 31 20:37 net
+dr-xr-xr-x   4 root     root            0 Jan 31 20:37 self
+-r--r--r--   1 root     root            0 Jan 31 20:37 stat
+-r--r--r--   1 root     root            0 Jan 31 20:37 uptime
+-r--r--r--   1 root     root            0 Jan 31 20:37 
+version</computeroutput>
+<prompt>$</prompt>
+</screen>
+
+	(There will be a few extra files that don't correspond to
+	processes, though.  The above example has been shortened.)</para>
+
+	<para>Note that even though it is called a filesystem, no part of 
+	the proc filesystem touches any disk.  It exists only in the
+	kernel's imagination.  Whenever anyone tries to look at any part of
+	the proc filesystem, the kernel makes it look as if the part existed
+	somewhere, even though it doesn't.  So, even though there is a
+	multi-megabyte <filename>/proc/kcore</filename><indexterm id="ch05-kcore">
+	<primary>filesystem</primary><secondary>/proc</secondary>
+	<tertiary>/proc/kcore</tertiary></indexterm> file, it doesn't
+	take any disk space. </sect2>
+<!-- INDEX -->
+<sect2 id="use-which-fs">
+<title>Which filesystem should be used?</title>
+
+	<para>There is usually little point in using many different
+	filesystems.  Currently, ext3 is the most popular filesystem, because
+	it is a journaled filesystem. Currently it is probably the wisest 
+	choice.  Reiserfs is another popular choice because it to is journaled.
+	Depending on the overhead for bookkeeping structures, speed, (perceived) 
+	reliability, compatibility, and various other reasons, it may be 
+	advisable to use another file system.  This needs to be decided on a 
+	case-by-case basis.</para>	
+	
+	<para> A filesystem that uses journaling is also called a journaled
+	filesystem.  A journaled filesystem maintains a log, or journal, of
+	what has happened on a filesystem.  In the event of a system crash, or
+	if your 2 year old son hits the power button like mine loves to do, a 
+	journaled filesystem is designed to use the filesystem's logs to recreate 
+	unsaved and lost data.  This makes data loss much less likely and 
+	will likely become a standard feature in Linux filesystems.  However,
+	do not get a false sense of security from this.  Like everything 
+	else, errors can arise.  Always make sure to back up your data in the 
+	event of an emergency.
+	</para>
+
+	<para>See <xref linkend="fs-compare"> for more details about the 
+	features of the different filesystem types.</para>
+	
+</sect2>
+
+<sect2 id="create-fs">
+<title>Creating a filesystem</title>
+
+	<para>Filesystems are created, i.e., initialized, with the 
+	<command>mkfs</command> command.  There is actually a separate
+	program for each filesystem type.  <command>mkfs</command> is just a
+	front end that runs the appropriate program depending on the desired
+	filesystem type.  The type is selected with the 
+	<option>-t fstype</option> option.</para>
+
+	<para>The programs called by <command>mkfs</command> have slightly
+	different command line interfaces.  The common and most important
+	options are summarized below; see the manual pages for more.
+
+	<glosslist>
+	<glossentry>
+	<glossterm><option>-t fstype</option></glossterm>
+		<glossdef><para>
+		Select the type of the filesystem.
+		</para></glossdef></glossentry>
+	
+	<glossentry>
+	<glossterm><option>-c</option></glossterm>
+		<glossdef><para>
+		 Search for bad blocks and initialize the bad
+		block list accordingly.
+		</para></glossdef></glossentry>
+	
+	<glossentry>
+	<glossterm>-l filename</glossterm>
+		<glossdef><para>
+		Read the initial bad block list from the name file.
+		</para></glossdef></glossentry>
+	</glosslist>
+	</para>
+	
+	<para>There are also many programs written to add specific options
+	when creating a specific filesystem.  For example 
+	<command>mkfs.ext3</command> adds a <command>-b</command> option to 
+	allow the administrator to specify what block size should be used.  
+	Be sure to find out if there is a specific program available for the 
+	filesystem type you want to use.  For more information on determining
+	what block size to use please see
+	<xref linkend="fs-block-size">.</para>
+
+	<para>To create an ext2 filesystem on a floppy, one would give the
+	following commands:
+
+<screen>
+<prompt>$</prompt> <userinput>fdformat -n /dev/fd0H1440</userinput>
+<computeroutput>Double-sided, 80 tracks, 18 sec/track. Total capacity 
+1440 KB.
+Formatting ... done</computeroutput>
+<prompt>$</prompt> <userinput>badblocks /dev/fd0H1440 1440 $>$ 
+bad-blocks</userinput>
+<prompt>$</prompt> <userinput>mkfs.ext2 -l bad-blocks 
+/dev/fd0H1440</userinput>
+<computeroutput>mke2fs 0.5a, 5-Apr-94 for EXT2 FS 0.5, 94/03/10
+360 inodes, 1440 blocks
+72 blocks (5.00%) reserved for the super user
+First data block=1
+Block size=1024 (log=0)
+Fragment size=1024 (log=0)
+1 block group
+8192 blocks per group, 8192 fragments per group
+360 inodes per group
+
+Writing inode tables: done
+Writing superblocks and filesystem accounting information: 
+done</computeroutput>
+<prompt>$</prompt>
+</screen>
+
+	First, the floppy was formatted (the <option>-n</option> option
+	prevents validation, i.e., bad block checking).  Then bad blocks
+	were searched with <command>badblocks</command>, with the output
+	redirected to a file, <filename>bad-blocks</filename>.	Finally, the
+	filesystem was created, with the bad block list initialized
+	by whatever <command>badblocks</command> found.</para>
+
+	<para>The <option>-c</option> option could have been used with
+	<command>mkfs</command> instead of <command>badblocks</command>
+	and a separate file.  The example below does that.
+
+<screen>
+<prompt>$</prompt> <userinput>mkfs.ext2 -c 
+/dev/fd0H1440</userinput>
+<computeroutput>mke2fs 0.5a, 5-Apr-94 for EXT2 FS 0.5, 94/03/10
+360 inodes, 1440 blocks
+72 blocks (5.00%) reserved for the super user
+First data block=1
+Block size=1024 (log=0)
+Fragment size=1024 (log=0)
+1 block group
+8192 blocks per group, 8192 fragments per group
+360 inodes per group
+
+Checking for bad blocks (read-only test): done
+Writing inode tables: done
+Writing superblocks and filesystem accounting information: 
+done</computeroutput>
+<prompt>$</prompt>
+</screen>
+
+	The <option>-c</option> option is more convenient than a separate 
+	use of <command>badblocks</command>, but
+	<command>badblocks</command> is necessary for checking
+	after the filesystem has been created.</para>
+	
+	<para>The process to prepare filesystems on hard disks or
+	partitions is the same as for floppies, except that the formatting
+	isn't needed.</para>
+
+</sect2>
+
+<sect2 id="fs-block-size">
+<title>Filesystem block size</title>
+        <para>The block size specifies size that the filesystem will use
+        to read and write data.  Larger block sizes will help improve disk 
+        I/O performance when using large files, such as databases.  This
+        happens because the disk can read or write data for a longer period
+        of time before having to search for the next block.</para>  
+
+	<para>On the downside, if you are going to have a lot of smaller 
+        files on that filesystem, like the <filename>/etc</filename>, there 
+        the potential for a lot of wasted disk space.</para>
+
+        <para>For example, if you set your block size to 4096, or 4K, and
+        you create a file that is 256 bytes in size, it will still consume
+        4K of space on your harddrive.  For one file that may seem trivial,
+        but when your filesystem contains hundreds or thousands of files,
+        this can add up.</para>
+
+	<para>Block size can also effect the maximum supported file size 
+	on some filesystems.  This is because many modern filesystem are 
+	limited not by block size or file size, but by the number of blocks.  
+	Therefore you would be using a 
+	"block size * max # of blocks = max block size" formula.</para>
+	
+</sect2>
+
+<sect2 id="fs-compare">
+<title>Filesystem comparison</title>
+	<para>
+	<table>
+	<title>Comparing Filesystem Features</title>
+	<tgroup cols="6">
+	<colspec colname="FS Name">
+	<colspec colname="Year">
+	<colspec colname="Origional OS">
+	<colspec colname="Max File Size">
+	<colspec colname="Max FS Size">
+	<colspec colname="Journaling"> 
+	<thead>
+	<row> 
+		<entry>FS Name</entry> 
+		<entry>Year Introduced</entry> 
+		<entry>Original OS</entry> 
+		<entry>Max File Size</entry> 
+		<entry>Max FS Size</entry> 
+		<entry>Journaling</entry> 
+	</row>
+	</thead>
+	<tbody>
+	<row> 
+		<entry>FAT16<indexterm id="ch05-fst1">
+		<primary>filesystem types</primary>
+		<secondary>fat16</secondary></indexterm></entry> 
+		<entry>1983</entry> 
+		<entry>MSDOS V2</entry> 
+		<entry>4GB</entry> 
+		<entry>16MB to 8GB</entry> 
+		<entry>N</entry> 
+	</row>
+	<row> 
+		<entry>FAT32<indexterm id="ch05-fst2">
+                <primary>filesystem types</primary>
+                <secondary>fat32</secondary></indexterm></entry> 
+		<entry>1997</entry> 
+		<entry>Windows 95</entry>
+		<entry>4GB</entry> 
+		<entry>8GB to 2TB</entry> 
+		<entry>N</entry> 
+	</row>
+	<row> 
+		<entry>HPFS<indexterm id="ch05-fst3">
+                <primary>filesystem types</primary>
+                <secondary>hpfs</secondary></indexterm></entry> 
+		<entry>1988</entry> 
+		<entry>OS/2</entry> 
+		<entry>4GB</entry> 
+		<entry>2TB</entry> 
+		<entry>N</entry> 
+	</row>
+	<row> 
+		<entry>NTFS<indexterm id="ch05-fst4">
+                <primary>filesystem types</primary>
+                <secondary>ntfs</secondary></indexterm></entry> 
+		<entry>1993</entry> 
+		<entry>Windows NT</entry> 
+		<entry>16EB</entry> 
+		<entry>16EB</entry> 
+		<entry>Y</entry> 
+	</row>
+	<row> 
+		<entry>HFS+<indexterm id="ch05-fst5">
+                <primary>filesystem types</primary>
+                <secondary>hfs+</secondary></indexterm></entry> 
+		<entry>1998</entry> 
+		<entry>Mac OS</entry> 
+		<entry>8EB</entry> 
+		<entry>?</entry> 
+		<entry>N</entry> 
+	</row>
+	<row> 
+		<entry>UFS2<indexterm id="ch05-fst6">
+                <primary>filesystem types</primary>
+                <secondary>ufs2</secondary></indexterm> 
+		<entry>2002</entry> 
+		<entry>FreeBSD</entry> 
+		<entry>512GB to 32PB</entry> 
+		<entry>1YB	</entry> 
+		<entry>N</entry> 
+	</row>
+	<row> 
+		<entry>ext2<indexterm id="ch05-fst7">
+                <primary>filesystem types</primary>
+                <secondary>ext2</secondary></indexterm></entry> 
+		<entry>1993</entry> 
+		<entry>Linux</entry> 
+		<entry>16GB to 2TB4</entry> 
+		<entry>2TB to 32TB</entry> 
+		<entry>N</entry> 
+	</row>
+	<row> 
+		<entry>ext3<indexterm id="ch05-fst8">
+                <primary>filesystem types</primary>
+                <secondary>ext3</secondary></indexterm></entry> 
+		<entry>1999</entry> 
+		<entry>Linux</entry> 
+		<entry>16GB to 2TB4</entry> 
+		<entry>2TB to 32TB</entry> 
+		<entry>Y</entry> 
+	</row>
+	<row> 
+		<entry>ReiserFS3<indexterm id="ch05-fst9">
+                <primary>filesystem types</primary>
+                <secondary>reiserfs</secondary></indexterm> 
+		<entry>2001</entry> 
+		<entry>Linux</entry> 
+		<entry>8TB8</entry> 
+		<entry>16TB</entry> 
+		<entry>Y</entry> 
+	</row>
+	<row> 
+		<entry>ReiserFS4<indexterm id="ch05-fst10">
+                <primary>filesystem types</primary>
+                <secondary>reiserfs</secondary></indexterm></entry> 
+		<entry>2005</entry> 
+		<entry>Linux</entry> 
+		<entry>?</entry> 
+		<entry>?</entry> 
+		<entry>Y</entry> 
+	</row>
+	<row> 
+		<entry>XFS<indexterm id="ch05-fst11">
+                <primary>filesystem types</primary>
+                <secondary>fat16</secondary></indexterm></entry> 
+		<entry>1994</entry> 
+		<entry>IRIX</entry> 
+		<entry>9EB</entry> 
+		<entry>9EB</entry> 
+		<entry>Y</entry> 
+	</row>
+	<row> 
+		<entry>JFS<indexterm id="ch05-fst12">
+                <primary>filesystem types</primary>
+                <secondary>jfs</secondary></indexterm></entry> 
+		<entry>?</entry> 
+		<entry>AIX</entry> 
+		<entry>8EB</entry> 
+		<entry>512TB to 4PB</entry> 
+		<entry>Y</entry> 
+	</row>
+	<row> 
+		<entry>VxFS<indexterm id="ch05-fst13">
+                <primary>filesystem types</primary>
+                <secondary>vxfs</secondary></indexterm> 
+		<entry>1991</entry> 
+		<entry>SVR4.0</entry> 
+		<entry>16EB</entry> 
+		<entry>?</entry> 
+		<entry>Y</entry> 
+	</row>
+	<row> 
+		<entry>ZFS<indexterm id="ch05-fst14">
+                <primary>filesystem types</primary>
+                <secondary>zfs</secondary></indexterm></entry> 
+		<entry>2004</entry> 
+		<entry>Solaris 10</entry> 
+		<entry>1YB</entry> 
+		<entry>16EB</entry> 
+		<entry>N</entry> 
+	</row>
+</tbody>
+</tgroup>
+</table>
+</para>
+
+	<para>Legend
+        <table>
+	<title>Sizes</title>
+        <tgroup cols=2>
+        <tbody>
+        <row> <entry>Kilobyte - KB</entry> <entry>1024 Bytes</entry> </row>
+        <row> <entry>Megabyte - MB</entry> <entry>1024 KBs</entry> </row>
+        <row> <entry>Gigabyte - GB</entry> <entry>1024 MBs</entry> </row>
+        <row> <entry>Terabyte - TB</entry> <entry>1024 GBs</entry> </row>
+        <row> <entry>Petabyte - PB</entry> <entry>1024 TBs</entry> </row>
+        <row> <entry>Exabyte - EB</entry> <entry>1024 PBs</entry> </row>
+        <row> <entry>Zettabyte - ZB</entry> <entry>1024 EBs</entry> </row>
+        <row> <entry>Yottabyte - YB</entry> <entry>1024 ZBs</entry> </row>
+        </tbody>
+        </tgroup>
+        </table>
+	</para>
+
+	<para>It should be noted that Exabytes, Zettabytes, and Yottabytes
+	are rarely encountered, if ever.  There is a current estimate that 
+	the worlds printed material is equal to 5 Exabytes.  Therefore, some
+	of these filesystem limitations are considered by many as 
+	theoretical.  However, the filesystem software has been written 
+	with these capabilities.</para>
+
+	<para>For more detailed information you can visit
+	<ulink url="http://en.wikipedia.org/wiki/Comparison_of_file_systems">
+	http://en.wikipedia.org/wiki/Comparison_of_file_systems</ulink>.
+	</para>
+
+</sect2>
+
+<sect2 id="mount-and-umount">
+<title>Mounting and unmounting</title>
+
+	<para>Before one can use a filesystem, it has to be 
+	<glossterm>mounted</glossterm>. The operating system then does
+	various bookkeeping things to make sure that everything works. Since
+	all files in UNIX are in a single directory tree, the mount
+	operation will make it look like the contents of the new filesystem
+	are the contents of an existing subdirectory in some already mounted
+	filesystem.</para>
+
+	<para>For example, <xref linkend="hd-mount-root"> shows three
+	separate filesystems, each with their own root directory. When the
+	last two filesystems are mounted below <filename>/home</filename>
+	and <filename>/usr</filename>, respectively, on the first 
+	filesystem, we can get a single directory tree, as in
+	<xref linkend="hd-mount-all">.</para>
+
+		<figure id="hd-mount-root" float="1">
+		<title>Three separate filesystems.</title>
+		<graphic fileref="hd-mount-separate.png">
+		</figure>
+
+		<figure id="hd-mount-all" float="1">
+		<title><filename>/home</filename> and <filename>/usr</filename> 
+		have been 
+		mounted.</title>
+		<graphic fileref="hd-mount-mounted.png">
+		</figure>
+
+	<para>The mounts could be done as in the following example:
+
+<screen>
+<prompt>$</prompt> <userinput>mount /dev/hda2 /home</userinput>
+<prompt>$</prompt> <userinput>mount /dev/hda3 /usr</userinput>
+<prompt>$</prompt>
+</screen>
+
+	The <command>mount</command> command takes two arguments. The first
+	one is the device file corresponding to the disk or partition
+	containing the filesystem.  The second one is the directory below
+	which it will be mounted.  After these commands the contents of the
+	two filesystems look just like the contents of the
+	<filename>/home</filename> and <filename>/usr</filename>
+	directories, respectively.  One would then say that
+	<filename>/dev/hda2</filename> <glossterm>is mounted
+	on</glossterm> <filename>/home</filename>'', and similarly for
+	<filename>/usr</filename>.  To look at either filesystem, one would
+	look at the contents of the directory on which it has been mounted,
+	just as if it were any other directory.  Note the difference between
+	the device file, <filename>/dev/hda2</filename>, and the mounted-on
+	directory, <filename>/home</filename>.  The device file gives access
+	to the raw contents of the disk, the mounted-on directory gives
+	access to the files on the disk.  The mounted-on directory is called
+	the <glossterm>mount point</glossterm>.</para>
+
+	<para>Linux supports many filesystem types.  
+	<command>mount</command> tries to guess the type of the filesystem.
+	You can also use the <option>-t fstype</option> option to specify
+	the type directly; this is sometimes necessary, since the heuristics
+	<command>mount</command> uses do not always work.  For example, to
+	mount an MS-DOS floppy, you could use the following command:
+
+        <screen>
+	<prompt>$</prompt> <userinput>mount -t msdos /dev/fd0 
+	/floppy</userinput>
+	<prompt>$</prompt>
+	</screen>
+	
+	</para>
+
+	<para>The mounted-on directory need not be empty, although it
+	must exist.  Any files in it, however, will be inaccessible by name
+	while the filesystem is mounted.  (Any files that have already been
+	opened will still be accessible.  Files that have hard links from
+	other directories can be accessed using those names.) There is no
+	harm done with this, and it can even be useful.  For instance, some
+	people like to have <filename>/tmp</filename> and
+	<filename>/var/tmp</filename> synonymous, and make 
+	<filename>/tmp</filename> be a symbolic link to
+	<filename>/var/tmp</filename>.	When the system is booted, before
+	the <filename>/var</filename> filesystem is mounted, a 
+	<filename>/var/tmp</filename> directory residing on the root
+	filesystem is used instead.  When <filename>/var</filename> is
+	mounted, it will make the <filename>/var/tmp</filename> directory 
+	on the root filesystem inaccessible.  If
+	<filename>/var/tmp</filename> didn't exist on the root filesystem,
+	it would be impossible to use temporary files
+	before mounting <filename>/var</filename>.</para>
+
+	<para>If you don't intend to write anything to the filesystem, use
+	the <option>-r</option> switch for <command>mount</command> to do a 
+	<glossterm>read-only mount</glossterm>.  This will make the kernel
+	stop any attempts at writing to the filesystem, and will also stop
+	the kernel from updating file access times in the inodes.  Read-only
+	mounts are necessary for unwritable media, e.g., CD-ROMs.</para>
+
+	<para>The alert reader has already noticed a slight
+	logistical problem.  How is the first filesystem (called the 
+	<glossterm>root filesystem</glossterm>, because it contains the root
+	directory) mounted, since it obviously can't be mounted on another
+	filesystem? Well, the answer is that it is done by magic.
+	The root filesystem is magically mounted at boot time, and one can
+	rely on it to always be mounted. If the root filesystem can't be
+	mounted, the system does not boot. The name of the filesystem that
+	is magically mounted as root is either compiled into the kernel, or
+	set using LILO or <command>rdev</command>.</para>
+	
+	<para>For more information, see the kernel source or the Kernel 
+	Hackers' Guide.</para>
+
+	<para>The root filesystem is usually first mounted read-only.
+	The startup scripts will then run <command>fsck</command> to verify
+	its validity, and if there are no problems, they will
+	<glossterm>re-mount</glossterm> it so that writes will also be
+	allowed.  <command>fsck</command> must not be run on a mounted
+	filesystem, since any changes to the filesystem while
+	<command>fsck</command> is running <emphasis>will</emphasis> cause
+	trouble. Since the root filesystem is mounted read-only while
+	it is being checked, <command>fsck</command> can fix any problems
+	without worry, since the remount operation will flush
+	any metadata that the filesystem keeps in memory.</para>
+
+	<para>On many systems there are other filesystems that should
+	also be mounted automatically at boot time.  These are specified
+	in the <filename>/etc/fstab</filename> file; see the fstab man
+	page for details on the format.  The details of exactly when the
+	extra filesystems are mounted depend on many factors, and can be
+	configured by each administrator if need be; see
+        <xref linkend="boots-and-shutdowns">.</para>
+	
+
+	<para>When a filesystem no longer needs to be mounted, it can be
+	unmounted with <command>umount</command>.
+	<command>umount</command> takes one argument:
+	either the device file or the mount point.  
+	For example, to unmount the directories of
+	the previous example, one could use the commands
+
+<screen>
+<prompt>$</prompt> <userinput>umount /dev/hda2</userinput>
+<prompt>$</prompt> <userinput>umount /usr</userinput>
+<prompt>$</prompt>
+</screen>
+	</para>
+
+	<para>See the man page for further instructions on how to
+	use the command.  It is imperative that you always unmount a mounted
+	floppy.  <emphasis>Don't just pop the floppy out of the
+	drive!</emphasis> Because of disk caching, the data is not
+	necessarily written to the floppy until you unmount it, so removing
+	the floppy from the drive too early might cause the contents to
+	become garbled.  If you only read from the floppy, this is not very
+	likely, but if you write, even accidentally,
+	the result may be catastrophic.</para>
+
+	<para>Mounting and unmounting requires super user privileges, i.e.,
+	only root can do it.  The reason for this is that if any user can
+	mount a floppy on any directory, then it is rather easy to create a
+	floppy with, say, a Trojan horse disguised as
+	<filename>/bin/sh</filename>, or any other often used program.  
+	However, it is often necessary to allow users to use floppies, and
+	there are several ways to do this:
+
+	<itemizedlist>
+
+	<listitem><para>Give the users the root password.  This is
+	obviously bad security, but is the easiest solution.  It works well
+	if there is no need for security anyway, which is the case
+	on many non-networked, personal systems.</para></listitem>
+
+	<listitem><para>Use a program such as <command>sudo</command> to 
+	allow users to use mount.  This is still bad security, but doesn't
+	directly give super user privileges to everyone.  It requires several 
+	seconds of hard thinking on the users' behalf.  Furthermore 
+	<command>sudo</command> can be configured to only allow users to 
+	execute certain commands.  See the sudo(8), sudoers(5), and visudo(8)
+	manual pages.
+	</para></listitem>
+	
+	<listitem><para>Make the users use <command>mtools</command>, a 
+	package for manipulating MS-DOS filesystems, without mounting them.
+	This works well if MS-DOS floppies are all that is needed, but is
+	rather awkward otherwise.
+	</para></listitem>
+
+	<listitem><para>List the floppy devices and their allowable mount 
+	points together with the suitable options in 
+	<filename>/etc/fstab</filename>.
+
+	</itemizedlist>
+
+	The last alternative can be implemented by adding a line like the
+	following to the <filename>/etc/fstab</filename> file:
+
+        <screen>
+	/dev/fd0            /floppy      msdos   user,noauto      0     0
+	</screen>
+
+	The columns are: device file to mount, directory to mount on,
+	filesystem type, options, backup frequency (used by
+	<command>dump</command>), and <command>fsck</command> pass number
+	(to specify the order in which filesystems should be checked
+	upon boot; 0 means no check).</para>
+
+	<para>The <option>noauto</option> option stops this mount to be done
+	automatically when the system is started (i.e., it stops
+	<command>mount -a</command> from mounting it).  The 
+	<option>user</option> option allows any user to mount the
+	filesystem, and, because of security reasons, disallows execution of
+	programs (normal or setuid) and interpretation of device files from
+	the mounted filesystem. After this, any user can mount a floppy with
+	an msdos filesystem with the following command:
+
+        <screen>
+	<prompt>$</prompt> <userinput>mount /floppy</userinput>
+	<prompt>$</prompt>
+	</screen>
+
+	The floppy can (and needs to, of course) be unmounted with
+	the corresponding <command>umount</command> command.</para>
+
+	<para>If you want to provide access to several types of floppies,
+	you need to give several mount points.  The settings can be
+	different for each mount point.  For example, to give access to both
+	MS-DOS and ext2 floppies, you could have the following to lines in
+	<filename>/etc/fstab</filename>:
+
+        <screen>
+	/dev/fd0    /mnt/dosfloppy    msdos   user,noauto  0  0
+	/dev/fd0    /mnt/ext2floppy   ext2    user,noauto  0  0
+	</screen>
+
+	The alternative is to just add one line similar to the following:
+
+	<screen>
+        /dev/fd0    /mnt/floppy    auto   user,noauto  0  0
+        </screen>
+
+	The "auto" option in the filesystem type column allows the mount command
+	to query the filesystem and try to determine what type it is itself.  This
+	option won't work on all filesystem types, but works fine on the more common
+	ones.</para>
+
+	<para>For MS-DOS filesystems (not just floppies), you probably want to
+	restrict access to it by using the <option>uid</option>,
+	<option>gid</option>, and <option>umask</option> filesystem options,
+	described in detail on the <command>mount</command> manual page.  If
+	you aren't careful, mounting an MS-DOS filesystem gives everyone at
+	least read access to the files in it, which
+	is not a good idea.</para>
+
+</sect2>
+
+<sect2>
+<title>Filesystem Security</title>
+
+	<para>TO BE ADDED</para>
+
+	<para>This section will describe mount options and how to use them 
+	in <filename>/etc/fstab</filename> to provide additional system
+	security.</para>
+
+</sect2> 
+
+<sect2 id="fsck">
+<title>Checking filesystem integrity with 
+<command>fsck</command></title>
+
+	<para>Filesystems are complex creatures, and as such, they
+	tend to be somewhat error-prone.  A filesystem's correctness and
+	validity can be checked using the <command>fsck</command> command.
+	It can be instructed to repair any minor problems it finds, and to
+	alert the user if there any unrepairable problems.  Fortunately, the
+	code to implement filesystems is debugged quite effectively, so
+	there are seldom any problems at all, and they are usually caused by
+	power failures, failing hardware, or operator errors;
+	for example, by not shutting down the system properly.</para>
+
+	<para>Most systems are setup to run <command>fsck</command>
+	automatically at boot time, so that any errors are detected (and
+	hopefully corrected) before the system is used.  Use of a corrupted
+	filesystem tends to make things worse: if the data structures are
+	messed up, using the filesystem will probably mess them up even
+	more, resulting in more data loss. However, <command>fsck</command>
+	can take a while to run on big filesystems, and since errors almost
+	never occur if the system has been shut down properly, a couple of
+	tricks are used to avoid doing the checks in such cases.  The first
+	is that if the file <filename>/etc/fastboot</filename> exists, no
+	checks are made.  The second is that the ext2 filesystem has a
+	special marker in its superblock that tells whether the filesystem
+	was unmounted properly after the previous mount.  This allows
+	<command>e2fsck</command> (the version of <command>fsck</command>
+	for the ext2 filesystem) to avoid checking the filesystem if the
+	flag indicates that the unmount was done (the assumption being that
+	a proper unmount indicates no problems).  Whether the
+	<filename>/etc/fastboot</filename> trick works on your system
+	depends on your startup scripts, but the ext2 trick works every time
+	you use <command>e2fsck</command>. It has to be explicitly bypassed
+	with an option to <command>e2fsck</command> to be avoided.	(See
+	the <command>e2fsck</command> man page for
+	details on how.)</para>
+
+	<para>The automatic checking only works for the
+	filesystems that are mounted automatically at boot time. Use
+	<command>fsck</command> manually to check other filesystems,
+	e.g., floppies.</para>
+
+	<para>If <command>fsck</command> finds unrepairable problems,
+	you need either in-depth knowledge of how filesystems work in
+	general, and the type of the corrupt filesystem in particular, or
+	good backups.  The latter is easy (although sometimes tedious) to
+	arrange, the former can sometimes be arranged via a friend, the
+	Linux newsgroups and mailing lists, or some other source of support,
+	if you don't have the know-how yourself.  I'd like to tell you more
+	about it, but my lack of education and experience in this regard
+	hinders me.  The <command>debugfs</command>
+	program by Theodore Ts'o should be useful.</para>
+
+	<para><command>fsck</command> must only be run on unmounted
+	filesystems, never on mounted filesystems (with the exception of the
+	read-only root during startup).  This is because it accesses the raw
+	disk, and can therefore modify the filesystem without the operating
+	system realizing it.	There <emphasis>will</emphasis>
+	be trouble, if the operating system is confused.</para>
+	
+</sect2>
+
+<sect2 id="badblocks"> 
+<title>Checking for disk errors with <command>badblocks</command></title>
+
+	<para>It can be a good idea to periodically check for bad blocks.
+	This is done with the <command>badblocks</command> command.  It 
+	outputs a list of the numbers of all bad blocks it can find.  This
+	list can be fed to <command>fsck</command> to be recorded in the
+	filesystem data structures so that the operating system won't try to
+	use the bad blocks for storing data. The following example will show
+	how this could be done.
+
+        <screen>
+	<prompt>$</prompt> <userinput>badblocks /dev/fd0H1440 1440 &gt; 
+	bad-blocks</userinput>
+	<prompt>$</prompt> <userinput>fsck -t ext2 -l bad-blocks 
+	/dev/fd0H1440</userinput>
+	<computeroutput>Parallelizing fsck version 0.5a (5-Apr-94)
+	e2fsck 0.5a, 5-Apr-94 for EXT2 FS 0.5, 94/03/10
+	Pass 1: Checking inodes, blocks, and sizes
+	Pass 2: Checking directory structure
+	Pass 3: Checking directory connectivity
+	Pass 4: Check reference counts.
+	Pass 5: Checking group summary information.
+	
+	/dev/fd0H1440: ***** FILE SYSTEM WAS MODIFIED *****
+	/dev/fd0H1440: 11/360 files, 63/1440 blocks</computeroutput>
+	<prompt>$</prompt>
+	</screen>
+
+	If badblocks reports a block that was already used,
+	<command>e2fsck</command> will try to move the block to another
+	place.	If the block was really bad, not just marginal, the
+	contents of the file may be corrupted.</para>
+
+</sect2>
+
+<sect2 id="fragmentation">
+<title>Fighting fragmentation?</title>
+
+	<para>When a file is written to disk, it can't always be written
+	in consecutive blocks.  A file that is not stored in consecutive
+	blocks is <glossterm>fragmented</glossterm>.  It takes longer to
+	read a fragmented file, since the disk's read-write head will have
+	to move more.  It is desirable to avoid fragmentation, although it
+	is less of a problem in a system with a good buffer
+	cache with read-ahead.</para>
+
+	<para>Modern Linux filesystem keep fragmentation at a minimum
+	by keeping all blocks in a file close together, even if
+	they can't be stored in consecutive sectors.  Some filesystems, like 
+	ext3, effectively allocate the free block that is nearest to other blocks
+	in a file. Therefore it is not necessary to worry about fragmentation 
+	in a Linux system.</para>
+
+	<para>In the earlier days of the ext2 filesystem, there was a concern 
+	over file fragmentation that lead to the development of a 
+	defragmentation program called, defrag.  A copy of it can still be 
+	downloaded at <ulink 
+	url="http://www.go.dlr.de/linux/src/defrag-0.73.tar.gz">
+	http://www.go.dlr.de/linux/src/defrag-0.73.tar.gz</ulink>.  However, 
+	it is HIGHLY recommended that you NOT use it.  It was designed for 
+	and older version of ext2, and has not bee updated since 1998!  I 
+	only mention it here for references purposes.</para>
+
+	<para>There are many MS-DOS defragmentation programs that
+	move blocks around in the filesystem to remove fragmentation. For
+	other filesystems, defragmentation must be done by backing up the
+	filesystem, re-creating it, and restoring the files from backups.
+	Backing up a filesystem before defragmenting is a good idea for all
+	filesystems, since many things can go wrong during the 
+	defragmentation.</para>
+
+</sect2>
+
+<sect2 id="fs-other-tools">
+<title>Other tools for all filesystems</title>
+
+	<para>Some other tools are also useful for managing filesystems.
+	<command>df</command> shows the free disk space on one or more
+	filesystems; <command>du</command> shows how much disk space a
+	directory and all its files contain.  These can be used to hunt down
+	disk space wasters.  Both have manual pages which detail
+	the (many) options which can be used.</para>
+
+	<para><command>sync</command> forces all unwritten blocks
+	in the buffer cache (see <xref linkend="buffer-cache">) to be
+	written to disk.  It is seldom necessary to do this by hand; the
+	daemon process <command>update</command> does this automatically.
+	It can be useful in catastrophes, for example if
+	<command>update</command> or its helper process
+	<command>bdflush</command> dies, or if you must turn off power
+	<emphasis>now</emphasis> and can't wait for
+	<command>update</command> to run.  Again, there are manual pages.
+	The <command>man</command> is your very best friend in Linux.  Its
+	cousin <command>apropos</command> is also very useful when you don't
+	know what the name of the command you want
+	is.</para>
+
+</sect2>
+
+<sect2 id="fs-ext3-tools">
+<title>Other tools for the ext2/ext3 filesystem</title>
+
+	<para>In addition to the filesystem creator 
+	(<command>mke2fs</command>) and checker (<command>e2fsck</command>)
+	accessible directly or via the filesystem type independent front
+	ends, the ext2
+	filesystem has some additional tools that can be useful.</para>
+
+	<para><command>tune2fs</command> adjusts filesystem parameters.  
+	Some of the more interesting parameters are:
+
+	<itemizedlist>
+	
+	<listitem><para>
+	A maximal mount count.  <command>e2fsck</command> enforces a check 
+	when filesystem has been mounted too many times, even if the clean
+	flag is set.  For a system that is used for developing or testing
+	the system, it might be a good idea to reduce this limit.
+	</para></listitem>
+	
+	<listitem><para>
+	A maximal time between checks.  <command>e2fsck</command> can also 
+	enforce a maximal time between two checks, even if the clean flag is
+	set, and the filesystem hasn't been mounted very often.  This can be
+	disabled, however.
+	</para></listitem>
+	
+	<listitem><para>
+	Number of blocks reserved for root.  Ext2 reserves some blocks for
+	root so that if the filesystem fills up, it is still possible to do
+	system administration without having to delete anything.  The
+	reserved amount is by default 5 percent, which on most disks isn't
+	enough to be wasteful.  However, for floppies there is no point in
+	reserving any blocks.
+	</para></listitem>
+
+	</itemizedlist>
+	
+	See the <command>tune2fs</command> manual page for more
+	information.</para>
+
+	<para><command>dumpe2fs</command> shows information about an ext2 or ext3 
+	filesystem, mostly from the superblock. Below is a sample output.  Some 
+	of the information in the output is technical and requires understanding 
+	of how the filesystem works,  but much of it is readily understandable 
+	even for lay-admins.</para>
+
+<screen>
+<prompt>#</prompt> <userinput>dumpe2fs</userinput>
+<computeroutput>dumpe2fs 1.32 (09-Nov-2002)
+Filesystem volume name:   /
+Last mounted on:          not available
+Filesystem UUID:          51603f82-68f3-4ae7-a755-b777ff9dc739
+Filesystem magic number:  0xEF53
+Filesystem revision #:    1 (dynamic)
+Filesystem features:      has_journal filetype needs_recovery sparse_super
+Default mount options:    (none)
+Filesystem state:         clean
+Errors behavior:          Continue
+Filesystem OS type:       Linux
+Inode count:              3482976
+Block count:              6960153
+Reserved block count:     348007
+Free blocks:              3873525
+Free inodes:              3136573
+First block:              0
+Block size:               4096
+Fragment size:            4096
+Blocks per group:         32768
+Fragments per group:      32768
+Inodes per group:         16352
+Inode blocks per group:   511
+Filesystem created:       Tue Aug 26 08:11:55 2003
+Last mount time:          Mon Dec 22 08:23:12 2003
+Last write time:          Mon Dec 22 08:23:12 2003
+Mount count:              3
+Maximum mount count:      -1
+Last checked:             Mon Nov  3 11:27:38 2003
+Check interval:           0 (none)
+Reserved blocks uid:      0 (user root)
+Reserved blocks gid:      0 (group root)
+First inode:              11
+Inode size:               128
+Journal UUID:             none
+Journal inode:            8
+Journal device:           0x0000
+First orphan inode:       655612
+
+
+Group 0: (Blocks 0-32767)
+  Primary superblock at 0, Group descriptors at 1-2
+  Block bitmap at 3 (+3), Inode bitmap at 4 (+4)
+  Block bitmap at 3 (+3), Inode bitmap at 4 (+4)
+  Inode table at 5-515 (+5)
+  3734 free blocks, 16338 free inodes, 2 directories
+</computeroutput>
+</screen>
+
+	<para><command>debugfs</command> is a filesystem debugger.
+	It allows direct access to the filesystem data structures stored on
+	disk and can thus be used to repair a disk that is so broken that
+	<command>fsck</command> can't fix it automatically. It has also been
+	known to be used to recover deleted files. However,
+	<command>debugfs</command> very much requires that you understand
+	what you're doing; a failure to understand can
+	destroy all your data.</para>
+
+	<para><command>dump</command> and <command>restore</command> can be 
+	used to back up an ext2 filesystem.  They are ext2 specific versions
+	of the traditional UNIX backup tools.  See <xref linkend="backups">
+	for more information on backups.</para>
+
+</sect2>
+
+</sect1>
+
+<sect1 id="disk-no-fs">
+<title>Disks without filesystems</title>
+
+	<para>Not all disks or partitions are used as filesystems.
+	A swap partition, for example, will not have a filesystem on it.
+	Many floppies are used in a tape-drive emulating fashion, so that a
+	<command>tar</command> (tape archive) or other file is written 
+	directly on the raw disk, without a filesystem.  Linux boot floppies
+	don't
+	contain a filesystem, only the raw kernel.</para>
+
+	<para>Avoiding a filesystem has the advantage of making more of
+	the disk usable, since a filesystem always has some bookkeeping
+	overhead.  It also makes the disks more easily compatible with other
+	systems: for example, the <command>tar</command> file format is the
+	same on all systems, while filesystems are different on most
+	systems.  You will quickly get used to disks without filesystems if
+	you need them.  Bootable Linux floppies
+	also do not necessarily have a filesystem, although they may.</para>
+
+	<para>One reason to use raw disks is to make image copies of them.
+	For instance, if the disk contains a partially damaged filesystem,
+	it is a good idea to make an exact copy of it before trying to fix
+	it, since then you can start again if your fixing breaks things even
+	more.  One way to do this is to use <command>dd</command>:
+
+        <screen>
+	<prompt>$</prompt> <userinput>dd if=/dev/fd0H1440 
+	of=floppy-image</userinput>
+	<computeroutput>2880+0 records in
+	2880+0 records out</computeroutput>
+	<prompt>$</prompt> <userinput>dd if=floppy-image 
+	of=/dev/fd0H1440</userinput>
+	<computeroutput>2880+0 records in
+	2880+0 records out</computeroutput>
+	<prompt>$</prompt>
+	</screen>
+
+	The first <command>dd</command> makes an exact image of the floppy
+	to the file <filename>floppy-image</filename>, the second one writes
+	the image to the floppy.  (The user has presumably switched the
+	floppy before the second command.	Otherwise the
+	command pair is of doubtful usefulness.)</para>
+
+</sect1>
+
+<sect1 id="alloc-disk">
+<title>Allocating disk space</title>
+
+<sect2 id="part-schemes">
+<title>Partitioning schemes</title>
+
+	<para>When it comes to partitioning your machine, 
+	there is no universally correct way to do it. There are
+	many factors that must be taken into account depending on 
+	the purpose of the machine.</para>
+
+	<para>For a simple workstation with limited disk space, such 
+	as a laptop, you may have as few a 3 partitions.  A partition for
+	<filename>/</filename>, <filename>/boot</filename>, and swap.
+	However, for most users this is not a recommended solution.<para>
+
+	<para>The traditional way is to have a (relatively) small
+	root filesystem, and separate partitions for filesystems such as 
+	<filename>/usr</filename> and <filename>/home></filename>.
+	Creating a separate root filesystem if the root filesystem is small and 
+	not heavily used, it is less likely to become corrupt when the system
+	crashes, and therefore make it easier to recover a crashed system.  The
+	reason is to prevent having the root filesystem get filled and cause a 
+	system crash.</para>
+
+	<para>When creating your partitioning scheme, there are some things you 
+	need to remember.  You cannot create separate partitions for the following 
+	directories: <filename>/bin</filename>, <filename>/etc</filename>, 
+	<filename>/dev</filename>, <filename>/initrd</filename>, 
+	<filename>/lib</filename>, and <filename>/sbin</filename>.  The
+	contents of these directories are required at bootup and must
+	always be part of the <filename>/</filename> partition.</para>
+
+	<para>It is also recommended that you create separate partitions for 
+	<filename>/var</filename> and <filename>/tmp</filename>.  This is
+	because both directories typically have data that is constantly 
+	changing.  Not creating separate partitions for these filesystems
+	puts you at risk of having log file fill up our <filename>/</filename>
+	partition.</para>
+
+	<para>An example of a server partition is:
+	<screen><computeroutput>
+Filesystem            Size  Used Avail Use% Mounted on
+/dev/hda2             9.7G  1.3G  8.0G  14% /
+/dev/hda1             128M   44M   82M  34% /boot
+/dev/hda3             4.9G  4.0G  670M  86% /usr
+/dev/hda5             4.9G  2.1G  2.5G  46% /var
+/dev/hda7              31G   24G  5.6G  81% /home
+/dev/hda8             4.9G  2.0G  670M  43% /opt
+	</computeroutput></screen></para>
+
+	<para>The problem with having many partitions is that it splits
+	the total amount of free disk space into many small pieces.  One way
+	to avoid this problem is to use to create Logical Volumes.</para> 
+
+</sect2>
+
+<sect2 id="lvm">
+<title>Logical Volume Manager (LVM)</title>
+
+	<para>Using LVM allows administrators the flexibility to create 
+	logical disks that can be expanded dynamically as more disk space 
+	is required.</para>
+
+	<para>This is done first by creating partitions with as an 
+	0x8e Linux LVM partition type.  Then the <glossterm>Physical Partitions
+	</glossterm> are added to a <glossterm>Volume Group</glossterm> and 
+	broken up into chunks, or <glossterm>Physical Extents</glossterm>
+	<glossterm>Volume Group</glossterm>. These extends can then be grouped
+	into <glossterm>Logical Volumes</glossterm>.  These Logical Volumes 
+	then can be formatted just like a physical partition.  The big 
+	difference is that they can be expanded by adding more extents to 
+	them.</para>
+
+	<para>Right now, a full discussion of LVM is beyond the scope of this 
+	guide.  However, and excellent resource for learning more about LVM
+	can be found at <ulink url="http://www.tldp.org/HOWTO/LVM-HOWTO.html">
+	http://www.tldp.org/HOWTO/LVM-HOWTO.html</ulink>.</para> 
+<!--
+%	\meta more reasons for many partitions: users/temp files/spools
+%	can't fill up all disks, readonly partitions less likely to 
+corrupt, 
+%	fsck is faster, limits losses a filesystem goes really wrong,
+%	logging must not be disturbed, boots from >1023 cylinders do not
+%	work on all BIOSs, /usr/local won't be disturbed by an upgrade,
+%	easy to divide backup on many tapes, spare (scratch) partition for
+%	experimentation (e.g., a new Linux distribution), scratch can
+%	also be used to backup root during upgrades
+-->
+
+</sect2>
+
+<sect2 id="space-req">
+<title>Space requirements</title>
+
+	<para>The Linux distribution you install will give some indication
+	of how much disk space you need for various configurations. Programs
+	installed separately may also do the same.  This will help you plan
+	your disk space usage, but you should prepare for the future and
+	reserve some extra space for things you will
+	notice later that you need.</para>
+
+	<para>The amount you need for user files depends on what your
+	users wish to do.  Most people seem to need as much space for their
+	files as possible, but the amount they will live happily with varies
+	a lot.  Some people do only light text processing and will survive
+	nicely with a few megabytes, others do heavy
+	image processing and will need gigabytes.</para>
+
+	<para>By the way, when comparing file sizes given in
+	kilobytes or megabytes and disk space given in megabytes, it can be
+	important to know that the two units can be different. Some disk
+	manufacturers like to pretend that a kilobyte is 1000 bytes and a
+	megabyte is 1000 kilobytes, while all the rest of the computing
+	world uses 1024 for both factors.  Therefore, a 345 MB hard disk
+	is really a 330 MB hard disk.</para>
+
+	<para>Swap space allocation is discussed in <xref
+	linkend="swap-allocation">.</para>
+
+</sect2>
+
+<sect2 id="alloc-space-ex">
+<title>Examples of hard disk allocation</title>
+
+	<para>I used to have a 10 GB hard disk.  Now I am using a 30 GB
+	hard disk.  I'll explain how and why I partitioned those
+	disks.</para>
+
+	<para>First, I created a <filename>/boot</filename> partition 
+	at 128 MG.  This is larger than I will need, and big enough to
+	give me space if I need it.  I created a separate 
+	<filename>/boot</filename> partition to ensure that this 
+	filesystem will never get filled up, and therefore will be 
+	bootable.  Then I created a 5 GB <filename>/var</filename> 
+	partition.  Since the <filename>/var</filename> filesystem is 
+	where log files and email is stored I wanted to isolate it
+	from my root partition.  (I have had log files grow overnight 
+	and fill my root filesystem in the past.) Next, I created a 15 GB 
+	<filename>/home</filename> partition.  This is handy in the event 
+	of a system crash.  If I ever have to re-install Linux from scratch, 
+	I can tell the installation program to not format this partition, and
+	instead remount it without the data being lost. Finally 
+	since I had 512 MG of RAM I created a 1024 MG (or 1 GB) swap 
+	partition.  This left me with roughly a 9 GB root filesystem.  I using 
+	my old 10 GB hard drive, I created an 8 GB <filename>/usr</filename> 
+	partition and left 2 GB unused.  This is incase I need more space  
+	in the future.</para>
+
+	<para>In the end, my partition tables looked like this:
+
+		<table>
+		<title>My Partitions</title>
+		<tgroup cols=2>
+		<tbody>
+		<row> <entry>9 GB</entry> <entry>root filesystem</entry> </row>
+	 	<row> <entry>1 GB</entry> <entry>swap partition</entry> </row>
+		<row> <entry>5 GB</entry> <entry><filename>/var</filename> 
+		filesystem</entry> 
+		</row>
+		<row> <entry>15 GB</entry> <entry><filename>/home</filename> 
+		filesystem</entry> 
+		</row>
+	 	<row> <entry> 8 GB</entry> <entry><filename>/usr</filename>
+		filesystem</entry> </row>
+	 	<row> <entry> 2 GB</entry> <entry>scratch partition</entry> </row>
+		</tbody>
+		</tgroup>
+		</table>
+	</para>
+</sect2>
+
+<sect2 id="adding-disk">
+<title>Adding more disk space for Linux</title>
+
+	<para>Adding more disk space for Linux is easy, at least after the
+	hardware has been properly installed  (the hardware installation
+	is outside the scope of this book).  You format it if necessary,
+	then create the partitions and filesystem as described above,
+	and add the proper lines to <filename>/etc/fstab</filename>
+	<indexterm id="ch05-fstab"><primary>filesystems</primary>
+        <secondary>/etc</secondary><tertiary>/etc/fstab</tertiary>
+	</indexterm>
+	so that it is mounted automatically.</para>
+
+</sect2>
+
+<sect2 id="space-saving-tips">
+<title>Tips for saving disk space</title>
+
+	<para>The best tip for saving disk space<indexterm id="ch05-savespc">
+	<primary>disks</primary>
+        <secondary>saving space</secondary></indexterm> is to avoid installing
+	unnecessary programs.  Most Linux distributions have an
+	option to install only part of the packages they contain,
+	and by analyzing your needs you might notice that you don't
+	need most of them.  This will help save a lot of disk space,
+	since many programs are quite large.  Even if you do need a
+	particular package or program, you might not need all of it.
+	For example, some on-line documentation might be unnecessary,
+	as might some of the Elisp files for GNU Emacs, some of the
+	fonts for X11, or some of the libraries for programming.</para>
+
+	<para>If you cannot uninstall packages, you might look into
+	compression.  Compression programs such as <command>gzip</command>
+	<indexterm id="ch05-gzip"><primary>commands</primary>
+	<secondary>gzip</secondary></indexterm>
+	or <command>zip</command><indexterm id="ch05-zip">
+	<primary>commands</primary><secondary>zip</secondary></indexterm>
+	 will compress (and uncompress)
+	individual files or groups of files.  The <command>gzexe</command>
+	<indexterm id="ch05-gzexe"><primary>commands</primary>
+        <secondary>gzexe</secondary></indexterm>
+	system will compress and uncompress programs invisibly to the
+	user (unused programs are compressed, then uncompressed as they
+	are used).  The experimental DouBle system will compress all
+	files in a filesystem, invisibly to the programs that use them.
+	(If you are familiar with products such as Stacker for MS-DOS 
+	or DriveSpace for Windows, the principle is the same.)</para>
+
+	<para>Another way to save space is to take special care when 
+	formatting you partitions.  Most modern filesystems will allow
+	you to specify the block size.  The block size is chunk size that 
+	the filesystem will use to read and write data.  Larger block sizes
+	will help disk I/O performance when using large files, such as databases.
+	This happens because the disk can read or write data for a longer 
+	period of time before having to search for the next block.  The  
+		
+
+</sect2>
+
+</sect1>
+
+</chapter>

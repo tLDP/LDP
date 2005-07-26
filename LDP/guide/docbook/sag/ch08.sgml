@@ -1,0 +1,421 @@
+<chapter id="boots-and-shutdowns">
+<title>Boots And Shutdowns</title>
+
+	<blockquote><para><literallayout>
+Start me up
+Ah... you've got to... you've got to
+Never, never never stop
+Start it up
+Ah... start it up, never, never, never
+ You make a grown man cry,
+  you make a grown man cry
+(Rolling Stones)
+</literallayout></para></blockquote>
+
+	<para> This section explains what goes on when a Linux system is
+	brought up and taken down, and how it should be done properly.
+	If proper procedures are not followed, files might be corrupted
+	or lost.</para>
+	
+<sect1 id="boot-overview">
+<title>An overview of boots and shutdowns</title>
+
+	<para>The act of turning on a computer system and causing its
+	operating system to be loaded
+	is called <glossterm>booting</glossterm>.  The name comes from
+	an image of the computer pulling itself up from its bootstraps,
+	but the act itself slightly more realistic.</para>
+
+	<para>During bootstrapping, the computer first loads a small piece
+	of code called the <glossterm>bootstrap loader</glossterm>, which
+	in turn loads and starts the operating system.	The bootstrap
+	loader is usually stored in a fixed location on a hard disk
+	or a floppy.  The reason for this two step process is that
+	the operating system is big and complicated, but the first
+	piece of code that the computer loads must be very small (a
+	few hundred bytes), to avoid making the firmware unnecessarily
+	complicated.</para>
+
+	<para>Different computers do the bootstrapping differently.
+	For PCs, the computer (its BIOS) reads in the first sector
+	(called the <glossterm>boot sector</glossterm>) of a floppy or
+	hard disk.  The bootstrap loader is contained within this sector.
+	It loads the operating system from elsewhere on the disk (or
+	from some other place).</para>
+
+	<para>After Linux has been loaded, it initializes the hardware and
+	device drivers, and then runs <command>init</command>.  
+<command>init</command>
+	starts other processes to allow users to log in, and do things.
+	The details of this part will be discussed below.</para>
+
+	<para>In order to shut down a Linux system, first all processes
+	are told to terminate (this makes them close any files and
+	do other necessary things to keep things tidy), then filesystems
+	and swap areas are unmounted, and finally a message is printed
+	to the console that the power can be turned off.  If the proper
+	procedure is not followed, terrible things can and will happen;
+	most importantly, the filesystem buffer cache might not be flushed,
+	which means that all data in it is lost and the filesystem on
+	disk is inconsistent, and therefore possibly unusable.
+	</para>
+
+</sect1>
+
+<sect1 id="boot-process">
+<title>The boot process in closer look</title>
+
+	<para>When a PC is booted, the BIOS will do various tests to
+	check that everything looks all right, and will then start the actual 
+	booting.  This process is called the <glossterm>power on self test
+	</glossterm>, or POST for short.  It will choose a disk
+	drive (typically the first floppy drive, if there is a floppy
+	inserted, otherwise the first hard disk, if one is installed
+	in the computer; the order might be configurable, however)
+	and will then read its very first sector.  This is called the
+	<glossterm>boot sector</glossterm>; for a hard disk, it is also
+	called the <glossterm>master boot record</glossterm>, since a
+	hard disk can contain several partitions, each with their own
+	boot sectors.</para>
+
+	<para>The boot sector contains a small program (small enough to
+	fit into one sector) whose responsibility is to read the actual
+	operating system from the disk and start it.  When booting Linux
+	from a floppy disk, the boot sector contains code that just reads
+	the first few hundred blocks (depending on the actual kernel
+	size, of course) to a predetermined place in memory.  On a Linux
+	boot floppy, there is no filesystem, the kernel is just stored
+	in consecutive sectors, since this simplifies the boot process.
+	It is possible, however, to boot from a floppy with a filesystem,
+	by using LILO, the LInux LOader, or GRUB, the GRand Unifying 
+	Bootloader.</para>
+
+	<para>When booting from the hard disk, the code in the master
+	boot record will examine the partition table (also in the master
+	boot record), identify the active partition (the partition that is
+	marked to be bootable), read the boot sector from that partition,
+	and then start the code in that boot sector.  The code in the
+	partition's boot sector does what a floppy disk's boot sector
+	does: it will read in the kernel from the partition and start it.
+	The details vary, however, since it is generally not useful to
+	have a separate partition for just the kernel image, so the
+	code in the partition's boot sector can't just read the disk
+	in sequential order, it has to find the sectors wherever the
+	filesystem has put them.  There are several ways around this
+	problem, but the most common way is to use  a boot loader like
+	LILO or GRUB.  (The details
+	about how to do this are irrelevant for this discussion, however;
+	see the LILO or GRUB documentation for more information; it is most
+	thorough.)</para>
+
+	<para>When booting, the bootloader will normally go right ahead
+	and read in and boot the default kernel.  It is also possible
+	to configure the boot loader to be able to boot one of several kernels,
+	or even other operating systems than Linux, and it is possible
+	for the user to choose which kernel or operating system is to
+	be booted at boot time.  LILO, for example, can be configured so that if one
+	holds down the <keycap>alt</keycap>, <keycap>shift</keycap>, or
+	<keycap>ctrl</keycap> key at boot time (when LILO is loaded),
+	LILO will ask what is to be booted and not boot the default
+	right away.  Alternatively, the bootloader can be configured so that it
+	will always ask, with an optional timeout that will cause the
+	default kernel to be booted.</para>
+	
+	<para>It is also possible to give a <glossterm>kernel
+	command line argument</glossterm>, after the name of the kernel
+	or operating system.  For a list of possible options you can read
+	<ulink url="http://www.tldp.org/HOWTO/BootPrompt-HOWTO.html"> 
+	http://www.tldp.org/HOWTO/BootPrompt-HOWTO.html</ulink>.</para>
+
+	<para>Booting from floppy and from hard disk have both their
+	advantages, but generally booting from the hard disk is nicer,
+	since it avoids the hassle of playing around with floppies.
+	It is also faster.  Most Linux distributions will setup the bootloader
+	for you during the install process.</para>
+
+	<para>After the Linux kernel has been read into the memory, by
+	whatever means, and is started for real, roughly the following
+	things happen:
+	
+	<itemizedlist>
+
+	<listitem><para>
+	The Linux kernel is installed compressed, so it will first
+	uncompress itself.  The beginning of the kernel image
+	contains a small program that does this.
+	</para></listitem>
+
+	<listitem><para>
+	If you have a super-VGA card that Linux
+	recognizes and that has some special text modes (such as 100
+	columns by 40 rows), Linux asks you which mode
+	you want to use.  During the kernel compilation, it is
+	possible to preset a video mode, so that this is never asked.
+	This can also be done with LILO, GRUB or <command>rdev</command>.
+	</para></listitem>
+
+	<listitem><para>
+	After this, the kernel checks what other hardware there is
+	(hard disks, floppies, network adapters, etc), and configures
+	some of its device drivers appropriately; while it does this,
+	it outputs messages about its findings.  For example, when I
+	boot, I it looks like this:
+
+<screen>
+<computeroutput>
+LILO boot:
+Loading linux.
+Console: colour EGA+ 80x25, 8 virtual consoles
+Serial driver version 3.94 with no serial options enabled
+tty00 at 0x03f8 (irq = 4) is a 16450
+tty01 at 0x02f8 (irq = 3) is a 16450
+lp_init: lp1 exists (0), using polling driver
+Memory: 7332k/8192k available (300k kernel code, 384k reserved, 176k 
+data)
+Floppy drive(s): fd0 is 1.44M, fd1 is 1.2M
+Loopback device init
+Warning WD8013 board not found at i/o = 280.
+Math coprocessor using irq13 error reporting.
+Partition check:
+  hda: hda1 hda2 hda3
+VFS: Mounted root (ext filesystem).
+Linux version 0.99.pl9-1 (root@haven) 05/01/93 14:12:20
+</computeroutput>
+</screen>
+
+	The exact texts are different on different systems, depending
+	on the hardware, the version of Linux being used, and how
+	it has been configured.
+	</para></listitem>
+
+	<listitem><para> Then the kernel will try to mount the root
+	filesystem.  The place is configurable at compilation time,  or
+	any time with <command>rdev</command> or the bootloader. The filesystem
+	type is detected automatically.  If the mounting of the root
+	filesystem fails, for example because you didn't remember to
+	include the corresponding filesystem driver in the kernel, the
+	kernel panics and halts the system (there isn't much it can do,
+	anyway).  </para>
+
+	<para>The root filesystem is usually mounted read-only (this can
+	be set in the same way as the place).  This makes it possible
+	to check the filesystem while it is mounted; it is not a good
+	idea to check a filesystem that is mounted read-write.
+	</para></listitem>
+
+	<listitem><para> After this, the kernel starts
+	the program <command>init</command> (located in
+	<filename>/sbin/init</filename>) in the background (this will
+	always become process number 1).  <command>init</command> does
+	various startup chores.  The exact things it does depends on how
+	it is configured; see <xref linkend="init"> for more information
+	(not yet written).  It will at least start some essential
+	background daemons.  </para></listitem>
+
+	<listitem><para> <command>init</command> then switches to
+	multi-user mode, and starts a <command>getty</command> for virtual
+	consoles and serial lines.  <command>getty</command> is the
+	program which lets people log in via virtual consoles and serial
+	terminals.  <command>init</command> may also start some other
+	programs, depending on how it is configured.  </para></listitem>
+
+	<listitem><para> After this, the boot is complete, and the system
+	is up and running normally.  </para></listitem>
+
+	</itemizedlist>
+    	</para>
+
+<sect2 id="bootloaders">
+<title>A Word About Bootloaders</title>
+
+	<para>TO BE ADDED</para>
+
+	<para>This section will give an overview of the difference between
+	GRUB and LILO.</para>
+
+	<para>For more information on LILO, you can read  
+	<ulink url="http://www.tldp.org/HOWTO/LILO.html">
+	http://www.tldp.org/HOWTO/LILO.html</ulink></para>
+
+	<para>For more information on GRUB, you can visit  
+	<ulink url="http://www.gnu.org/software/grub/grub.html">
+	http://www.gnu.org/software/grub/grub.html</ulink></para>
+
+</sect2>
+
+</sect1>
+
+<sect1 id="shutdown">
+<title>More about shutdowns</title>
+
+	<para>It is important to follow the correct procedures when you shut
+	down a Linux system.  If you fail do so, your filesystems probably
+	will become trashed and the files probably will become scrambled.
+	This is because Linux has a disk cache that won't write things
+	to disk at once, but only at intervals.  This greatly improves
+	performance but also means that if you just turn off the power
+	at a whim the cache may hold a lot of data and that what is on
+	the disk may not be a fully working filesystem (because only
+	some things have been written to the disk).</para>
+
+	<para>Another reason against just flipping the power switch is that
+	in a multi-tasking system there can be lots of things going on
+	in the background, and shutting the power can be quite
+	disastrous.  By using the proper shutdown sequence, you ensure
+	that all background processes can save their data.</para>
+
+	<para>The command for properly shutting down a Linux system
+	is <command>shutdown</command>.  It is usually used in one of
+	two ways.</para>
+
+	<para>If you are running a system where you are the only user,
+	the usual way of using <command>shutdown</command> is to quit
+	all running programs, log out on all virtual consoles, log
+	in as root on one of them (or stay logged in as root if you
+	already are, but you should change to root's home directory or
+	the root directory, to avoid problems with unmounting), then
+	give the command <command>shutdown -h now</command> (substitute
+	<literal>now</literal> with a plus sign and a number in minutes
+	if you want a delay, though you usually don't on a single user
+	system).</para>
+
+	<para>Alternatively, if your system has many users, use the command
+	<command>shutdown -h +time message</command>, where 
+<literal>time</literal>
+	is the
+	time in minutes until the system is halted, and 
+<literal>message</literal>
+	is a short explanation of why the system is shutting down.
+
+<screen>
+<prompt>#</prompt> <userinput>shutdown -h +10 'We will install a new 
+disk.  System should
+> be back on-line in three hours.'</userinput>
+<prompt>#</prompt>
+</screen>
+
+	This will warn everybody that the system will shut down in
+	ten minutes, and that they'd better get lost or lose data.
+	The warning is printed to every terminal on which someone is
+	logged in, including all <command>xterm</command>s:
+
+<screen>
+<computeroutput>
+Broadcast message from root (ttyp0) Wed Aug  2 01:03:25 1995...
+
+We will install a new disk.  System should
+be back on-line in three hours.
+The system is going DOWN for system halt in 10 minutes !!
+</computeroutput>
+</screen>
+
+	The warning is automatically repeated a few times before the boot,
+	with shorter and shorter intervals as the time runs out.</para>
+
+	<para>When the real shutting down starts after any delays, all
+	filesystems (except the root one) are unmounted, user processes
+	(if anybody is still logged in) are killed, daemons are shut down,
+	all filesystem are unmounted, and generally everything settles
+	down.  When that is done, <command>init</command> prints out a
+	message that you can power down the machine.  Then, and only then,
+	should you move your fingers towards the power switch.</para>
+
+	<para>Sometimes, although rarely on any good system, it is
+	impossible to shut down properly.  For instance, if the kernel
+	panics and crashes and burns and generally misbehaves, it might
+	be completely impossible to give any new commands, hence shutting
+	down properly is somewhat difficult, and just about everything
+	you can do is hope that nothing has been too severely damaged
+	and turn off the power.  If the troubles are a bit less severe
+	(say, somebody hit your keyboard with an axe), and the kernel
+	and the <command>update</command> program still run normally,
+	it is probably a good idea to wait a couple of minutes to give
+	<command>update</command> a chance to flush the buffer cache,
+	and only cut the power after that.</para>
+
+	<para>In the old days, some people like to shut down using the command
+	<command>sync</command> three times, waiting for the disk I/O to stop, 
+	then turn off the power.  If there are no running programs, this is 
+	equivalent to using <command>shutdown</command>.  However, it
+	does not unmount any filesystems and this can lead to problems
+	with the ext2fs ``clean filesystem'' flag.  The triple-sync
+	method is <emphasis>not recommended</emphasis>.</para>
+
+	<para>(In case you're wondering: the reason for three syncs is
+	that in the early days of UNIX, when the commands were
+	typed separately, that usually gave sufficient time for most
+	disk I/O to be finished.)
+	</para>
+
+</sect1>
+
+<sect1 id="rebooting">
+<title>Rebooting</title>
+
+	<para>Rebooting means booting the system again.  This can be
+	accomplished by first shutting it down completely, turning
+	power off, and then turning it back on.  A simpler way is to
+	ask <command>shutdown</command> to reboot the system, instead
+	of merely halting it.  This is accomplished by using the
+	<option>-r</option> option to <command>shutdown</command>,
+	for example, by giving the command <command>shutdown -r
+	now</command>.</para>
+	
+	<para>Most Linux systems run <command>shutdown -r now</command>
+	when ctrl-alt-del is pressed on the keyboard.  This reboots the
+	system.  The action on ctrl-alt-del is configurable, however, and
+	it might be better to allow for some delay before the reboot on
+	a multiuser machine.  Systems that are physically accessible to
+	anyone might even be configured to do nothing when ctrl-alt-del
+	is pressed.  </para>
+
+</sect1>
+
+<sect1 id="single-user">
+<title>Single user mode</title>
+
+	<para>The <command>shutdown</command> command can also be used
+	to bring the system down to single user mode, in which no one
+	can log in, but root can use the console.  This is useful for
+	system administration tasks that can't be done while the system is
+	running normally.</para>
+
+</sect1>
+
+<sect1 id="emerg-boot-floppy">
+<title>Emergency boot floppies</title>
+
+	<para>It is not always possible to boot a computer from the hard 
+disk.
+	For example, if you make a mistake in configuring LILO, you might
+	make your system unbootable.  For these situations, you need an
+	alternative way of booting that will always work (as long as the
+	hardware works).  For typical PCs, this means booting from the
+	floppy drive.</para>
+
+	<para>Most Linux distributions allow one to create an
+	<glossterm>emergency boot floppy</glossterm> during installation.
+	It is a good idea to do this.  However, some such boot disks
+	contain only the kernel, and assume you will be using the programs
+	on the distribution's installation disks to fix whatever problem
+	you have.  Sometimes those programs aren't enough; for example,
+	you might have to restore some files from backups made with
+	software not on the installation disks.</para>
+
+	<para>Thus, it might be necessary to create a custom root floppy
+	as well.  The Bootdisk HOWTO by Graham Chapman  contains instructions 
+	for doing this.  You can find this HOWTO at 
+	<ulink url="http://www.tldp.org/HOWTO/Bootdisk-HOWTO/index.html">
+	http://www.tldp.org/HOWTO/Bootdisk-HOWTO/index.html</ulink>.
+	You must, of course, remember to keep your emergency boot and
+	root floppies up to date.</para>
+
+	<para>You can't use the floppy drive you use to mount the root
+	floppy for anything else.  This can be inconvenient if you only
+	have one floppy drive.	However, if you have enough memory, you
+	can configure your boot floppy to load the root disk to a ramdisk
+	(the boot floppy's kernel needs to be specially configured for
+	this).	Once the root floppy has been loaded into the ramdisk,
+	the floppy drive is free to mount other disks.	</para>
+
+</chapter>

@@ -1,0 +1,436 @@
+<chapter id="memory-management">
+<title>Memory Management</title>
+
+	<blockquote><para><quote>Minnet, jag har tappat mitt minne,
+	&auml;r jag svensk eller finne, kommer inte ih&aring;g...</quote>
+	(Bosse &Ouml;sterberg)
+	</para>
+	<para>A Swedish drinking song, (rough) translation: ``Memory, I
+	have lost my memory.  Am I Swedish or Finnish?  I can't
+	remember''</para>
+	</blockquote>
+
+	<para> This section describes the Linux memory management
+	features, i.e., virtual memory and the disk buffer cache.
+	The purpose and workings and the things the system administrator
+	needs to take into consideration are described.</para>
+	
+<sect1 id="vm-intro">
+<title>What is virtual memory?</title>
+
+	<para>Linux supports <glossterm>virtual memory</glossterm>, that
+	is, using a disk as an extension of RAM so that the effective
+	size of usable memory grows correspondingly.  The kernel will
+	write the contents of a currently unused block of memory to the
+	hard disk so that the memory can be used for another purpose.
+	When the original contents are needed again, they are read back
+	into memory.  This is all made completely transparent to the
+	user; programs running under Linux only see the larger amount of
+	memory available and don't notice that parts of them reside on
+	the disk from time to time.  Of course, reading and writing the
+	hard disk is slower (on the order of a thousand times slower)
+	than using real memory, so the programs don't run as fast.
+	The part of the hard disk that is used as virtual memory is
+	called the <glossterm>swap space</glossterm>.</para>
+
+	<para>Linux can use either a normal file in the filesystem or a
+	separate partition for swap space.  A swap partition is
+	faster, but it is easier to change the size of a swap file
+	(there's no need to repartition the whole hard disk, and
+	possibly install everything from scratch).  When you know how
+	much swap space you need, you should go for a swap partition,
+	but if you are uncertain, you can use a swap file first, use
+	the system for a while so that you can get a feel for how much
+	swap you need, and then make a swap partition when you're
+	confident about its size.</para>
+
+	<para>You should also know that Linux allows one to use several swap
+	partitions and/or swap files at the same time.  This means
+	that if you only occasionally need an unusual amount of swap space,
+	you can set up an extra swap file at such times, instead of
+	keeping the whole amount allocated all the time.</para>
+	
+	<para>A note on operating system terminology: computer science 
+	usually distinguishes between swapping (writing the whole process
+	out to swap space) and paging (writing only fixed size parts,
+	usually a few kilobytes, at a time). Paging is usually more
+	efficient, and that's what Linux does, but traditional Linux
+	terminology talks about swapping anyway.
+	</para>
+
+</sect1>
+
+<sect1 id="swap-space">
+<title>Creating a swap space</title>
+
+	<para>A swap file is an ordinary file; it is in no way special
+	to the kernel.	The only thing that matters to the kernel is that it
+	has no holes, and that it is prepared for use with
+	<command>mkswap</command>.  It must reside on a local disk, however;
+	it can't reside in a filesystem that has been mounted
+	over NFS due to implementation reasons.</para>
+
+	<para>The bit about holes is important. The swap file reserves
+	the disk space so that the kernel can quickly swap out a page
+	without having to go through all the things that are necessary
+	when allocating a disk sector to a file.  The kernel merely
+	uses any sectors that have already been allocated to the file.
+	Because a hole in a file means that there are no disk sectors
+	allocated (for that place in the file), it is not good for the
+	kernel to try to use them.</para>
+
+	<para>One good way to create the swap file without holes is through
+	the following command:
+
+        <screen>
+	<prompt>$</prompt> <userinput>dd if=/dev/zero of=/extra-swap bs=1024 
+	count=1024</userinput>
+	<computeroutput>1024+0 records in
+	1024+0 records out</computeroutput>
+	<prompt>$</prompt>
+	</screen>
+
+	where <filename>/extra-swap</filename> is the name of the swap
+	file and the size of is given after the <literal>count=</literal>.
+	It is best for the size to be a multiple of 4, because the
+	kernel writes out <glossterm>memory pages</glossterm>, which
+	are 4 kilobytes in size.  If the size is not a multiple of 4,
+	the last couple of kilobytes may be unused.</para>
+
+	<para>A swap partition is also not special in any way.	You create
+	it just like any other partition; the only difference is that
+	it is used as a raw partition, that is, it will not contain any
+	filesystem at all.  It is a good idea to mark swap partitions
+	as type 82 (Linux swap); this will the make partition listings
+	clearer, even though it is not strictly necessary to the
+	kernel.</para>
+
+	<para>After you have created a swap file or a swap partition, you
+	need to write a signature to its beginning; this contains some
+	administrative information and is used by the kernel.  The
+	command to do this is <command>mkswap</command>, used like this:
+
+        <screen>
+	<prompt>$</prompt> <userinput>mkswap /extra-swap 1024</userinput>
+	<computeroutput>Setting up swapspace, size = 1044480 
+	bytes</computeroutput>
+	<prompt>$</prompt>
+	</screen>
+
+	Note that the swap space is still not in use yet: it exists,
+	but the kernel does not use it to provide virtual memory.</para>
+	
+	<para>You should be very careful when using
+	<command>mkswap</command>, since it does not check that the
+	file or partition isn't used for anything else.  <emphasis>You
+	can easily overwrite important files and partitions with
+	<command>mkswap</command>!</emphasis> Fortunately, you should
+	only need to use <command>mkswap</command> when you install
+	your system.</para>
+
+	<para>The Linux memory manager limits the size of each swap space to
+	2 GB.  You can, however, use up to
+	8 swap spaces simultaneously, for a total of 16GB.
+	</para>
+
+</sect1>
+
+<sect1 id="using-swap">
+<title>Using a swap space</title>
+
+	<para>An initialized swap space is taken into use with
+	<command>swapon</command>.  This command tells the kernel that
+	the swap space can be used.  The path to the swap space is given
+	as the argument, so to start swapping on a temporary swap file
+	one might use the following command.
+
+<screen>
+<prompt>$</prompt> <userinput>swapon /extra-swap</userinput>
+<prompt>$</prompt>
+</screen>
+
+	Swap spaces can be used automatically by listing them in
+	the <filename>/etc/fstab</filename> file.
+
+<screen>
+/dev/hda8        none        swap        sw     0     0
+/swapfile        none        swap        sw     0     0
+</screen>
+
+	The startup scripts will run the command <command>swapon
+	-a</command>, which will start swapping on all the swap
+	spaces listed in <command>/etc/fstab</command>.  Therefore,
+	the <command>swapon</command> command is usually used only when
+	extra swap is needed.</para>
+	
+	<para>You can monitor the use of swap spaces with
+	<command>free</command>.  It will tell the total amount of swap
+	space used.
+
+<screen>
+<prompt>$</prompt> <userinput>free</userinput>
+<computeroutput>             total       used       free     shared   
+ buffers
+Mem:         15152      14896        256      12404       2528
+-/+ buffers:            12368       2784
+Swap:        32452       6684      25768</computeroutput>
+<prompt>$</prompt>
+</screen>
+
+	The first line of output (<literal>Mem:</literal>) shows the
+	physical memory.  The total column does not show the physical
+	memory used by the kernel, which is usually about a megabyte.
+	The used column shows the amount of memory used (the second
+	line does not count buffers).  The free column shows completely
+	unused memory.	The shared column shows the amount of memory
+	shared by several processes; the more, the merrier.  The buffers
+	column shows the current size of the disk buffer cache.</para>
+	
+	<para>That last line (<literal>Swap:</literal>) shows similar
+	information for the swap spaces.  If this line is all zeroes,
+	your swap space is not activated.</para>
+	
+	<para>The same information is available via
+	<command>top</command>, or using the proc filesystem in file
+	<filename>/proc/meminfo</filename>.  It is currently difficult
+	to get information on the use of a specific swap space.</para>
+
+	<para>A swap space can be removed from use with
+	<command>swapoff</command>.  It is usually not necessary to do it,
+	except for temporary swap spaces.  Any pages in use in the swap
+	space are swapped in first; if there is not sufficient physical
+	memory to hold them, they will then be swapped out (to some other
+	swap space).  If there is not enough virtual memory to hold all
+	of the pages Linux will start to thrash; after a long while it
+	should recover, but meanwhile the system is unusable.  You should
+	check (e.g., with <command>free</command>) that there is enough
+	free memory before removing a swap space from use.</para>
+
+	<para>All the swap spaces that are used automatically
+	with <command>swapon -a</command> can be removed from use
+	with <command>swapoff -a</command>; it looks at the file
+	<filename>/etc/fstab</filename> to find what to remove.
+	Any manually used swap spaces will remain in use.</para>
+
+	<para>Sometimes a lot of swap space can be in use even though
+	there is a lot of free physical memory.  This can happen for
+	instance if at one point there is need to swap, but later a big
+	process that occupied much of the physical memory terminates
+	and frees the memory.  The swapped-out data is not automatically
+	swapped in until it is needed, so the physical memory may remain
+	free for a long time.  There is no need to worry about this,
+	but it can be comforting to know what is happening.  </para>
+
+</sect1>
+
+<sect1 id="sharing-swap">
+<title>Sharing swap spaces with other operating systems</title>
+
+	<para>Virtual memory is built into many operating systems.
+	Since they each need it only when they are running, i.e., never at
+	the same time, the swap spaces of all but the currently running
+	one are being wasted.  It would be more efficient for them to
+	share a single swap space.  This is possible, but can require a
+	bit of hacking.  The  Tips-HOWTO at
+	<ulink url="http://www.tldp.org/HOWTO/Tips-HOWTO.html"> 
+	http://www.tldp.org/HOWTO/Tips-HOWTO.html</ulink>, which contains 
+	some advice on how to
+	implement this.  </para>
+
+</sect1>
+
+<sect1 id="swap-allocation">
+<title>Allocating swap space</title>
+
+	<para>Some people will tell you that you should allocate twice as 
+	much swap space as you have physical memory, but this is a bogus
+	rule. Here's how to do it properly:
+
+	<itemizedlist>
+
+	<listitem>
+	
+	<para> Estimate your total memory needs.  This is the largest
+	amount of memory you'll probably need at a time, that is the
+	sum of the memory requirements of all the programs you want to
+	run at the same time.  This can be done by running at the same
+	time all the programs you are likely to ever be running at the
+	same time.  </para>
+
+	<para>For instance, if you want to run X, you should allocate
+	about 8 MB for it, gcc wants several megabytes (some
+	files need an unusually large amount, up to tens of
+	megabytes, but usually about four should do), and so on.
+	The kernel will use about a megabyte by itself, and the
+	usual shells and other small utilities perhaps a few
+	hundred kilobytes (say a megabyte together).  There is
+	no need to try to be exact, rough estimates are fine,
+	but you might want to be on the pessimistic side.</para>
+	
+	<para>Remember that if there are going to be several people
+	using the system at the same time, they are all going
+	to consume memory.  However, if two people run the same
+	program at the same time, the total memory consumption
+	is usually not double, since code pages and shared
+	libraries exist only once.</para>
+	
+	<para>The <command>free</command> and <command>ps</command>
+	commands are useful for estimating the memory needs.
+	
+	</listitem>
+
+	<listitem>
+
+	<para>Add some security to the estimate in step 1.  This is because
+	estimates of program sizes will probably be wrong, because
+	you'll probably forget some programs you want to run, and to
+	make certain that you have some extra space just in case.  A
+	couple of megabytes should be fine.  (It is better to allocate
+	too much than too little swap space, but there's no need to
+	over-do it and allocate the whole disk, since unused swap space
+	is wasted space; see later about adding more swap.)  Also,
+	since it is nicer to deal with even numbers, you can round the
+	value up to the next full megabyte.</para>
+	
+	</listitem>
+	
+	<listitem>
+	
+	<para>Based on the computations above, you know how much memory
+	you'll be needing in total.  So, in order to allocate swap
+	space, you just need to subtract the size of your physical
+	memory from the total memory needed, and you know how much
+	swap space you need.  (On some versions of UNIX, you need to
+	allocate space for an image of the physical memory as well, so
+	the amount computed in step 2 is what you need and you shouldn't
+	do the subtraction.)</para>
+
+	</listitem>
+	
+	<listitem>
+
+	<para>If your calculated swap space is very much larger than your
+	physical memory (more than a couple times larger), you should
+	probably invest in more physical memory, otherwise performance
+	will be too low.</para>
+
+	</itemizedlist>
+    
+	<para>It's a good idea to have at least some swap space, even if
+	your calculations indicate that you need none. Linux uses
+	swap space somewhat aggressively, so that as much physical
+	memory as possible can be kept free. Linux will swap out
+	memory pages that have not been used, even if the memory
+	is not yet needed for anything. This avoids waiting for
+	swapping when it is needed: the swapping can be done
+	earlier, when the disk is otherwise idle.</para>
+
+	<para>Swap space can be divided among several disks. This
+	can sometimes improve performance, depending on the
+	relative speeds of the disks and the access patterns
+	of the disks. You might want to experiment with a few
+	schemes, but be aware that doing the experiments
+	properly is quite difficult. You should not believe
+	claims that any one scheme is superior to any other,
+	since it won't always be true.
+	</para>
+	
+</sect1>
+
+<sect1 id="buffer-cache">
+<title>The buffer cache</title>
+
+	<para>Reading from a disk
+	is very slow compared to accessing (real) memory.  In addition,
+	it is common to read the same part of a disk several times
+	during relatively short periods of time.  For example, one
+	might first read an e-mail message, then read the letter into
+	an editor when replying to it, then make the mail program read
+	it again when copying it to a folder.  Or, consider how often
+	the command <command>ls</command> might be run on a system with
+	many users.  By reading the information from disk only once
+	and then keeping it in memory until no longer needed, one can
+	speed up all but the first read.  This is called <glossterm>disk
+	buffering</glossterm>, and the memory used for the purpose is
+	called the <glossterm>buffer cache</glossterm>.</para>
+
+	<para>Since memory is, unfortunately, a finite, nay, scarce
+	resource, the buffer cache usually cannot be big enough (it
+	can't hold all the data one ever wants to use).  When the cache
+	fills up, the data that has been unused for the longest time
+	is discarded and the memory thus freed is used for the new
+	data.</para>
+
+	<para>Disk buffering works for writes as well.	On the one hand,
+	data that is written is often soon read again (e.g., a source
+	code file is saved to a file, then read by the compiler),
+	so putting data that is written in the cache is a good idea.
+	On the other hand, by only putting the data into the cache, not
+	writing it to disk at once, the program that writes runs quicker.
+	The writes can then be done in the background, without slowing
+	down the other programs.</para>
+
+	<para>Most operating systems have buffer caches (although
+	they might be called something else), but not all of
+	them work according to the above principles.  Some are
+	<glossterm>write-through</glossterm>: the data is written to disk
+	at once (it is kept in the cache as well, of course).  The cache
+	is called <glossterm>write-back</glossterm> if the writes are done
+	at a later time.  Write-back is more efficient than write-through,
+	but also a bit more prone to errors: if the machine crashes,
+	or the power is cut at a bad moment, or the floppy is removed
+	from the disk drive before the data in the cache waiting to be
+	written gets written, the changes in the cache are usually lost.
+	This might even mean that the filesystem (if there is one) is
+	not in full working order, perhaps because the unwritten data
+	held important changes to the bookkeeping information.</para>
+	
+	<para>Because of this, you should never turn off the
+	power without using a proper shutdown procedure 
+	or remove a floppy from the
+	disk drive until it has been unmounted (if it was mounted)
+	or after whatever program is using it has signaled that it
+	is finished and the floppy drive light doesn't shine anymore.
+	The <command>sync</command> command <glossterm>flushes</glossterm>
+	the buffer, i.e., forces all unwritten data to be written to disk,
+	and can be used when one wants to be sure that everything is
+	safely written.  In traditional UNIX systems, there is a program
+	called <command>update</command> running in the background
+	which does a <command>sync</command> every 30 seconds, so
+	it is usually not necessary to use <command>sync</command>.
+	Linux has an additional daemon, <command>bdflush</command>,
+	which does a more imperfect sync more frequently to avoid the
+	sudden freeze due to heavy disk I/O that <command>sync</command>
+	sometimes causes.</para>
+	
+	<para>Under Linux, <command>bdflush</command> is started by
+	<command>update</command>.  There is usually no reason to worry
+	about it, but if <command>bdflush</command> happens to die for
+	some reason, the kernel will warn about this, and you should
+	start it by hand (<command>/sbin/update</command>).</para>
+
+	<para>The cache does not actually buffer files, but blocks, which
+	are the smallest units of disk I/O (under Linux, they are usually
+	1 KB).	This way, also directories, super blocks, other filesystem
+	bookkeeping data, and non-filesystem disks are cached.</para>
+
+	<para>The effectiveness of a cache is primarily decided by its
+	size.  A small cache is next to useless: it will hold so little
+	data that all cached data is flushed from the cache before it
+	is reused.  The critical size depends on how much data is read
+	and written, and how often the same data is accessed.  The only
+	way to know is to experiment.</para>
+
+	<para>If the cache is of a fixed size, it is not very good to have
+	it too big, either, because that might make the free memory too
+	small and cause swapping (which is also slow).	To make the most
+	efficient use of real memory, Linux automatically uses all free
+	RAM for buffer cache, but also automatically makes the cache
+	smaller when programs need more memory.</para>
+
+	<para>Under Linux, you do not need to do anything to make use
+	of the cache, it happens completely automatically.  Except for
+	following the proper procedures for shutdown and removing
+	floppies, you do not need to worry about it.  </para>
+</sect1>
+</chapter>

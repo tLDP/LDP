@@ -1,0 +1,391 @@
+<chapter id="init-intro">
+<title><command>init</command></title>
+
+	<blockquote><para><quote>Uuno on numero yksi</quote>
+	(Slogan for a series of Finnish movies.)</para></blockquote>
+
+	<para>This chapter describes the <command>init</command> process,
+	which is the first user level process started by the kernel.
+	<command>init</command> has many important duties, such as
+	starting <command>getty</command> (so that users can log in),
+	implementing run levels, and taking care of orphaned processes.
+	This chapter explains how <command>init</command> is configured
+	and how you can make use of the different run levels.</para>
+	
+<sect1 id="init-process">
+<title><command>init</command> comes first</title>
+
+	<para><command>init</command> is one of those programs that
+	are absolutely essential to the operation of a Linux system,
+	but that you still can mostly ignore. A good Linux distribution
+	will come with a configuration for <command>init</command>
+	that will work for most systems, and on these systems there is
+	nothing you need to do about <command>init</command>. Usually,
+	you only need to worry about <command>init</command> if you hook
+	up serial terminals, dial-in (not dial-out) modems, or if you
+	want to change the default run level.</para>
+
+	<para>When the kernel has started itself (has been loaded
+	into memory, has started running, and has initialized all
+	device drivers and data structures and such), it finishes its
+	own part of the boot process by starting a user level program,
+	<command>init</command>. Thus, <command>init</command> is always
+	the first process (its process number is always 1).</para>
+	
+	<para>The kernel looks for <command>init</command>
+	in a few locations that have been historically used
+	for it, but the proper location for it (on a Linux
+	system) is <filename>/sbin/init</filename>. If the
+	kernel can't find <command>init</command>, it tries to run
+	<filename>/bin/sh</filename>, and if that also fails, the startup
+	of the system fails.</para>
+	
+	<para>When <command>init</command> starts, it finishes the
+	boot process by doing a number of administrative tasks, such
+	as checking filesystems, cleaning up <filename>/tmp</filename>,
+	starting various services, and starting a <command>getty</command>
+	for each terminal and virtual console where users should be able
+	to log in (see <xref linkend="log-in-and-out">).</para>
+	
+	<para>After the system is properly up, <command>init</command>
+	restarts <command>getty</command> for each terminal
+	after a user has logged out (so that the next user can log
+	in). <command>init</command> also adopts orphan processes: when
+	a process starts a child process and dies before its child, the
+	child immediately becomes a child of <command>init</command>.
+	This is important for various technical reasons, but it is good
+	to know it, since it makes it easier to understand process lists
+	and process tree graphs.
+	There are a few variants of <command>init</command>
+	available. Most Linux distributions
+	use <command>sysvinit</command> (written by Miquel
+	van Smoorenburg), which is based on the System V
+	<command>init</command> design.  The BSD versions of Unix have
+	a different <command>init</command>. The primary difference
+	is run levels: System V has them, BSD does not (at least
+	traditionally). This difference is not essential.  We'll look
+	at <command>sysvinit</command> only.  </para>
+
+</sect1>
+
+<sect1 id="config-init">
+<title>Configuring <command>init</command> to start 
+<command>getty</command>: the 
+<filename>/etc/inittab</filename> file</title>
+
+	<para>When it starts up, <command>init</command> reads the 
+	<filename>/etc/inittab</filename>
+	configuration file. While the system is running, it will
+	re-read it, if sent the HUP signal (<command>kill -HUP 1</command>);
+	this feature makes it unnecessary to boot the system to make
+	changes to the <command>init</command> configuration take
+	effect.</para>
+	
+	<para>The <filename>/etc/inittab</filename> file is
+	a bit complicated. We'll start with the simple case
+	of configuring <command>getty</command> lines.	Lines in
+	<filename>/etc/inittab</filename> consist of four colon-delimited
+	fields:
+
+<screen>
+id:runlevels:action:process
+</screen>
+
+	The fields are described below. In addition,
+	<filename>/etc/inittab</filename> can contain empty lines, and
+	lines that begin with a number sign (`<literal>#</literal>');
+	these are both ignored.
+	
+	<glosslist>
+	<glossentry><glossterm>id</glossterm>
+		<glossdef><para>
+		This identifies the line in the file. For
+		<command>getty</command> lines, it specifies the terminal
+		it runs on (the characters after <filename>/dev/tty</filename>
+		in the device file name). For other lines,
+		it doesn't matter (except for length restrictions),
+		but it should be unique.
+		</para></glossdef></glossentry>
+
+	<glossentry><glossterm>runlevels</glossterm>
+		<glossdef><para>
+		The run levels the line should be considered
+		for. The run levels are given as single digits,
+		without delimiters. (Run levels are described
+		in the next section.)
+		</para></glossdef></glossentry>
+			
+	<glossentry><glossterm>action</glossterm>
+		<glossdef><para>
+		What action should be taken by the line, e.g.,
+		<literal>respawn</literal> to run the command in the
+		next field again, when it exits, or <literal>once</literal>
+		to run it just once.
+		</para></glossdef></glossentry>
+			
+	<glossentry><glossterm>process</glossterm>
+		<glossdef><para>
+		The command to run.
+		</para></glossdef></glossentry>
+	
+	</glosslist>
+
+	To start a <command>getty</command> on the first virtual terminal
+	(<filename>/dev/tty1</filename>), in all the normal multi-user
+	run levels (2-5), one would write the following line:
+
+<screen>
+1:2345:respawn:/sbin/getty 9600 tty1
+</screen>
+
+	The first field says that this is the line for 
+	<filename>/dev/tty1</filename>.
+	The second field says that it applies to run levels 2, 3, 4,
+	and 5. The third field means that the command should be run
+	again, after it exits (so that one can log in, log out, and
+	then log in again). The last field is the command that runs
+	<command>getty</command> on the first virtual terminal.</para>
+	
+	<para>Different versions of <command>getty</command> are run 
+	differently. Consult your manual page, and make sure it is
+	the correct  manual page.</para>
+	
+	<para>If you wanted to add terminals or dial-in modem lines to a
+	system, you'd add more lines to <filename>/etc/inittab</filename>,
+	one for each terminal or dial-in line. For more details, see the
+	manual pages <command>init</command>, <filename>inittab</filename>,
+	and <command>getty</command>.</para>
+	
+	<para>If a command fails when it starts,
+	and <command>init</command> is configured to
+	<literal>restart</literal> it, it will use a lot of
+	system resources: <command>init</command> starts it,
+	it fails, <command>init</command> starts it, it fails,
+	<command>init</command> starts it, it fails, and so on, ad
+	infinitum. To prevent this, <command>init</command> will keep
+	track of how often it restarts a command, and if the frequency
+	grows to high, it will delay for five minutes before restarting
+	again.	</para>
+
+</sect1>
+
+<sect1 id="run-levels-intro">
+<title>Run levels</title>
+
+	<para>A <glossterm>run level</glossterm> is a state of
+	<command>init</command> and the whole system that defines what
+	system services are operating. Run levels are identified by
+	numbers. Some system administrators 
+	use run levels to define which subsystems are working, e.g.,
+	whether X is running, whether the network is operational, and
+	so on. Others have all subsystems always running or start and
+	stop them individually, without changing run levels, since run
+	levels are too coarse for controlling their systems.  You need
+	to decide for yourself, but it might be easiest to follow the
+	way your Linux distribution does things.</para>
+
+	<para>The following table defines how most Linux Distributions
+	define the different run levels.  However, run-levels 2 through 5 
+	can be modified to suit your own tastes.</para>
+	
+		<table id="run-levels-table">
+		<title>Run level numbers</title>
+		<tgroup cols=2>
+		<tbody>
+		<row> <entry>0</entry> <entry>Halt the system.</entry> </row>
+		<row> <entry>1</entry> <entry>Single-user mode (for special 
+			administration).</entry> </row>
+		<row> <entry>2</entry> <entry>Local Multiuser with Networking
+			but without network service (like NFS)</entry> </row>
+		<row> <entry>3</entry> <entry>Full Multiuser with Networking 
+			</entry> </row>
+		<row> <entry>4</entry> <entry>Not Used 
+			</entry> </row>
+		<row> <entry>5</entry> <entry>Full Multiuser with Networking
+			and X Windows(GUI)</entry> </row>
+		<row> <entry>6</entry> <entry>Reboot.</entry> </row>
+		</tbody>
+		</tgroup>
+		</table>
+
+	<para>Services that get started at a certain runtime are determined
+	by the contents of the various <filename>rcN.d</filename> directories. 
+	Most distributions locate these directories either at
+	<filename>/etc/init.d/rcN.d</filename> or 
+	<filename>/etc/rcN.d</filename>. (Replace the N with the run-level
+	number.)<para>
+		
+	<para>In each run-level you will find a series of if links pointing 
+	to start-up scripts located in <filename>/etc/init.d</filename>.  
+	The names of these links all start as either K or S, followed by a 
+	number.  If the name of the link starts with an S, then that indicates
+	the service will be started when you go into that run level.  If the 
+	name of the link starts with a K, the service will be killed (if 
+	running).</para>
+
+	<para>The number following the K or S indicates the order the scripts
+	will be run.  Here is a sample of what an 
+	<filename>/etc/init.d/rc3.d</filename> may look like.
+
+<screen>
+<prompt>#</prompt> <userinput>ls -l /etc/init.d/rc3.d</userinput>
+<computeroutput>
+lrwxrwxrwx  1 root root 10 2004-11-29 22:09 K12nfsboot -> ../nfsboot
+lrwxrwxrwx  1 root root  6 2005-03-29 13:42 K15xdm -> ../xdm
+lrwxrwxrwx  1 root root  9 2004-11-29 22:08 S01pcmcia -> ../pcmcia
+lrwxrwxrwx  1 root root  9 2004-11-29 22:06 S01random -> ../random
+lrwxrwxrwx  1 root root 11 2005-03-01 11:56 S02firewall -> ../firewall
+lrwxrwxrwx  1 root root 10 2004-11-29 22:34 S05network -> ../network
+lrwxrwxrwx  1 root root  9 2004-11-29 22:07 S06syslog -> ../syslog
+lrwxrwxrwx  1 root root 10 2004-11-29 22:09 S08portmap -> ../portmap
+lrwxrwxrwx  1 root root  9 2004-11-29 22:07 S08resmgr -> ../resmgr
+lrwxrwxrwx  1 root root  6 2004-11-29 22:09 S10nfs -> ../nfs
+lrwxrwxrwx  1 root root 12 2004-11-29 22:40 S12alsasound -> ../alsasound
+lrwxrwxrwx  1 root root  8 2004-11-29 22:09 S12fbset -> ../fbset
+lrwxrwxrwx  1 root root  7 2004-11-29 22:10 S12sshd -> ../sshd
+lrwxrwxrwx  1 root root  8 2005-02-01 09:24 S12xntpd -> ../xntpd
+lrwxrwxrwx  1 root root  7 2004-12-02 20:34 S13cups -> ../cups
+lrwxrwxrwx  1 root root  6 2004-11-29 22:09 S13kbd -> ../kbd
+lrwxrwxrwx  1 root root 13 2004-11-29 22:10 S13powersaved -> ../powersaved
+lrwxrwxrwx  1 root root  9 2004-11-29 22:09 S14hwscan -> ../hwscan
+lrwxrwxrwx  1 root root  7 2004-11-29 22:10 S14nscd -> ../nscd
+lrwxrwxrwx  1 root root 10 2004-11-29 22:10 S14postfix -> ../postfix
+lrwxrwxrwx  1 root root  6 2005-02-04 13:27 S14smb -> ../smb
+lrwxrwxrwx  1 root root  7 2004-11-29 22:10 S15cron -> ../cron
+lrwxrwxrwx  1 root root  8 2004-12-22 20:35 S15smbfs -> ../smbfs
+</computeroutput>
+<prompt>
+</screen>
+
+	<para>How run levels start are configured in 
+	<filename>/etc/inittab</filename> by lines like the following:
+
+<screen>
+l2:2:wait:/etc/init.d/rc 2
+</screen>
+
+	The first field is an arbitrary label, the second one means
+	that this applies for run level 2. The third field means
+	that <command>init</command> should run the command in the
+	fourth field once, when the run level is entered, and that
+	<command>init</command> should wait for it to complete. The
+	<filename>/etc/init.d/rc</filename> command runs whatever
+	commands are necessary to start and stop services to enter run
+	level 2.</para>
+	
+	<para>The command in the fourth field does all the hard work of
+	setting up a run level. It starts services that aren't already
+	running, and stops services that shouldn't be running in the
+	new run level any more. Exactly what the command is, and how run
+	levels are configured, depends on the Linux distribution.</para>
+	
+	<para>When <command>init</command> starts, it looks for a line
+	in <filename>/etc/inittab</filename> that specifies the default
+	run level:
+
+<screen>
+id:2:initdefault:
+</screen>
+
+	You can ask <command>init</command> to go to a non-default run
+	level at startup by giving the kernel a command line argument
+	of <literal>single</literal> or <literal>emergency</literal>.
+	Kernel command line arguments can be given via LILO, for example.
+	This allows you to choose the single user mode (run level 1).</para>
+	
+	<para>While the system is running, the <command>telinit</command>
+	command can change the run level. When the run level is
+	changed, <command>init</command> runs the relevant command from
+	<filename>/etc/inittab</filename>.  </para>
+
+</sect1>
+
+<sect1 id="inittab">
+<title>Special configuration in 
+<filename>/etc/inittab</filename></title>
+
+	<para>The <filename>/etc/inittab</filename> has some special
+	features that allow <command>init</command> to react to special
+	circumstances. These special features are marked by special
+	keywords in the third field.  Some examples:
+	
+	<glosslist>
+
+	<glossentry><glossterm><literal>powerwait</literal></glossterm>
+		<glossdef><para>
+		Allows <command>init</command> to shut the system
+		down, when the power fails. This assumes the use of
+		a UPS, and software that watches the UPS and informs
+		<command>init</command> that the power is off.
+		</para></glossdef></glossentry>
+
+	<glossentry><glossterm><literal>ctrlaltdel</literal></glossterm>
+		<glossdef><para>
+		Allows <command>init</command> to reboot the system, when
+		the user presses ctrl-alt-del on the console keyboard.
+		Note that the system administrator can configure the
+		reaction to ctrl-alt-del to be something else instead,
+		e.g., to be ignored, if the system is in a public
+		location. (Or to start <command>nethack</command>.)
+		</para></glossdef></glossentry>
+
+	<glossentry><glossterm><literal>sysinit</literal></glossterm>
+		<glossdef><para>
+		Command to be run when the system is booted. This command
+		usually cleans up <filename>/tmp</filename>, for example.
+		</para></glossdef></glossentry>
+
+	</glosslist>
+	
+	The list above is not exhaustive. See your
+	<filename>inittab</filename> manual page for all possibilities,
+	and for details on how to use the above ones.  </para>
+
+</sect1>
+
+<sect1 id="boot-single-user">
+<title>Booting in single user mode</title>
+
+	<para>An important run level is <glossterm>single user 
+	mode</glossterm> (run level 1),
+	in which only the system administrator is using the machine
+	and as few system services, including logins, as possible are
+	running. Single user mode is necessary for a few administrative
+	tasks, such as running <command>fsck</command> on a
+	<filename>/usr</filename> partition, since this requires that
+	the partition be unmounted, and that can't happen, unless just
+	about all system services are killed.</para>
+
+	<para>A running system can be taken to single user mode by using
+	<command>telinit</command> to request run level 1. At bootup,
+	it can be entered by giving the word <literal>single</literal>
+	or <literal>emergency</literal> on the kernel command line: the
+	kernel gives the command line to <command>init</command> as well,
+	and <command>init</command> understands from that word that it
+	shouldn't use the default run level. (The kernel command line is
+	entered in a way that depends on how you boot the system.)</para>
+	
+	<para>Booting into single user mode is sometimes necessary so
+	that one can run <command>fsck</command> by hand, before anything
+	mounts or otherwise touches a broken <filename>/usr</filename>
+	partition (any activity on a broken filesystem is likely to
+	break it more, so <command>fsck</command> should be run as soon
+	as possible).</para>
+	
+	<para>The bootup scripts <command>init</command> runs
+	will automatically enter single user mode, if the automatic
+	<command>fsck</command> at bootup fails. This is an attempt to
+	prevent the system from using a filesystem that is so broken that
+	<command>fsck</command> can't fix it automatically. Such breakage
+	is relatively rare, and usually involves a broken hard disk or an
+	experimental kernel release, but it's good to be prepared.</para>
+	
+	<para>As a security measure, a properly configured system
+	will ask for the root password before starting the shell in
+	single user mode. Otherwise, it would be simple to just enter
+	a suitable line to LILO to get in as root. (This will break if
+	<filename>/etc/passwd</filename> has been broken by filesystem
+	problems, of course, and in that case you'd better have a boot
+	floppy handy.)</para>
+
+</chapter>
