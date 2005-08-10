@@ -1,13 +1,20 @@
-
 <!doctype linuxdoc system>
 <article>
 <title> Plug-and-Play-HOWTO
 <author>David S.Lawyer
   <tt><url url="mailto:dave@lafn.org"></tt>
-<date> v1.11, November 2004 
+<date> v1.13, July 2005 
 
 <!--
 Revision history:
+v1.13 July 2005: IRQ conflicts. Better clarity in resource
+descriptions.  /proc/bus.  PCI configuration space accessed via IO
+address space.  More hardware detection tools.  "Can't allocate
+region" error message.
+v1.12 Mar. 2005: /dev/eth0 doesn't exist anymore. Info in /sys and
+/proc changed for kernel 2.6.  PCI Config. address space is
+"geographic".  scanpci may find a device that lspci can't.  Kernel may
+assign addresses at boot-time.
 v1.11 Nov. 2004: LPC bus.  Format error (text in contents)
 v1.10 August 2004: sysfs not yet as useful as claimed, obsolete card info
 moved to "Historical" section.
@@ -56,10 +63,12 @@ kernel 2.2 /proc tree, IO range check, Windows may not update ESCD
 v0.00 Nov. 1998
 -->
 <abstract>
-Help with understanding and dealing with the complex Plug-and-Play
-(PnP) issue.  How to get PnP to work on your PC (if it doesn't already).
-It doesn't cover what's called "Universal Plug and Play"
-(UPnP).  See <ref id="UPnP_" name="Universal Plug and Play (UPnP)"
+Explains resources used in Plug-and-Play (PnP) such as addresses,
+interrupts, etc.  Covers both the PCI bus (inherently PnP) and PnP on
+the old ISA bus.  If PnP did it's job right, you wouldn't need this
+howto.  Otherwise, this will both explain PnP and help you detect and
+assign resources to hardware (low level configuring).  It doesn't
+cover what's called "Universal Plug and Play" (UPnP).
 </abstract>
 <toc>
 
@@ -67,7 +76,7 @@ It doesn't cover what's called "Universal Plug and Play"
 <sect1>1. Copyright, Trademarks, Disclaimer, & Credits
 
 <sect2> Copyright
-<p> Copyright (c) 1998-2004 by David S. Lawyer <url url="mailto:dave@lafn.org">
+<p> Copyright (c) 1998-2005 by David S. Lawyer <url url="mailto:dave@lafn.org">
 <!-- license.D begin -->
 
 Please freely copy and distribute (sell or give away) this document
@@ -138,13 +147,21 @@ url="http://tldp.org/mirrors.html">.  Various formats are
 available.  If you only want to quickly check the date of the latest
 version look at: <url
 url="http://tldp.org/HOWTO/Plug-and-Play-HOWTO.html">.  The
-version you are now reading is: v1.11, November 2004 .
+version you are now reading is: v1.13, July 2005 .
 
 <sect1> New in Recent Versions
 <p> For a full revision history going back to the first version see
 the source file (in linuxdoc format) at <url
 url="http://www.ibiblio.org/pub/linux/docs/HOWTO/other-formats/sgml/Plug-and-Play-HOWTO.sgml.gz">
 
+v1.13 July 2005: IRQ conflicts. Better clarity in resource
+descriptions.  /proc/bus.  PCI configuration space accessed via IO
+address space.  More hardware detection tools.  "Can't allocate
+region" error message.
+v1.12 March 2005: /dev/eth0 doesn't exist anymore. Info in /sys and
+/proc changed for kernel 2.6.  PCI Config. address space is
+"geographic".  scanpci may find a device that lspci can't.  Kernel may
+assign addresses at boot-time.
 v1.11 November 2004: LPC bus.  Format error (text in contents)
 v1.10 August 2004: sysfs not yet as useful as claimed, obsolete card info
 moved to "Historical" section.
@@ -154,25 +171,22 @@ v1.09 August 2004: Edited per email from  Ross Boylan
 v1.08 June 2004: Edited all except appendix for more clarity and to
 correct some obsolete statements in view of the increasing PnP
 abilities of Linux.  Added brief info on "hot plug" and USB.<newline>
-v1.07 August 2003: New M$ url, reserve resources for isa-pnp, lspci+,
-scanport may not find hdw, finding dev. and config. ISA
 
 <sect1> General Introduction.  Do you need this HOWTO?
 <p> Plug-and-play (PnP) is a system which automatically detects
 devices such as disks, sound cards, ethernet cards, modems, etc.  It
 finds all devices on the PCI bus and all devices that support PnP on
-the old ISA bus.  Without PnP, many devices were automatically
-searched for by non-PnP methods, but were often not found.  PnP
+the old ISA bus.  Before PnP, many devices were automatically
+searched for by non-PnP methods, but were sometimes not found.  PnP
 provides a way to find all devices that support PnP.  It also does
 some low-level configuring of them.  Non-PnP devices (or PnP devices
 which have not been correctly PnP-configured), can often be detected
-by non-PnP methods.  The modern PCI bus is inherently PnP while the
-old ISA bus originally wasn't PnP but had PnP support added to it
-later.  So sometimes PnP is used to only mean PnP for the old ISA bus.
-For example, when you see a boot-time message from "isapnp" and it
-reads: "Plug &amp Play device" it only means a ISA Plug &amp Play
-device.  In this HOWTO, PnP means PnP for both the ISA and the PCI
-bus.
+by non-PnP methods.  The PCI bus is inherently PnP while the old ISA
+bus originally wasn't PnP but had PnP support added to it later.  So
+sometimes PnP is used to only mean PnP for the old ISA bus.  For
+example, when you see a boot-time message from "isapnp" and it reads:
+"Plug &amp Play device" it only means a ISA Plug &amp Play device.  In
+this HOWTO, PnP means PnP for both the ISA and the PCI bus.
 
 As time goes by the Linux kernel is became better at supporting PnP.
 In the late 20th century, one could say that Linux was not really a
@@ -180,7 +194,7 @@ PnP OS.  But the claim is made that with version 2.6 of the kernel,
 Linux is now fully PnP (provided the kernel is built with appropriate
 PnP support).  While the PnP system is not centralized like it is in
 MS Windows (with its registry) the decentralized Linux PnP seems to
-work.
+work OK.
 
 Linux does keep track of resource assignments requested by device
 drivers and refuses any request if it thinks it would cause a
@@ -208,13 +222,7 @@ also display early messages from the BIOS use the "Pause" key.  See
 Check to see that you have the right driver for a device, and that the
 driver is being found and used.  If the driver is a module, type
 "lsmod" (as the root user) to see it it's loaded (in use).  If it's
-not a module then it should be built into the kernel.  There should be
-a file somewhere that tells what drivers are built into the kernel:
-(such as: /boot/config-2.4-20 in Debian).  Sometimes a device name
-(such as /dev/eth0) doesn't get a driver assigned to it unless the
-assignment is found in the file: /etc/modules.conf:  For example, to
-assign the "tulip" driver to eth0 you add a line to this file: "alias
-eth0 tulip".
+not a module then it should be built into the kernel.
 
 This HOWTO doesn't cover the problem of finding and installing device
 drivers.  Perhaps it should.  One problem is that a certain brand of a
@@ -234,22 +242,23 @@ that doesn't fully conform to PnP specs.
 <sect> What PnP Should Do: Allocate "Bus-Resources"
 <sect1> What is Plug-and-Play (PnP)?
 <p> If you don't understand this section, read the next section
- <ref id="find_dev" name="How a Computer Finds Devices (and
- conversely)">
+ <ref id="dev_commun" name="Hardware Devices and Communication with
+ them">
 
-<p> Oversimplified, Plug-and-Play automatically tells the software
-(device drivers) where to find various pieces of hardware (devices)
-such as modems, network cards, sound cards, etc.  Plug-and-Play's task
-is to match up physical devices with the software (device drivers)
-that operates them and to establish channels of communication between
-each physical device and its driver.  In order to achieve this, PnP
-allocates the following "bus-resources" to both drivers and hardware:
-I/O addresses, memory regions, IRQs, DMA channels (ISA bus only).
-These 4 things are sometimes called "1st order resources" or just
-"resources".  If you don't understand what these 4 bus-resources are,
-read the following subsections of this HOWTO: I/O Addresses, IRQs, DMA
-Channels, Memory Regions.  An article in Linux Gazette regarding 3 of
-these bus-resources is <htmlurl
+<p> Oversimplified, Plug-and-Play tells the software (device drivers)
+where to find various pieces of hardware (devices) such as modems,
+network cards, sound cards, etc.  Plug-and-Play's task is to match up
+physical devices with the software (device drivers) that operates them
+and to establish channels of communication between each physical
+device and its driver.  In order to achieve this, PnP allocates and
+sets the following "bus-resources" in hardware: I/O addresses, memory
+regions, IRQs, DMA channels (ISA bus only).  These 4 things are
+sometimes called "1st order resources" or just "resources".  Pnp
+maintains a record of what it's done and allows device drivers to get
+this information.  If you don't understand what these 4 bus-resources
+are, read the following subsections of this HOWTO: I/O Addresses,
+IRQs, DMA Channels, Memory Regions.  An article in Linux Gazette
+regarding 3 of these bus-resources is <htmlurl
 url="http://www.linuxgazette.com/issue38/blanchard.html"
 name="Introduction to IRQs, DMAs and Base Addresses">.  Once these
 bus-resources have been assigned (and if the correct driver is
@@ -268,15 +277,20 @@ Windows) simply calls bus-resources "resources",  I sometimes use the
 term "bus-resources" instead of just "resources" so as to distinguish
 it from the multitude of other kinds of resources.
 
-<sect1> How a Computer Finds Devices (and conversely) <label
- id="find_dev">
+PnP is a process which is done by various software and hardware.  If
+there was just one program that handled PnP in Linux, it would be simple.
+But with Linux each device driver does it's own PnP, using software
+supplied by the kernel.  The BIOS hardware of the PC does PnP when a
+PC is first powered up.  And there's a lot more to it than this.
+
+<sect1> Hardware Devices and Communication with them<label id="dev_commun">
 <p> A computer consists of a CPU/processor to do the computing and RAM
 memory to store programs and data (for fast access).  In addition,
 there are a number of devices such as various kinds of disk-drives, a
 video card, a keyboard, network devices, modem cards, sound devices, the
 USB bus, serial and parallel ports, etc.  In olden days most devices
-were on cards inserted into slots in the PC.  Today many devices that
-were formerly card, are now on-board since they are contained in chips
+were on cards inserted into slots in the PC.  Today, many devices that
+were formerly cards, are now on-board since they are contained in chips
 on the motherboard.  There is also a power supply to provide electric
 energy, various buses on a motherboard to connect the devices to the
 CPU, and a case to put all this into.
@@ -293,26 +307,23 @@ directory although they are not really files.  They have names such as
 hda3 (third partition on hard drive a), ttyS1 (the second serial port),
 eth0 (the first ethernet card), etc.  
 
-To make matters more complicated, the particular device driver
-selected, say for example eth0, may depend on the type of ethernet
-card you have.  Thus eth0 can't just be assigned to any ethernet
-driver.  It must be assigned to a certain driver that will work for
-the type of ethernet card you have installed.  If the driver is a
-module, some of these assignments might be found in /etc/modules.conf
-(called "alias") while others may reside in an internal kernel table.
-For example, if you have an ethernet card that uses the "tulip" chip
-put "alias eth0 tulip" into /etc/modules.conf so that when your
-computer asks for eth0 it finds the tulip driver.  Other device names
-may have a standard driver associated with them so the above isn't
-usually required.
+The eth0 device is for an ethernet card (nic card).  Formerly it was /dev/eth0
+but it's now just a virtual device in the kernel.  What eth0 refers to depends
+on the type of ethernet card you have.  If the driver is a module, this
+assignment is likely in an internal kernel table but might be found in
+/etc/modules.conf (called "alias").  For example, if you have an ethernet card
+that uses the "tulip" chip you could put "alias eth0 tulip" into
+/etc/modules.conf so that when your computer asks for eth0 it finds the tulip
+driver.  However, modern kernels can usually find the right driver module so
+that you seldom need to specify it yourself.
 
 To control a device, the CPU (under the control of the device driver)
-sends commands and data to, and reads status and data from the
-various devices.  In order to do this each device driver must know the
-address of the device it controls.  Knowing such an address is
-equivalent to setting up a communication channel, even though the
-physical "channel" is actually the data bus inside the PC which is
-shared with almost everything else.
+sends commands and data to, and reads status and data from the various
+devices.  In order to do this each device driver must know the address
+of the device it controls.  Knowing such an address is equivalent to
+setting up a communication channel, even though the physical "channel"
+is actually the data bus inside the PC which is shared with many other
+devices.
 
 This communication channel is actually a little more complex than
 described above.  An "address" is actually a range of addresses so
@@ -323,17 +334,32 @@ interrupts) which allows devices to send an urgent "help" request to
 their device driver.
 
 <sect1> Addresses
-<p> PCs have 3 address spaces: I/O, main memory (IO memory), and
-configuration (except that the old ISA bus lacks a genuine
-"configuration" address space).  All of these 3 types of addresses
-share the same bus inside the PC.  But the presence or absence of
-voltage on certain dedicated wires on the PC's bus tells which "space"
-an address is in: I/O, main memory, (see <ref id="mem_" name="Memory
-Ranges">), or configuration.  See <ref id="address_details"
-name="Address Details"> for more details.  Only two of these 3 address
-spaces are used for device I/O: I/0 and main memory.  
+<p> The PCI bus has 3 address spaces: I/O, main memory (IO memory),
+and configuration.  The old ISA bus lacks a genuine "configuration"
+address space.  Only the I/0 and IO memory spaces are used for device
+IO.  Configuration addresses are fixed and can't be changed so they
+don't need to be allocated.  For more details see <ref id="pci_conf"
+name="PCI Configuration Address Space">
 
-<sect1> I/O Addresses and Allocating Them
+When the CPU wants to access a device, it puts the device's
+address on a major bus of the computer (for PCI: the address/data
+bus).  All types of addresses (such as both I/O and main memory) share
+the same bus inside the PC.  But the presence or absence of voltage on
+certain dedicated wires in the PC's bus tells which "space" an address
+is in: I/O, main memory, (see <ref id="mem_" name="Memory Ranges">),
+or configuration (PCI only).  This is a little oversimplified since
+telling a PCI device that it's a configuration space access is
+actually more complex than described above.  See <ref id="pci_conf"
+name="PCI Configuration Address Space"> for details.  See <ref
+id="address_details" name="Address Details"> for more details on
+addressing in general.
+
+The addresses of a device are stored in it's registers in the physical
+device.  They can be changed by software and they can be disabled so
+that the device has no address at all.  Except that the PCI
+configuration address can't be changed or disabled.
+
+<sect1> I/O Addresses (principles relevant to other resources too) 
 <p> Devices were originally located in I/O address space but today
 they may use space in main memory.  An I/0 address is sometimes just
 called "I/O", "IO", "i/o" or "io".  The terms "I/O port" or "I/O
@@ -343,28 +369,42 @@ addresses (or some other bus-resources such as interrupts on the ISA
 bus):
 
 <enum>
-<item> Set the I/O address, etc. on the card (in one of its registers)
+<item> Set the I/O address, etc. in the hardware (in one of its registers)
 <item> Let its device driver know what this I/O address, etc. is
 </enum>
 
-Often, the device driver does both of these.  The two step process
-above is something like the two part problem of finding someone's
-house number on a street.  Someone must install a number on the front
-of the house so that it may be found and then you must obtain (and
-write down) this house number so that you can find the house.  In
-computers the device hardware must first put the address it will use
-into a special register (put up the house number) and then the device
-driver must obtain this address (write the house number in its address
-book).  Both of these must be done, either automatically by software
-or by entering the data manually into files.  Problems may occur when
-only one of them gets done.
+Often, the device driver does both of these (sort of).  The device
+driver doesn't actually need to set an I/O address if it finds out
+that the address has been previously set (perhaps by the BIOS) and is
+willing to use that address.  Once the driver has either found out
+what address has been previously set or sets the address, then it
+obviously knows what the address is so there is no need to let the
+driver know the address --it already knows it. 
+
+The two step process above (1. Set the address in the hardware.  2.
+Let the driver know it.) is something like the two part problem of
+finding someone's house number on a street.  Someone must install a
+number on the front of the house so that it may be found and then
+people who might want to go to this address must obtain (and write
+down) this house number so that they can find the house.  In computers
+the device hardware must first get its address it put into a
+special register (put up the house number) and then the device driver
+must obtain this address (write the house number in its address book).
+Both of these must be done, either automatically by software or by
+entering the data manually into configuration files.  Problems may
+occur when only one of them gets done right.
 
 For manual PnP configuration some people make the mistake of doing
-only one of these and then wonder why the computer can't find the
+only one of these steps and then wonder why the computer can't find the
 device.  For example, they may use "setserial" to assign an address
 to a serial port without realizing that this only tells the driver an
 address.  It doesn't set the address in the serial port hardware
-itself.  If you told the driver wrong then you're in trouble.
+itself.  If you told the driver wrong then you're in trouble.  Another
+way to tell the driver is to give the address as an option to a kernel
+module (device driver).  If what you tell it is wrong, there could be
+problems.  A smart driver may detect how the hardware is actually set
+and reject the incorrect information supplied by the option (or at
+least issue an error message).
 
 An obvious requirement is that before the device driver can use an
 address it must be first set in the physical device (such as a card).
@@ -372,7 +412,7 @@ Since device drivers often start up soon after you start the computer,
 they sometimes try to access a card (to see if it's there, etc.)
 before the address has been set in the card by a PnP configuration
 program.  Then you see an error message that they can't find the card
-even though it's there (but doesn't yet have an address).
+even though it's there (but doesn't yet have an address yet).
 
 What was said in the last few paragraphs regarding I/O addresses applies
 with equal force to most other bus-resources: <ref id="mem_" name="Memory
@@ -380,18 +420,25 @@ Ranges">, <ref id="interrupt_over" name="IRQs --Overview"> and <ref
 id="dma_" name="DMA Channels">.  What these are will be explained in
 the next 3 sections.  The exception is that IRQs on the PCI bus are
 not set by a card register but are set by a special routing chip on
-the motherboard.
+the motherboard and also puts the IRQ into a card register for
+information purposes only.
+
+To see what IO addresses are used on your PC, look at the /proc/ioports
+file.
 
 <sect1> Memory Ranges <label id="mem_">
 <p> Many devices are assigned address space in main memory.  It's
 sometimes called "shared memory" or "memory-mapped IO" or "IO memory".
-This memory is physically located inside the physical device.  When
-discussing bus-resources it's often just called "memory", "mem", or
-"iomem".  In addition to using such "memory", such a device might also
-use conventional IO address space.  To see what mem is in use on your
-computer, look at /proc/iomem.  This "file" includes the memory range
-used by your ordinary RAM memory chips but this really not strictly a
-part of iomem.
+This memory is physically located inside the physical device but the
+computer accesses it just like it would access memory on memory chips.
+When discussing bus-resources it's often just called "memory", "mem",
+or "iomem".  In addition to using such "memory", such a device might
+also use conventional IO address space.  To see what mem is in use on
+your computer, look at /proc/iomem.  This "file" includes the memory
+used by your ordinary RAM memory chips so it shows memory allocation
+in general and not just iomem allocation.  If you see a strange number
+instead of a name, it's likely the number of a PCI device which you
+can verify by typing "lspci".
 
 When you insert a card that uses iomem, you are in effect also
 inserting a memory module for main memory.  A high address is selected
@@ -400,16 +447,17 @@ for it by PnP so that it doesn't conflict with the main memory modules
 memory.  Shared memory is shared between the device and the CPU
 (running the device driver) just as IO address space is shared between
 the device and the CPU.  This shared memory serves as a means of data
-"transfer" between the device and main memory. It's IO but it's not
-done in IO space.  Both the card and the device driver need to know
-where it is.
+"transfer" between the device and main memory. It's Input-Output (IO)
+but it's not done in IO space.  Both the card and the device driver
+need to know the memory range.
 
-ROM is different.  It is likely a program (perhaps a device driver)
-which will be used with the device.  It could be initialization code
-so that a device driver is still required.  Hopefully, it will work
-with Linux and not just MS Windows.  It may need to be shadowed
-which means that it is copied to your main memory chips in order to
-run faster.  Once it's shadowed it's no longer "read only".
+ROM (Read Only Memory) on cards is a different kind of iomem.  It is
+likely a program (perhaps a device driver) which will be used with the
+device.  It could be initialization code so that a device driver is
+still required.  Hopefully, it will work with Linux and not just MS
+Windows.  It may need to be shadowed which means that it is copied to
+your main memory chips in order to run faster.  Once it's shadowed
+it's no longer "read only".
 
 <sect1> IRQs --Overview <label id="interrupt_over">
 <p> After reading this you may want to read <ref id="interrupt_detail"
@@ -427,7 +475,7 @@ main memory and the device needs to tell its driver to fetch these
 bytes at once and transfer them from the device's nearly full buffer
 into main memory.  Another example is to signal the driver that the
 device has finished sending out a bunch of bytes and is now waiting
-for some more bytes from the driver so it can send them too.
+for some more bytes from the driver so that it can send them too.
 
 How should the device rapidly signal its driver?  It may not be able
 to use the main data bus since it's likely already in use.  Instead it
@@ -438,8 +486,8 @@ There are the equivalent of 16 such wires in a PC and each wire leads
 (indirectly) to a certain device driver.  Each wire has a unique IRQ
 (Interrupt ReQuest) number.  The device must put its interrupt on the
 correct wire and the device driver must listen for the interrupt on
-the correct wire.  Which wire the device sends help requests on is
-determined by the IRQ number stored in the device.  This same IRQ
+the correct wire.  Which wire the device sends such "help requests" on
+is determined by the IRQ number stored in the device.  This same IRQ
 number must be known to the device driver so that the device driver
 knows which IRQ line to listen on.
 
@@ -447,10 +495,10 @@ Once the device driver gets the interrupt from the device it must find
 out why the interrupt was issued and take appropriate action to
 service the interrupt.  On the ISA bus, each device usually needs its
 own unique IRQ number.  For the PCI bus and other special cases, the
-sharing of IRQs is allowed.  Also for PCI the assignment of IRQs to
-devices is set by a programmable routing chip.  See <ref
-id="interrupt_detail" name= "Interrupts --Details"> for how this
-works.
+sharing of IRQs is allowed (two PCI devices may have the same IRQ
+number).  Also, for PCI the assignment of IRQs to devices is set by a
+programmable routing chip.  See <ref id="interrupt_detail" name=
+"Interrupts --Details"> for how this works.
 
 <sect1> DMA (Direct Memory Access) or Bus Mastering <label id="dma_"> 
 <p> Direct Memory Access (DMA) is where a device is allowed to take
@@ -458,8 +506,8 @@ over the main computer bus from the CPU and transfer bytes directly to
 main memory.  Normally the CPU would make such a transfer in a two
 step process:
 <enum>
-<item>reading from the I/O memory space of the device and putting these
-bytes into the CPU itself
+<item>reading a chunk of bytes from the I/O memory space of the device
+and putting these bytes into CPU itself
 <item> writing these bytes from the CPU to main memory
 </enum>
 
@@ -477,60 +525,74 @@ almost like the bus master was the CPU.  It doesn't use any channel
 numbers since the organization of the PCI bus is such that the PCI
 hardware knows which device is currently the bus master and which
 device is requesting to become a bus master.  Thus there is no
-resource allocation of DMA channels for the PCI bus.
+resource allocation of DMA channels for the PCI bus and no dma
+channel resources exist for this bus.
 
 <sect1> DMA Channels (not for PCI bus) <label id="dma_isa"> 
-<p>When a device on the ISA bus wants to do DMA it issues a DMA-request
-using dedicated DMA request wires much like an interrupt request.  DMA
-actually could have been handled by using interrupts but this would
-introduce some delays so it's faster to do it by having a special type
-of interrupt known as a DMA-request.  Like interrupts, DMA-requests
-are numbered so as to identify which device is making the request.
-This number is called a DMA-channel.  Since DMA transfers all use the
-main bus (and only one can run at a time) they all actually use the
-same channel for data flow but the "DMA channel" number serves to
-identify who is using the "channel".  Hardware registers exist on the
-motherboard which store the current status of each "channel".  Thus in
-order to issue a DMA-request, the device must know its DMA-channel
-number which must be stored in a special register on the physical
-device.
+<p>This is only for the old ISA bus.  When a device wants to do DMA it
+issues a DMA-request using dedicated DMA request wires much like an
+interrupt request.  DMA actually could have been handled by using
+interrupts but this would introduce some delays so it's faster to do
+it by having a special type of interrupt known as a DMA-request.  Like
+interrupts, DMA-requests are numbered so as to identify which device
+is making the request.  This number is called a DMA-channel.  Since
+DMA transfers all use the main bus (and only one can run at a time)
+they all actually use the same channel for data flow but the "DMA
+channel" number serves to identify who is using the "channel".
+Hardware registers exist on the motherboard which store the current
+status of each "channel".  Thus in order to issue a DMA-request, the
+device must know its DMA-channel number which must be stored in a
+special register on the physical device.
 
-<sect1> "Resources" for both Device and Driver <p> Thus device drivers
-must be "attached" in some way to the hardware they control.  This is
-done by allocating bus-resources (I/O, Memory, IRQ's, DMA's) to both
-the physical device and the device driver software.  For example, a
-serial port uses only 2 (out of 4 possible) resources: an IRQ and an
-I/O address.  Both of these values must be supplied to the device
-driver and the physical device.  The driver (and its device) is also
-given a name in the /dev directory (such as ttyS1).  The address and
-IRQ number is stored by the physical device in configuration registers
-on its card (or in a chip on the motherboard).  For the case of
-jumpers, it's the location of the jumpers themselves that store the
-bus-resource configuration in the device hardware (on the card, etc.).
-For the case of PnP, the configuration register data is usually lost
-when the PC is powered down (turned off) so that the bus-resource data
-must be supplied to each device anew each time the PC is powered on.
+<sect1> "Resources" for both Device and Driver 
+<p> Thus device drivers must be "attached" in some way to the hardware
+they control.  This is done by allocating bus-resources (I/O, Memory,
+IRQ's, DMA's) to both the physical device and letting the device
+driver to find out about it.  For example, a serial port uses only 2
+resources: an IRQ and an I/O address.  Both of these values must be
+supplied to the device driver and the physical device.  The driver
+(and its device) is also given a name in the /dev directory (such as
+ttyS1).  The address and IRQ number is stored by the physical device
+in configuration registers on its card (or in a chip on the
+motherboard).  For the case of jumpers (old hardware), it's the
+location of the jumpers themselves that store the bus-resource
+configuration in the device hardware (on the card, etc.).  For the
+case of PnP, the configuration register data is usually lost when the
+PC is powered down (turned off) so that the bus-resource data must be
+supplied to each device anew each time the PC is powered on.
 
 <sect1> Resources are Limited
+<sect2> Ideal Computers
 <p> The architecture of the PC provides only a limited number of
-IRQ's, DMA channels, I/O address, and memory regions.  If there were
-only a small number devices and they all used standardized bus-resources
-(such as unique I/O addresses and IRQ numbers) there would be no
-problem of attaching device drivers to devices.  Each device would
-have a fixed resources which would not conflict with any other device
-on your computer.  No two devices would have the same addresses, there
-would be no IRQ conflicts on the ISA bus, etc.  Each driver would be
-programmed with the unique addresses, IRQ, etc. hard-coded into the
-program.  Life would be simple.
+resources: IRQ's, DMA channels, I/O address, and memory regions.  If
+there were only a limited number devices and they all used
+standardized bus-resources values (such as unique I/O addresses and IRQ
+numbers) there would be no problem of attaching device drivers to
+devices.  Each device would have a fixed resources which would not
+conflict with any other device on your computer.  No two devices would
+have the same addresses, there would be no IRQ conflicts on the ISA
+bus, etc.  Each driver would be programmed with the unique addresses,
+IRQ, etc.  hard-coded into the program.  Life would be simple.
 
-But it's not.  The increase in the number of devices (including
-multiple disk drives, etc.) has tended to make conflicts more
-frequent.  At the same time, the introduction of the PCI bus where two
-or more devices can share the same interrupt, has tended to reduce
-conflicts.  The overall result, due to going to PCI, has been
-a reduction in conflicts since the scarcest resource is IRQs.
-However, even on the PCI bus it's a little more efficient to avoid IRQ
-sharing and even with PCI there can still be address conflicts.
+Another way to prevent address conflicts would be to have each card's
+slot number included as part of the address.  Thus there could be no
+address conflict between two different cards (since they are in
+different slots).  Card design would not allow address conflicts
+between different functions of the card.  It turns out that the
+configuration address space (used for resource inquiry and assignment)
+actually does this.  But it's not done for I/O addresses nor memory
+regions.  Sharing IRQs as on the PCI bus also avoids conflicts.
+
+<sect2> Real Computers
+<p>But PC architecture has conflict problems.  The increase in the
+number of devices (including multiple devices of the same type) has
+tended to increase potential conflicts.  At the same time, the
+introduction of the PCI bus, where two or more devices can share the
+same interrupt, has tended to reduce conflicts.  The overall result,
+due to going to PCI, has been a reduction in conflicts since the
+scarcest resource is IRQs.  However, even on the PCI bus it's a little
+more efficient to avoid IRQ sharing and even with PCI there can still
+be address conflicts.
 
 So devices need to have some flexibility so that they can be set to
 whatever address, IRQ, etc. is needed to avoid any conflicts.  But
@@ -541,10 +603,12 @@ Besides the problem of conflicting allocation of bus-resources, there
 is a problem of making a mistake in telling the device driver what the
 bus-resources are.  This is more likely to happen for the case of
 old-fashioned manual configuration where the user types in the
-resources used into a configuration file on the harddrive.  This often
-worked OK when resources were set by jumpers on the cards.  But with
-resources being set by PnP software, they may not always get set the
-same and this means trouble.
+resources used into a configuration file stored on the harddrive.
+This often worked OK when resources were set by jumpers on the cards
+(provided the user knew how they were set and made no mistakes in
+typing this data to configuration files).  But with resources being
+set by PnP software, they may not always get set the same and this
+may mean trouble for any manual configuration.
 
 The allocation of bus-resources, if done correctly, establishes
 non-conflicting channels of communication between physical hardware
@@ -559,20 +623,20 @@ communication the device needs an IRQ so it can send interrupts to its
 driver.  This creates a two-way communication channel where both the
 driver and the physical device can initiate communication.
 
-<sect> The Plug-and-Play (PnP) Solution
-<sect1> Introduction to PnP
+<sect1> Second Introduction to PnP
+
 <p> The term Plug-and-Play (PnP) has various meanings.  In the broad
 sense it is just auto-configuration where one just plugs in a device
 and it configures itself.  In the sense used in this HOWTO, PnP means
 the configuring PnP bus-resources (setting them in the physical
 devices) and letting the device drivers know about it.  For the case
 of Linux, it is often just a driver determining how the BIOS has set
-bus-resources and if necessary, giving a command to change (reset) the
-bus-resources.  "PnP" sometimes just means PnP on the ISA bus so that
-the message from isapnp: "No Plug and Play device found" just means
-that no ISA PnP devices were found.  The standard PCI specifications
-(which were invented before coining the term "PnP") provide the
-equivalent of PnP for the PCI bus.
+bus-resources and if necessary, the driver giving a command to change
+(reset) the bus-resources.  "PnP" often just means PnP on the ISA
+bus so that the message from isapnp: "No Plug and Play device found"
+just means that no ISA PnP devices were found.  The standard PCI
+specifications (which were invented before coining the term "PnP")
+provide the equivalent of PnP for the PCI bus.
 
 PnP matches up devices with their device drivers and specifies their
 communication channels (by allocating bus-resources).  It
@@ -581,28 +645,33 @@ inside the physical devices using a standardized protocol.  On the ISA
 bus before Plug-and-Play, the bus-resources were formerly set in
 hardware devices by jumpers or switches.  Sometimes the bus-resources
 could be set into the hardware electronically by a program (usually
-for a MS OS) on a floppy supplied with the hardware.  This was
-something like PnP but there was no standardized protocol used so it
-wasn't PnP.  For Linux, software drivers were assigned bus-resources by
-configuration files (or the like) or by probing the for the device at
-addresses where it was expected to reside.  The PCI bus was PnP-like
-from the beginning, but at first it wasn't called PnP (and often still
-isn't called PnP).
+written only for a MS OS) on a floppy supplied with the hardware.
+This was something like PnP but there was no standardized protocol
+used so it wasn't PnP.  For Linux before PnP, software drivers were
+assigned bus-resources by configuration files (or the like) or by
+probing the for the device at addresses where it was expected to
+reside.  But these methods are still in use today to allow Linux to
+use old non-PnP hardware.  And sometimes these old methods are still
+used today on PnP hardware (after say the BIOS has assigned resources
+to hardware by PnP methods).
 
-<sect1> How It Works (simplified)
-<p> Here's how PnP should work in theory.  The PnP configuration
-program finds all PnP devices and asks each what bus-resources it
-needs.  Then it checks what bus-resources (IRQs, etc.) it has to give
-away.  Of course, if it has reserved bus-resources used by non-PnP
-(legacy) devices (if it knows about them) it doesn't give these away.
-Then it uses some criteria (not specified by PnP specifications) to
-give out the bus-resources so that there are no conflicts and so that
-all devices get what they need (if possible).  It then indirectly
-tells each physical device what bus-resources are assigned to it and
-the devices set themselves up to use only the assigned bus-resources.
-Then the device drivers somehow find out what bus-resources their
-devices use and are thus able to communicate effectively with the
-devices they control.
+The PCI bus was PnP-like from the beginning, but at first it wasn't
+called PnP (and often still isn't called PnP).
+
+<sect1> How Pnp Works (simplified)
+<p> Here's how PnP should work in theory.  The hypothetical PnP
+configuration program finds all PnP devices and asks each what
+bus-resources it needs.  Then it checks what bus-resources (IRQs,
+etc.) it has to give away.  Of course, if it has reserved
+bus-resources used by non-PnP (legacy) devices (if it knows about
+them) it doesn't give these away.  Then it uses some criteria (not
+specified by PnP specifications) to give out the bus-resources so that
+there are no conflicts and so that all devices get what they need (if
+possible).  It then indirectly tells each physical device what
+bus-resources are assigned to it and the devices set themselves up to
+use only the assigned bus-resources.  Then the device drivers somehow
+find out what bus-resources their devices use and are thus able to
+communicate effectively with the devices they control.
 
 For example, suppose a card needs one interrupt (IRQ number) and 1 MB
 of shared memory.  The PnP program reads this request from the
@@ -616,11 +685,11 @@ find a driver for the device (since it's driver is already running).
 Otherwise a suitable device driver needs to be found and sooner or
 later told how it's device is configured.  
 
-It's not always this simple as the card (or routing table for PCI) may
-specify that it can only use certain IRQ numbers or that the 1 MB of
-memory must lie within a certain range of addresses.  The details are
-different for the PCI and ISA buses with more complexity on the ISA
-bus.
+It's not always this simple since the card (or routing table for PCI)
+may specify that it can only use certain IRQ numbers or that the 1 MB
+of memory must lie within a certain range of addresses.  The details
+are different for the PCI and ISA buses with more complexity on the
+ISA bus.
 
 One way commonly used to allocate resources is to start with one
 device and allocate it bus-resources.  Then do the same for the next
@@ -639,9 +708,10 @@ and the kernel checks PCI devices for addresses conflicts at boot-time.
 
 There are some shortcuts that PnP software may use.  One is to keep
 track of how it assigned bus-resources at the last configuration (when
-the computer was last used) and reuse this.   MS PnP Windows and PnP
-BIOSs do this but standard Linux doesn't.  Windows stores this info in
-its "Registry" on the hard disk and a PnP/PCI BIOS stores it in
+the computer was last used) and reuse this.  BIOSs do this as does MS
+Windows and this but standard Linux doesn't.  But in a way it does
+since it uses what the BIOS has done.   Windows stores this info
+in its "Registry" on the hard disk and a PnP/PCI BIOS stores it in
 non-volatile memory in your PC (known as ESCD; see <ref id="escd_"
 name="The BIOS's ESCD Database">).  Some say that not having a
 registry (like Linux) is better since with Windows, the registry may
@@ -676,14 +746,14 @@ not be able to do it either).
 <sect1> Starting Up the PC
 <p> When the PC is first turned on the BIOS chip runs its program to
 get the computer started (the first step is to check out the
-hardware).  If the operating system is stored on the hard-drive (as it
-normally is) then the BIOS must know about the hard-drive.  If the
-hard-drive is PnP then the BIOS may use PnP methods to find it.  Also,
-in order to permit the user to manually configure the BIOS's CMOS and
-respond to error messages when the computer starts up, a screen (video
-card) and keyboard are also required.  Thus the BIOS must always
-PnP-configure devices needed to load the operating system from the
-hard-drive.
+motherboard hardware).  If the operating system is stored on the
+hard-drive (as it normally is) then the BIOS must know about the
+hard-drive.  If the hard-drive is PnP then the BIOS may use PnP
+methods to find it.  Also, in order to permit the user to manually
+configure the BIOS's CMOS and respond to error messages when the
+computer starts up, a screen (video card) and keyboard are also
+required.  Thus the BIOS must always PnP-configure devices needed to
+load the operating system from the hard-drive.
 
 Once the BIOS has identified the hard-drive, the video card, and the
 keyboard it is ready to start booting (loading the operating system
@@ -696,16 +766,21 @@ drivers of what it did).  But the drivers can still find out this by
 utilizing functions available in the Linux kernel. 
 
 <sect1> Buses
-<p> ISA is the old bus of the old IBM-compatible PCs while PCI is a
-newer and faster bus from Intel.  The PCI bus was designed for what is
-today called PnP.  This makes it easy (as compared to the ISA bus) to
-find out how PnP bus-resources have been assigned to hardware devices.
-To see what's on the PCI bus type <tt/lspci/ or <tt/lspci -vv/.  Or
-type <tt/scanpci -v/ for more detail but it's more difficult to
-decipher.  Or look at the "file" <tt>/proc/pci</tt>.  The boot-time
-messages on your display show devices which have been found on various
-buses (use shift-PageUp to back up thru them).  See <ref
-id="boot_time_msgs" name="Boot-time Messages">
+
+<p>To see what's on the PCI bus type <tt/lspci/ or <tt/lspci -vv/.
+Or type <tt/scanpci -v/ for the same information in the numeric code
+format where the vendor is shown by number (such as: "vendor 0x4B8C")
+instead of by name, etc.  In rare cases, <tt/scanpci/ will find a
+device that <tt/lspci/ can't find.  
+
+The boot-time messages on your display show devices which have been
+found on various buses (use shift-PageUp to back up thru them).  See
+<ref id="boot_time_msgs" name="Boot-time Messages">
+
+ISA is the old bus of the old IBM-compatible PCs while PCI is a newer
+and faster bus from Intel.  The PCI bus was designed for what is today
+called PnP.  This makes it easy (as compared to the ISA bus) to find
+out how PnP bus-resources have been assigned to hardware devices.
 
 For the ISA bus there was a real problem with implementing PnP since no
 one had PnP in mind when the ISA bus was designed and there are almost
@@ -718,7 +793,7 @@ PnP program so that one may address it for PnP configuring.  Assigning
 these "handles" is call "isolation".  See <ref id="isolation_"
 name="ISA Isolation"> for the complex details.
 
-As the ISA bus becomes extinct, PnP will be a little easier.   It will
+As the ISA bus becomes extinct, PnP will be a little easier.  It will
 then not only be easier to find out how the BIOS has configured the
 hardware, but there will be less conflicts since PCI can share
 interrupts.  There will still be the need to match up device drivers
@@ -726,31 +801,35 @@ with devices and also a need to configure devices that are added when
 the PC is up and running.  The serious problem of some devices not
 being supported by Linux will remain.
 
-<sect1> How Linux Does PnP <label id="how_linux_pnps">
-<p> Linux has had serious problems in the past in dealing with PnP but
-most of those problems have now been solved (as of mid 2004).  Linux
-has gone from a non-PnP system originally, to one that is a
-non-centralized Pnp system (each device for itself).  One can argue
-that it still isn't fully PnP.  To a significant extent it relies on
-device drivers (with help from the kernel) and the PnP BIOS to
-configure bus-resources for devices.
+<sect1> How Linux Does PnP <label id="how_linux_pnps"> <p> Linux has
+had serious problems in the past in dealing with PnP but most of those
+problems have now been solved (as of mid 2004).  Linux has gone from a
+non-PnP system originally, to one that is in part a non-centralized
+Pnp system (each device for itself).  Thus, one can argue that it
+still isn't fully PnP.  PCI devices get assigned IRQs by the BIOS at
+boot time.  The BIOS may also assign addresses and IRQs in the device
+configuration registers.  It's claimed that if the BIOS doesn't do
+this, the Linux kernel will (if configured to do so) before the device
+driver starts up.  Some documentation on the kernel just assumed that
+the BIOS would always do this for the common PC architecture and that
+Linux would do it for other architectures.  So it's not clear. 
 
-When the PC starts up you may note from the messages on the screen
-that some Linux device drivers often find their hardware devices and
-get configured.
+Then when a device driver finds its device, it asks to see what
+addresses and IRQ have been assigned (by the BIOS and/or Linux ??) and
+normally just accepts them.  But if the driver wants to do so, it can
+change the addresses, using functions supplied by the kernel but the
+kernel will not accept addresses that conflict with other devices.
 
-The kernel provides help for the drivers in the form of programs
-they may call on that do PnP.  In many cases, the device driver, with
-the help of such programs, does all the needed configuring.  In other
-cases the BIOS may configure and then the device driver may find out
-how the BIOS has configured it and accept it.  Thus, the kernel
-provides the drivers with functions (program code) that the drivers
-may use to find out if their device exists, how it's been configured,
-and functions to modify the configuration.  Kernel 2.2 could do this
-only for the PCI bus but Kernel 2.4 has this feature for both the ISA
-and PCI buses (provided that the PNP options have been selected when
-compiling the kernel).  This by no means guarantees that all drivers
-will fully and correctly use these features.
+When the PC starts up, you may note messages on the screen showing
+that some Linux device drivers have found their hardware devices and
+what the IRQ and address ranges are..  Thus, the kernel provides the
+drivers with functions (program code) that the drivers may use to find
+out if their device exists, how it's been configured, and functions to
+modify the configuration if needed.  Kernel 2.2 could do this only for
+the PCI bus but Kernel 2.4 has this feature for both the ISA and PCI
+buses (provided that the appropriate PNP and PCI options have been
+selected when compiling the kernel).  This by no means guarantees that
+all drivers will fully and correctly use these features.
 
 In addition, the kernel helps avoid resource conflicts by not allowing
 two devices to use the same bus-resources at the same time.
@@ -781,7 +860,8 @@ use.
 
 For kernel 2.4 see isapnp.txt.  For kernel 2.6, isapnp.txt is replaced
 by pnp.txt which is totally different than isapnp.txt and also deals
-with the PCI bus.
+with the PCI bus.  Also see the O'Reilly book: Linux Device Drivers, 3rd
+ed., 2005.  It's on the Internet.
 
 <sect1> Problems with Linux PnP
 <p>But there are a number
@@ -846,7 +926,7 @@ configure everything.
 How should you answer this question to your BIOS?  If you have at
 at least the 2.4 kernel you could answer it either way and Linux
 will usually work fine.  But if Linux can't handle something that the
-BIOS can (for example, the LPC bus ??), then you should say it's not a
+BIOS can (possibly the LPC bus ??), then you should say it's not a
 PnP OS.  Even if you have have Windows 2000 or XP on the same PC, it
 will usually work OK either way.  This is because both Windows and
 Linux are supposedly PnP OS's and if the OS is PnP it should be able
@@ -1012,12 +1092,12 @@ can't get your computer to boot.  If the BIOS loses the data on legacy
 ISA devices, then you'll need to run ICA again under DOS/Windows to
 reestablish this data.
 
-<sect> How to Deal with PnP Cards <sect1> Introduction to Dealing with
-PnP Cards 
-<p> Today most all new internal boards (cards) are Plug-and-Play
-(PnP).  The configuring of bus-resources should in most cases be
-entirely automatic.  If a device is not working, see if it was
-detected, possibly by rebooting.  If the device driver can't
+<sect> How to Deal with PnP Cards
+<sect1> Introduction to Dealing with PnP Devices 
+<p> Today almost all new internal boards (cards) are Plug-and-Play
+(PnP).  Thus, the configuring of bus-resources should, in almost all
+cases be entirely automatic.  If a device is not working, see if it
+was detected, possibly by rebooting.  If the device driver can't
 resource-configure it, then hopefully one or more of methods 2-6 will:
 
 <enum>
@@ -1044,28 +1124,27 @@ name="Tell the Driver the Configuration">
 
 <sect1> Device Driver Configures, Reserving Resources <label
 id="dev_d_conf"> 
-<p> Most device drivers (with the help of code provided by the kernel)
-will use PnP methods to set the bus-resources in the hardware but only
-for the device that they control.  Since the driver has done the
-configuring, it obviously knows the configuration and there is no need
-for you to tell it this info.  This is obviously the easiest way to do
-it since you don't have to do anything if the driver does it all.
-Actually, the BIOS has often done the configuring before Linux booted.
-In this case the driver, using PnP methods, finds out what the BIOS has
-done and often accepts it (or in some cases redoes it differently).
-For all practical purposes, the driver has configured.
+<p>Device drivers (with the help of code provided by the kernel)
+can be written to use PnP methods to set the bus-resources in the
+hardware but only for the device that they control.  But many device
+drivers just accept what the BIOS or Linux has configured and use code
+provided by the kernel to find out how this device has been
+configured.  Since the driver has checked the configuration and
+possibly reconfigured it, it obviously knows the configuration and
+there is no need for you to tell it this info.  This is obviously the
+easiest way to do it since you don't have to do anything if the driver
+does it all.
 
 If you have old pre-PnP ISA hardware, the Linux PnP software may not
 know about it and the bus-resources it requires.  So it might
 erroneously allocate the resources that this old hardware needs to
 some other device.  The result is a resource conflict but there's a
 way to try to avoid it.  You can reserve the resources that the old
-ISA card needs by giving arguments to the BIOS (usually), the isa-pnp
+ISA card needs by configuring the BIOS at boot-time (usually), the isa-pnp
 module or to the kernel (if the PnP is built into the kernel).  For
 example, to reserve irq 5 give this argument to the isa-pnp module (or
 to the kernel): isapnp_reserve_irq=5.  See BootPrompt-HOWTO.  Instead
-of ..._irq there are also _io, _dma, and _mem.  Is this clever enough
-to prevent a PCI device from using such reserved resources ??
+of ..._irq there are also _io, _dma, and _mem.  
 
 For PCI devices, most drivers will configure PnP.  Unfortunately, a
 driver could grab bus-resources that are needed by other devices (but
@@ -1324,12 +1403,12 @@ explanation was for just one of these devices.
 
 <sect1> PCI Utilities  <label id="pciutils_"> 
 <p> The package PCI Utilities (= pciutils, sometimes called
-"pcitools"), should let you manually PnP-configure the PCI bus.
-"lspci" or "scanpci" (Xwindows) lists bus-resources while "setpci"
+"pcitools"), allows one to manually PnP-configure the PCI bus (with
+difficulty).  "lspci" or "scanpci" lists bus-resources while "setpci"
 sets resource allocations in the hardware devices.  It appears that
-setpci is mainly intended for use in scripts and presently one needs
-to know the details of the PCI configuration registers in order to use
-it.  That's a topic not explained here nor in the manual page for
+setpci is mainly intended for use in scripts and one needs to
+understand the details of the PCI configuration registers in order to
+use it.  That's a topic not explained here nor in the manual page for
 setpci.
 
 People have used this to configure PCI devices where the driver failed
@@ -1401,16 +1480,15 @@ name="PnP Specs. from Microsoft">
 <item> Book: PCI System Architecture, 4th ed.  by Tom Shanley +,
 MindShare 1999.  Covers PnP-like features on the PCI bus.
 <item> <label id="pnp_book"> Book: Plug and Play System Architecture,
-by Tom Shanley, Mind Share 1995.  Details of PnP on the ISA bus.  Only
+by Tom Shanley, Mind Share 1999.  Details of PnP on the ISA bus.  Only
 a terse overview of PnP on the PCI bus.
 <item> Book: Programming Plug and Play, by James Kelsey, Sams 1995.
 Details of programming to communicate with a PnP BIOS.  Covers ISA,
 PCI, and PCMCIA buses.
 </itemize>
 
-<sect> Tell the Driver the Configuration <label
-id="tell_driver_config"> <sect1> Introduction
-
+<sect>Tell the Driver the Configuration ??<label id="tell_driver_config">
+<sect1>Introduction
 <p>A modern driver for a device will find out the bus-resource
 configuration without you having to tell it anything.  It may even set
 the bus-resources in the hardware using PnP methods.  Some drivers
@@ -1458,39 +1536,36 @@ the kernel documentation tree).  Some brief examples of a few drivers
 is presented in the following sections:
 
 <sect1> Serial Port Driver Example 
-<p> For PCI serial ports (and for newer 2.4 kernels for ISA), the
-serial driver detects the type of serial port and PnP configures it.
-Unfortunately, there may be some PCI serial ports that are not
-supported yet.
+<p> For PCI serial ports (and for ISA PnP serial ports after 2.4
+kernels) the serial driver detects the type of serial port and PnP
+configures it.  Unfortunately, there may be some PCI serial ports that
+are not supported yet.
 
-For the standard ISA serial port with older versions of the kernel and
-serial driver (not for multiport cards) you use setserial to inform
-the driver.  Using setserial is also a must for non-pnp serial ports.
+For the standard ISA serial port with very old older versions of the
+kernel and serial driver (not for multiport cards) the driver probes
+two standard addresses for serial ports.  It doesn't probe for IRQs
+but it just assigns the "standard" IRQ to the first two serial ports.
+This could be wrong.
+
+For anything else the configuration file for the <tt/setserial/
+program must be manually modified.  See Serial-HOWTO for more
+details.  You use setserial to inform the driver of the IO address and
 Setserial is often run from a start-up file.  In newer versions there
-is a /etc/serial.conf file that you "edit" by simply using the
-setserial command in the normal way and what you set using
-<tt/setserial/ is saved in the <tt>serial.conf</tt> configuration
-file.  The <tt>serial.conf</tt> file should be consulted when the
-<tt/setserial/ command runs from a start-up file.  Your distribution
-may or may not set this up for you.
+is a /etc/serial.conf file (or /var/lib/setserial/autoconfig that you
+"edit" by simply using the setserial command in the normal way and
+what you set using <tt/setserial/ is saved in the <tt>serial.conf</tt>
+configuration file.  The <tt>serial.conf</tt> file should be consulted
+when the <tt/setserial/ command runs from a start-up file.  Your
+distribution may or may not set this up for you.
 
 There are two different ways to use <tt/setserial/ depending on the
-options you give it.  One way is used to manually tell the driver the
-configuration.  The other way is to probe at a given address and
+options you give it.  One use is used to manually tell the driver the
+configuration.  The other use is to probe at a given address and
 report if a serial port exists there.  It can also probe this address
-and try to detect what IRQ is used for this port.  The driver runs
-something like <tt/setserial/ at start-up but it doesn't probe for
-IRQs, it just assigns the "standard" IRQ which may be wrong.  It does
-probe for the existence of a port.  See Serial-HOWTO for more details.
+and try to detect what IRQ is used for this port.  
 
-<sect1> Some Sound Card Driver Examples (from year 2000)
-
-
-<sect2> ALSA (Advanced Linux Sound Architecture)
-<p> This will detect the card by PnP methods and then select the
-appropriate driver and load it.  It will also set the bus-resources on
-an ISA-PnP cards or PCI cards.  OSS (Open Sound System) was formerly
-popular.
+Even with modern kernels, setserial is sometimes needed if the driver
+fails to detect the serial port, or if you have very old hardware.
 
 <sect>How Do I Find Devices and How Are They Configured? <label
 id="current_config">
@@ -1500,7 +1575,7 @@ id="current_config">
 tells you how it's configured.  So finding out how it's configured is
 usually the same procedure as finding the hardware.
 
-<sect1>Devices Have Two "Configurations" 
+<sect1>Devices May Have Two "Configurations" 
 <p> Here "configuration" means the assignment of PnP bus-resources
 (addresses, IRQs, and DMAs).  For each device, there are two parts to
 the configuration question:
@@ -1560,10 +1635,13 @@ Ways to Find Hardware Devices (and their configurations): (follow link
 to more details) 
 <itemize>
 <item>Check the BIOS to make sure they are not disabled 
-<item>Type the command: lsdev
 <item>Watch the <ref id="boot_time_msgs" name="Boot-time Messages"> on
  the screen
 <item>Look in <ref id="proc_dir" name="The /proc Directory Tree">
+<item> <ref id="hw_detect" name="Tools for Detecting and/or Configuring
+  all Hardware"> lsdev, hwinfo, discover, kudzu
+<item> <ref id="hw_detect_one_type" name="Tools for Detecting and/or
+  Configuring One Type of Hardware">
 <item> PCI: <ref id="pci_" name="PCI Bus Inspection">
 <item> ISA Bus: <ref id="isa_bus" name="ISA Bus Introduction">
 <item> ISA Bus: <ref id="isa_pnp" name="PnP cards">
@@ -1635,12 +1713,11 @@ as lspci get their info from the /proc tree so such programs should
 display the results in more readable form than directly inspecting the
 "files" in /proc.
 
-/proc/ioports shows the I/O addresses that the active drivers use (or
-try to use if it's wrong).  They might not be set this way in
-hardware.  /proc/interrupts shows only interrupts currently in use.
-Many interrupts that have been allocated to drivers don't show here at
-all since they're not currently being used.  For example, even though
-your floppy drive has a floppy disk in it and it's ready to use, the
+/proc/ioports shows the I/O addresses that the active drivers use.  If
+there's a mistake (wrong address) it means trouble.  Many interrupts
+that have been allocated to drivers don't show here at all since
+they're not currently being used.  For example, even though your
+floppy drive has a floppy disk in it and it's ready to use, the
 interrupt for it will not show unless its in use.  Again, just because
 an interrupt shows up here doesn't mean that it always exists in the
 hardware.  A clue that it doesn't exist in hardware will be if it
@@ -1649,6 +1726,31 @@ it shows a few interrupts have been issued, there is no guarantee that
 they came from the device shown.  It could be that some other device
 which is not currently in use has issued them.  A device not in use
 (per the kernel) may have issued some interrupts. 
+
+
+/proc/interrupts shows only interrupts currently in use.  Many
+interrupts that have been allocated to drivers don't show here at all
+since they're not currently being used.  For example, even though your
+floppy drive has a floppy disk in it and it's ready to use, the
+interrupt for it will not show unless its in use.  Again, just because
+an interrupt shows up here doesn't mean that it always exists in the
+hardware.  A clue that it doesn't exist in hardware will be if it
+shows that no interrupts have been issued by this interrupt.  Even if
+it shows a few interrupts have been issued, there is no guarantee that
+they came from the device shown.  It could be that some other device
+which is not currently in use has issued them.  A device not in use
+(per the kernel) may have issued some interrupts. 
+
+/proc/bus/ has subdirectories (subfolders) /input/, /pci/, and
+/isapnp/.  The format of most of the files in this directory is very
+cryptic, often just a copy of the bytes in the configuration space.
+So, use them only as a last resort.  The input/ subdirectory has
+information on input devices such as the keyboard and mouse.  It's not
+as cryptic as the other directories under /proc/bus/ and might yield
+some useful information about input devices that are PS2 or on the LPC
+bus (See <ref id="lpc_" name="LPC Bus">).  In /pci/00/ find one binary
+file for each pci device where the file names are the pci-slot-numbers
+(also called pci-slot-names).  The 00 means pci bus 0.
 
 <sect1> The /sys Directory Tree<label id="sys_dir">
 <p>Starting with kernel 2.6 there's a new /sys directory for PnP
@@ -1667,7 +1769,8 @@ The slot may actually be labeled PCI2 inside your PC (2 instead of
 devices on the motherboard that don't use any physical slots.  In this
 example, "slots" 1-10 would be built-in and actual slots 11-14 are
 labeled 1-4.  By typing "lspci" you'll be able to match the numbers
-(like 0000:00:12.0) to names (like IDE interface).  Use "lspci -vv
+(like 0000:00:12.0) to names (like IDE interface).  Type "lspci -v"
+or "lspci -vv" to see more.
 
 Well then, what is 00:06 ?  It's an ISA card (or built-in device) but
 it's not ISA slot 6 (like the PCI numbering).  When a search was made
@@ -1701,11 +1804,20 @@ which needs improvement.
 
 <sect1>PCI Bus Inspection <label id="pci_"> 
 <p> It's easy to find out what bus-resources have been assigned to
-devices on the PCI bus with the "lspci" and/or "scanpci" commands or
-look at <tt>/proc/pci</tt>.  The option -v will show more detail.
-<tt>/proc/buspci/devices</tt> shows a cryptic display so you probably
-want to avoid it.  Note that IRQs for <tt>/proc/pci</tt> are in
-hexadecimal.
+devices on the PCI bus with the "lspci" and/or "scanpci" commands
+The options -v or -vv will show more detail.  In some cases, "scanpci"
+will find a device that "lspci" can't find.  That's because "scanpci"
+directly searches for devices on the pci bus (via the configuration
+space) and doesn't use data obtained by the kernel (where it could be
+wrong due to a kernel bug --I've just found such a case).
+
+This info in more cryptic format is found in "files" located in the
+<tt>/sys</tt> and <tt>/proc</tt> trees. In
+<tt>/sys/bus/pci/devices</tt> the file <tt/vendor/ will contain the
+vendor id number such as 0x4B8C, etc.  In still more cryptic format
+it's in <tt>/proc/bus/pci</tt>.  Such information in older kernels
+prior to kernel 2.6, was in <tt>/proc/pci</tt> (non-cryptic but IRQs
+in hexadecimal) or in <tt>/proc/buspci/devices</tt> (cryptic display). 
 
 In most cases, for PCI you will only see how the hardware is now
 configured and not what resources are required.  In some cases you
@@ -1727,37 +1839,40 @@ can be deciphered.  Don't confuse the read-port address which
 <tt/pnpdump/ uses for communication with PnP cards with the I/O
 address of the found device.  They are not the same.  
 
-<sect1>LPC Bus
-<p>LPC is a bus-like interface often used on laptops (and on some
-desktops too).  To find out if you have LPC type "lspci" and look
-for something like: "ISA Bridge ... LPC Interface Controller".  You
-see "ISA Bridge" since the LPC bus might be considered to be in the ISA
-category of buses but LPC is not ISA.
+<sect1>LPC Bus <label id="lpc_">
+<p>LPC (Low Pin Count) is a bus-like interface often used on laptops
+and increasingly used on desktops too.  To find out if you have LPC
+type "lspci" and look for "LPC".  There are other words next to "LPC"
+such as "ISA Bridge ... LPC Interface Controller" or "LPC Bridge",
+etc.  LPC is not really ISA but it substitutes for an ISA bus.
 
-The ISA bus was slow and has generally been replaced by the fast PCI
-bus.  But for slow devices, there's no need for a large and fast PCI
-bus.  Thus a small LPC interface was created to be used for slow
-devices such as serial ports, parallel ports, and floppy drives.  It
-is only 4 bits (half-byte) wide as compared to 32 or 64 bits for the
-PCI bus.  This 4-bit path is shared, and used for data, addresses, and
-control (it's multiplexed).  So it's clear why LPC stands for "Low Pin
-Count" and why it saves space on motherboards (especially important in
-laptops).  Since LPC operates at about 4 times the clock speed of the
-old ISA bus its bandwidth is no worse than ISA.
+The old ISA bus was slow and has generally been replaced by the fast
+PCI bus.  But for slow devices, there's no need for a large and fast
+PCI bus.  Thus a small LPC interface was created to be used for slow
+"legacy" devices such as serial ports, parallel ports, and floppy
+drives.  It is only 4 bits (half-byte) wide as compared to 32 or 64
+bits for the PCI bus.  This 4-bit path is shared, and used for data,
+addresses, and control (it's multiplexed).  So it's clear why LPC
+stands for "Low Pin Count" and why it saves space on motherboards
+(especially important in laptops).  Since LPC operates at about 4
+times the clock speed of the old ISA bus its bandwidth is no worse
+than ISA.
 
 So a computer using LPC will have all fast devices on the PCI bus,
 etc. and slow (legacy) devices on the LPC bus interface.  All LPC
-devices will be on-board; there are no LPC slots.  Unfortunately, LPC
-has no standards for Plug-and-Play like PCI and ISA do.  So each brand
-of motherboard may do it somewhat differently.  The specs suggests
-that it be done via ACPI but devices on this bus sometimes use isapnp.
-So if Linux can't configure resources on it, you hope that the BIOS
-can (tell the BIOS it's a non-PnP OS).  Linux support for LPC as of
-late 2004 was very much incomplete.
+devices will be on-board; there are no LPC slots.  Unfortunately,
+while LPC is Plug-and-Play, it has no standards for Plug-and-Play
+like PCI and ISA do.  So each brand of motherboard may do it somewhat
+differently.  The specs suggests that it be done via ACPI.  Devices on
+this bus sometimes use isapnp.  So if Linux can't configure resources
+on it, you hope that the BIOS can.  It may help if you tell the BIOS
+it's a non-PnP OS ??  Linux support for LPC as of late 2004 was very
+much incomplete but Linux has some support for the configuring
+aspects of ACPI.
 
 A major chip on the LPC bus is the superio chip which contains legacy
-devices: serial and parallel ports, floppy controller, keyboard
-controller, etc.  BIOS data may also be on the LPC bus.
+IO devices: serial and parallel ports, floppy controller, keyboard
+controller, etc.  BIOS data may also reside on the LPC bus.
 
 <sect1>Non-PnP Cards <label id="non_pnp"> 
 <p>In contrast to PnP cards, non-PnP cards always have their resources
@@ -1805,6 +1920,49 @@ by PnP nor by jumpers.  In this case your only hope is to probe for
 addresses as described in <ref id="non_pnp" name="Non-PnP Cards">.  Or
 try to find the MS software that configured it.
 
+<sect1>Tools for Detecting and/or Configuring all Hardware
+ <label id="hw_detect">
+<p>In a duplication of effort, various major distributions of Linux
+developed their own tools for detection and/or configuration of
+hardware.  This configuring usually a lot more than just the resource
+type configuring of Plug-and-Play.  It's configuring in general
+which is mostly beyond the scope of this howto.
+
+Then other distributions, such as Debian, might obtain copies of the
+tool and offer it to their users as an option, or as a troubleshooting
+tool.  These tools likely make use of the standard Linux tools for
+detecting hardware such as "lspci".  In the following list of tools,
+the name of the distribution that developed it is in parentheses, but
+the tool is likely available also in other distributions.
+
+<itemize>
+<item>hwinfo (SuSE) detects move stuff than discover
+<item>discover (Progeny, used by Debian)
+<item>Kudzu (RedHat) detects and configures
+<item>lsdev (standard Linux command)
+<item>hwsetup-knoppix (Knoppix, based on Kudzu)
+</itemize>
+
+<sect1>Tool for Detecting and Configuring One Type of Hardware
+<label id="hw_detect_one_type">
+<p>There are various tools available to find and possibly configure 
+various type of devices.  This configuring is configuring in general
+which is not covered by this howto.  But since finding devices is part
+of this howto, here's a list of some of these programs:
+
+<itemize>
+<item>read-edid (get-edid): gets parameters of VESA monitors (except
+ very old ones)
+<item>sndconfig: for soundcards
+<item>printtool: printers, must have X-window running
+<item>pconf-detect: parallel ports
+<item>mdetect: detects and configures mice (but couldn't find mine).
+ Does it know about the mice devices in /dev/input/?
+<item>nictools-pci (and nictools-nopci)  for ethernet cards
+<item>hdparm: configure hard drive hardware
+<item>hotplug: used by kernel
+</itemize>
+
 <sect1>Use MS Windows <label id="check_ms"> 
 <p>Some people have attempted to use Windows to see how bus-resources
 have been set up.  Unfortunately, since PnP hardware forgets its
@@ -1840,7 +1998,8 @@ understands the USB.
 But each device on the USB does have an IDs, just like cards do on the PCI
 bus.  So Linux likely maintains a table of these IDs so that device
 drivers can check them to find their device.  The USB also support
-"hot plug".
+"hot plug".  To find out what is on the USB bus, you could use a
+general hardware detection tool like "discover" or "hwinfo".
 
 <sect1>Hot Plug
 <p>"Hot plug" is where you plug something into a PC (usually via a
@@ -1856,7 +2015,7 @@ maintain a table mapping ID numbers to drivers.  It wasn't until
 kernel 2.4 that such a table existed since Linux once shunned
 centralized PnP.  It's named: MODULE_DEVICE_TABLE.
 
-<sect>Hot Swap
+<sect1>Hot Swap
 <p>"Hot Swap" is where you remove an old device and then plug in a new
 device to replace the old one.  You have thus "swapped" devices.  Now
 in addition to being able to detect that a new device has been plugged
@@ -1881,7 +2040,8 @@ With PnP you wouldn't need to even do this.  With the advent of
 software modems that have Linux drivers (linmodems), it would be nice
 to have the appropriate driver install itself automatically via PnP.
 
-<sect>Error Messages <sect1> Unexpected Interrupt 
+<sect>Error Messages
+<sect1> Unexpected Interrupt 
 <p> This means that an interrupt happened that no driver expected.
 It's unlikely that the hardware issued an interrupt by mistake.  It's
 more likely that the software has a minor bug and doesn't realize that
@@ -1907,6 +2067,53 @@ the isa-pnp module, you'll get this message in your logs and the
 isa-pnp will exit.  One way to try to fix this is to load the isa-pnp
 module early before other hardware is initialized.  For PCMCIA this
 means to load isa-pnp before running cb modules and service.
+
+<sect1>Can't allocate region (PCI)
+<p>Here "region" means address range.  A PCI device that needs two
+addresses will have region 0 for the first address and region 1 for the
+second address needed.  Use the command: lspci -vv to see the various
+resource regions (often just called regions) and whether the address
+is of type IO or memory.  In PCI jargon region 2 is "base address 2"
+(or "base address register 2"), etc.  
+
+<sect>Interrupt Conflicts
+<p>If an ISA device uses the same interrupt (IRQ) as some other device
+(either ISA or PCI) there is usually an interrupt conflict.  So if you
+have no ISA devices, you shouldn't have any interrupt conflicts and
+don't need to read this.
+
+Another case of interrupt "conflict" happens when a device is
+activated but can't be assigned an interrupt (IRQ) since none are available.
+This is sort of an interrupt (IRQ) conflict since if an interrupt were
+assigned, it would create a conflict.  This can also happen even if an
+interrupt is available, but it can't be used since the hardware of the
+device that needs the interrupt doesn't support the interrupt number
+available (or the motherboard doesn't support it due to "routing"
+problems, see <ref id="pci_int" name="PCI Interrupts">).  If the ISA
+devices use up all the interrupts, then one or more PCI cards may be
+in conflict since they can't get any IRQs.
+
+Normally, the BIOS will assign interrupts and will not create
+conflicts.  But it may be forced to create conflicts if it runs out of
+IRQs.  This can happen if someone has set up the BIOS to reserve certain
+IRQs for legacy ISA devices that are not PnP.  These settings may be
+wrong and should be checked out, especially if you're having problems.
+For example, someone may have reserved an IRQ for an ISA card that has
+long since been removed from the PC.  If you unreserved this IRQ then
+this IRQ is available and and conflict disappears.
+
+Sometimes the BIOS will solve the problem of an IRQ shortage by using
+IRQ 0.  There is no such IRQ, but IRQ 0 means that the driver should
+use polling instead of IRQs.  This means that the driver frequently
+checks the device (polls it) to see if the device needs servicing by
+the interrupt service routine.  Of course, this wastes computer time
+and there's more likelihood of a buffer overrun inside a device since
+it might not get serviced by the driver promptly enough.
+
+A few ISA devices have been designed to permit interrupt conflicts
+(between two ISA devices ??) but both ISA devices must be designed
+this way and be driven by software that knows about sharing
+interrupts.  The motherboard must support it too.
 
 <sect>Appendix
 <sect1> Universal Plug and Play (UPnP) <label id="UPnP_"> 
@@ -1951,24 +2158,69 @@ of the first byte in the range (address range).  To see the address
 ranges for various devices, look at /proc/iomem and /proc/ioports.
 
 <sect2> Address space 
-<p> For ISA, to access both I/O and (main) memory address "spaces" the
-same address bus is used (the wires used for the address are shared).
-How does the device know whether or not an address which appears on
-the address bus is a memory address or I/O address?  Well, there are 4
-dedicated wires on the bus that convey this sort of information.  If
-a certain one of these 4 wires is asserted, it says that the CPU wants
-to read from an I/O address, and the main memory ignores the address
-on the bus.  In all, read and write wires exist for both main memory
-and I/O addresses (4 wires in all).
+<p>To access both I/O and (main) memory address "spaces" the same
+address bus is used (the wires used for the address are shared).  How
+does the device know whether or not an address which appears on the
+address bus is a memory address or I/O address?  Well, for ISA (for PCI
+read this too), there are 4 dedicated wires on the bus that convey this
+sort of information.  If a certain one of these 4 wires is asserted,
+it says that the CPU wants to read from an I/O address, and the main
+memory ignores the address on the bus.  In all, read and write wires
+exist for both main memory and I/O addresses (4 wires in all).
 
 For the PCI bus it's the same basic idea (also using 4 wires) but it's
 done a little differently.  Instead of only one of the four wires
 being asserted, a binary number is put on the wires (16 different
-possibilities).  Thus more info may be conveyed by these 4 wires..
+possibilities).  Thus, more info may be conveyed by these 4 wires..
 Four of these 16 numbers serve the I/O and memory spaces as in the
 above paragraph.  In addition there is also configuration address
 space which uses up two more numbers.  This leaves 10 more numbers
 left over for other purposes.
+
+<sect2>PCI Configuration Address Space <label id="pci_conf">
+<p>This is different from the IO and memory address spaces because 
+configuration address space is "geographic".  Each slot for a card has
+the slot number as part of the address.  This way, Linux (or the BIOS)
+can address a certain slot and find out what type of card is in that
+slot.  Each device has 64 standard byte-size registers and some of
+these hold numbers which can unambiguously identify the device.  Since
+the number of slots is limited as are the number of PCI devices built
+into motherboard, Linux (or the BIOS) only needs to check a limited
+number of addresses to find all the PCI devices.  If it reads all ones
+(0xFF in hexadecimal) from the first register of a device, then that
+means that no device is present.  Since there is no card or device to
+supply all these ones (0xFF) number, the PCI "host bridge" on the
+motherboard supplies (spoofs) this number for all non-existent device.
+
+The PCI slot number is called (in PCI lingo) the "Device Number" and
+since a card may have up to 8 devices on it, a "Function Number" from
+0-7 identifies which device it is on a PCI card.  These numbers are
+part of the geographic address.  Linux programmers call it
+"pci-slot-name".  Thus what Linux calls a "device" is actually a
+"function" in PCI lingo.  The PCI bus number (often 00) also becomes
+part of the geographic address.  For example, 0000:00:0d.2 is PCI bus
+0, slot 0d, function 2.  For the full geographic address, one must
+include the double-word number of the device's configuration
+registers which one wants to access.  The leading 0000 (in 1999) were
+reserved for future use.
+
+How does the CPU designate that a read or write is to a PCI
+configuration space?  It doesn't, at least not directly.  Instead when
+access to configuration space is desired it does a 32-bit
+(double-word) write to 0cf8-0cfb in I0 space and writes the full
+geographic address there.  The PCI host bridge is listening at this
+address and insures that any next write of data to 0cfc-0cff is put into the
+specified configuration registers of the specified device.  The bridge
+does this both by sending a special signal to the specified PCI card
+(or the like) on a dedicated wire that goes only to the slot where the
+card is plugged in.  It also puts bits on the control bus saying that
+what's on the address bus now is a geographic configuration space
+address.
+
+Why not make it simple and just have the CPU put bits on the control
+bus to say that the address on the main bus is a geographic one for
+PCI configuration?  Well, most CPU's are not capable of doing this so
+the PCI host bridge gets to do it instead.
 
 <sect2> Range Check (ISA Testing for IO Address Conflicts) 
 <p> On the ISA bus, there's a method built into each PnP card for
@@ -1979,13 +2231,13 @@ bus-resources so as to avoid this conflict, but even in this case a
 legacy card might be lurking somewhere with the same address.
 
 The test works by a card putting a known test number in its own IO
-registers.  Then the PnP software reads it and verifies that it reads
-the same test number.  If not, something is wrong (such as another
-card with the same address.  It repeats the same test with another
-test number.  Since it actually checks the range of IO addresses
-assigned to the card, it's called a "range check".  It could be better
-called an address-conflict test.  If there is an address conflict you
-get an error message and need to resolve it yourself.
+registers.  Then the PnP software reads it and verifies that what it
+reads is the same as the known test number.  If not, something is
+wrong (such as another card with the same address).  It repeats the
+same test with another test number.  Since it actually checks the
+range of IO addresses assigned to the card, it's called a "range
+check".  It could be better called an address-conflict test.  If there
+is an address conflict you get an error message.
 
 <sect2> Communicating Directly via Memory 
 <p> Traditionally, most I/O devices used only I/O memory to
@@ -1994,13 +2246,13 @@ read and write data to/from the I/O address space and main memory.
 Unfortunately, this requires two steps.  For example, 1. read data from
 a device (in IO address space) and temporarily store in in the CPU; 2.
 write this data to main memory.  A faster way would be for the device
-itself to put the data directly into main memory.  One way to do
-this is by using <ref id="dma_" name="DMA Channels"> or bus mastering.
-Another way is for the physical device to actually contain some main
-memory (at high addresses so as not to conflict with main memory chip
-addresses).  This way the device reads and writes directly to it's
-self-contained main memory without having to bother with DMA or bus
-mastering.  Such a device may also use IO addresses.
+itself to put the data directly into main memory.  One way to do this
+is by using ISA <ref id="dma_" name="DMA Channels"> or PCI bus
+mastering.  Another way is for the physical device to actually contain
+some main memory (at high addresses so as not to conflict with main
+memory chip addresses).  This way the device reads and writes directly
+to it's self-contained main memory without having to bother with DMA
+or bus mastering.  Such a device may also use IO addresses.
 
 <sect1> ISA Bus Configuration Addresses (Read-Port etc.) <label
 id="isa_conf_addresses"> 
@@ -2083,14 +2335,16 @@ finds out what happened and takes appropriate action.
 Thus each device driver needs to know what interrupt number (IRQ) to
 listen to.  On the PCI bus (and for some special cases on the ISA bus)
 it's possible for two (or more) devices to share the same IRQ number.
-When such an interrupt is issued, the CPU runs all interrupt service
-routines sequentially for all devices using that interrupt.  The first
-thing the first service routine does is to check its device registers
-to see if an interrupt actually happened for its device.  If it finds
-that its device didn't issue an interrupt (a false alarm) it likely
-will immediately exit and the service routine begins for the second
-device using that same interrupt, etc, etc.  So the whole service
-routine doesn't need to run for each device.
+Note that you can't share a PCI interrupt with an ISA interrupt (are
+there any exceptions ??).  When a shared interrupt is issued, the CPU
+runs all interrupt service routines sequentially for all devices using
+that interrupt.  The first thing the first service routine does is to
+check its device registers to see if an interrupt actually happened
+for its device.  If it finds that its device didn't issue an interrupt
+(a false alarm) it likely will immediately exit and the service
+routine begins for the second device using that same interrupt, etc,
+etc.  So the whole service routine doesn't need to run for each
+device.
 
 The putting of a voltage on the IRQ line is only a request that the
 CPU be interrupted so it can run a device driver.  In almost all cases
@@ -2296,13 +2550,17 @@ automatically detected.  RedHat supplies a program "sndconfig" which
 detects ISA PnP sound cards and automatically sets up the modules for
 loading with the detected bus-resources.
 
-<sect2>MS Windows Notes
-<p>Windows NT4 didn't support ISAPNP but had a PNPISA program which one
-could "use at your own risk".  For NT4 users were advised to set "not
-a PnP OS" in the BIOS so that the BIOS would do the resource
-configuring.  Thus both MS Windows and Linux were in olden days
-dependent on the BIOS doing the configuring.
+<sect2> ALSA (Advanced Linux Sound Architecture) as of 2000
+<p> This will detect the card by PnP methods and then select the
+appropriate driver and load it.  It will also set the bus-resources on
+an ISA-PnP cards or PCI cards.  OSS (Open Sound System) was formerly
+popular.
+
+<sect2>MS Windows Notes <p>Windows NT4 didn't support ISAPNP but had a
+PNPISA program which one could "use at your own risk".  For NT4 users
+were advised to set "not a PnP OS" in the BIOS so that the BIOS would
+do the resource configuring.  Thus both MS Windows and Linux were in
+olden days dependent on the BIOS doing the configuring (and still are).
 
 END OF Plug-and-Play-HOWTO
 </article>
-
