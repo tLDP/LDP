@@ -18,6 +18,10 @@ pidno=$( ps ax | grep $1 | awk '{ print $1 }' | grep $1 )
 # Checks for pid in "ps" listing, field #1.
 # Then makes sure it is the actual process, not the process invoked by this script.
 # The last "grep $1" filters out this possibility.
+#
+#    pidno=$( ps ax | awk '{ print $1 }' | grep $1 )
+#    also works, as Teemu Huovila, points out.
+
 if [ -z "$pidno" ]  # If, after all the filtering, the result is a zero-length string,
 then                # no running process corresponds to the pid given.
   echo "No such process running."

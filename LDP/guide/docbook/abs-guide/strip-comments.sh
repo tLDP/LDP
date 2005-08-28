@@ -31,7 +31,7 @@ fi
 #--------
 sed '
 /^\/\*/d
-/.*\/\*/d
+/.*\*\//d
 ' $1
 #--------
 # Easy to understand if you take several hours to learn sed fundamentals.
@@ -41,7 +41,7 @@ sed '
 #+ case where line of code has a comment following it on same line.
 #  This is left as a non-trivial exercise.
 
-#  Also, the above code deletes lines with a "*/" or "/*",
+#  Also, the above code deletes non-comment lines with a "*/" --
 #+ not a desirable result.
 
 exit 0

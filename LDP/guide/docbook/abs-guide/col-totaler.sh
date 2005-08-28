@@ -14,8 +14,13 @@ fi
 filename=$1
 column_number=$2
 
-# Passing shell variables to the awk part of the script is a bit tricky.
-# See the awk documentation for more details.
+#  Passing shell variables to the awk part of the script is a bit tricky.
+#  One method is to strong-quote the Bash-script variable
+#+ within the awk script.
+#     $'$BASH_SCRIPT_VAR'
+#      ^                ^
+#  This is done in the embedded awk script below.
+#  See the awk documentation for more details.
 
 # A multi-line awk script is invoked by:  awk ' ..... '
 

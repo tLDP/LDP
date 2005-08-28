@@ -1,8 +1,90 @@
 #!/bin/bash
-# multiple-processes.sh: Run multiple processes on an SMP box.
+# parent.sh
+# Running multiple processes on an SMP box.
+# Author: Tedman Eng
 
-# Script written by Vernia Damiano.
-# Used with permission.
+#  This is the first of two scripts,
+#+ both of which must be present in the current working directory.
+
+
+
+
+LIMIT=$1         # Total number of process to start
+NUMPROC=4        # Number of concurrent threads (forks?)
+PROCID=1         # Starting Process ID
+echo "My PID is $$"
+
+function start_thread() {
+        if [ $PROCID -le $LIMIT ] ; then
+                ./child.sh $PROCID&
+                let "PROCID++"
+        else
+           echo "Limit reached."
+           wait
+           exit
+        fi
+}
+
+while [ "$NUMPROC" -gt 0 ]; do
+        start_thread;
+        let "NUMPROC--"
+done
+
+
+while true
+do
+
+trap "start_thread" SIGRTMIN
+
+done
+
+exit 0
+
+
+
+# ======== Second script follows ========
+
+
+#!/bin/bash
+# child.sh
+# Running multiple processes on an SMP box.
+# This script is called by parent.sh.
+# Author: Tedman Eng
+
+temp=$RANDOM
+index=$1
+shift
+let "temp %= 5"
+let "temp += 4"
+echo "Starting $index  Time:$temp" "$@"
+sleep ${temp}
+echo "Ending $index"
+kill -s SIGRTMIN $PPID
+
+exit 0
+
+
+# ======================= SCRIPT AUTHOR'S NOTES ======================= #
+#  It's not completely bug free.
+#  I ran it with limit = 500 and after the first few hundred iterations,
+#+ one of the concurrent threads disappeared!
+#  Not sure if this is collisions from trap signals or something else.
+#  No doubt someone may spot the bug and will be writing 
+#+ . . . in the future.
+# ===================================================================== #
+
+
+
+# ----------------------------------------------------------------------#
+
+
+
+#################################################################
+# The following is the original script written by Vernia Damiano.
+# Unfortunately, it doesn't work properly.
+#################################################################
+
+#!/bin/bash
 
 #  Must call script with at least one integer parameter
 #+ (number of concurrent processes).
@@ -24,33 +106,33 @@ shift
 PARAMETRI=( "$@" )      # Parameters of each process
 
 function avvia() {
-	local temp
-	local index
-	temp=$RANDOM
-	index=$1
-	shift
-	let "temp %= $TEMPO"
-	let "temp += 1"
-	echo "Starting $index Time:$temp" "$@"
-	sleep ${temp}
-	echo "Ending $index"
-	kill -s SIGRTMIN $$
+         local temp
+         local index
+         temp=$RANDOM
+         index=$1
+         shift
+         let "temp %= $TEMPO"
+         let "temp += 1"
+         echo "Starting $index Time:$temp" "$@"
+         sleep ${temp}
+         echo "Ending $index"
+         kill -s SIGRTMIN $$
 }
 
 function parti() {
-	if [ $INDICE -gt 0 ] ; then
-		avvia $INDICE "${PARAMETRI[@]}" &
-		let "INDICE--"
-	else
-		trap : SIGRTMIN
-	fi
+         if [ $INDICE -gt 0 ] ; then
+              avvia $INDICE "${PARAMETRI[@]}" &
+                let "INDICE--"
+         else
+                trap : SIGRTMIN
+         fi
 }
 
 trap parti SIGRTMIN
 
 while [ "$NUMPROC" -gt 0 ]; do
-	parti;
-	let "NUMPROC--"
+         parti;
+         let "NUMPROC--"
 done
 
 wait

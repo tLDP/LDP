@@ -12,6 +12,7 @@
 E_BADARGS=65        # Missing command-line arg.
 E_NOHOST=66         # Host not found.
 E_TIMEOUT=67        # Host lookup timed out.
+E_UNDEF=68          # Some other (undefined) error.
 HOSTWAIT=10         # Specify up to 10 seconds for host query reply.
                     # The actual wait may be a bit longer.
 OUTFILE=whois.txt   # Output file.
@@ -34,6 +35,8 @@ else
   IPADDR="$1"                         # Command-line arg was IP address.
 fi
 
+echo; echo "IP Address is: "$IPADDR""; echo
+
 if [ -e "$OUTFILE" ]
 then
   rm -f "$OUTFILE"
@@ -42,7 +45,15 @@ fi
 
 
 #  Sanity checks.
-#  ==============
+#  (This section needs more work.)
+#  ===============================
+if [ -z "$IPADDR" ]
+# No response.
+then
+  echo "Host not found!"
+  exit $E_NOHOST    # Bail out.
+fi
+
 if [[ "$IPADDR" =~ "^[;;]" ]]
 #  ;; connection timed out; no servers could be reached
 then
@@ -63,11 +74,11 @@ then
   echo "Host not found!"
   exit $E_NOHOST    # Bail out.
 fi
-#  ==============
 
 
 
-# ========== Main body of script ==========
+
+# ======================== Main body of script ========================
 
 AFRINICquery() {
 #  Define the function that queries AFRINIC. Echo a notification to the
@@ -179,9 +190,27 @@ RIPEquery() {
 #  * octet2 is the second most significant octet
 
 
+
+
 slash8=`echo $IPADDR | cut -d. -f 1`
+  if [ -z "$slash8" ]  # Yet another sanity check.
+  then
+    echo "Undefined error!"
+    exit $E_UNDEF
+  fi
 slash16=`echo $IPADDR | cut -d. -f 1-2`
+#                             ^ Period specified as 'cut" delimiter.
+  if [ -z "$slash16" ]
+  then
+    echo "Undefined error!"
+    exit $E_UNDEF
+  fi
 octet2=`echo $slash16 | cut -d. -f 2`
+  if [ -z "$octet2" ]
+  then
+    echo "Undefined error!"
+    exit $E_UNDEF
+  fi
 
 
 #  Check for various odds and ends of reserved space.
@@ -241,5 +270,7 @@ exit 0
 
 #@  ABS Guide author comments:
 #@  Nothing fancy here, but still a very useful tool for hunting spammers.
-#@  Sure, the script can be cleaned up a bit (exercise for reader),
-#@+ but still, it's a nice piece of coding by Walter Dnes.
+#@  Sure, the script can be cleaned up some, and it's still a bit buggy,
+#@+ (exercise for reader), but all the same, it's a nice piece of coding
+#@+ by Walter Dnes.
+#@  Thank you!

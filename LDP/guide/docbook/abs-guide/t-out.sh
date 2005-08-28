@@ -6,10 +6,13 @@
 TIMELIMIT=4         # 4 seconds
 
 read -t $TIMELIMIT variable <&1
+#                           ^^^
+#  In this instance, "<&1" is needed for Bash 1.x and 2.x,
+#  but unnecessary for Bash 3.x.
 
 echo
 
-if [ -z "$variable" ]
+if [ -z "$variable" ]  # Is null?
 then
   echo "Timed out, variable still unset."
 else  
@@ -17,8 +20,3 @@ else
 fi  
 
 exit 0
-
-# Exercise for the reader:
-# -----------------------
-# Why is the redirection (<&1) necessary in line 8?
-# What happens if it is omitted?
