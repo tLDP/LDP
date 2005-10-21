@@ -40,6 +40,8 @@ read term
    bottom=$(echo "scale=9; $bottom+$bot" | bc)
 #  bottom = $(($bottom + $bot"))
  done
+# ==================================================================== 
+
 # -------------------------------------------------------------------- 
 #  Rick Boivie pointed out a more efficient implementation
 #+ of the above loop, which decreases computation time by 2/3.
@@ -61,8 +63,18 @@ read term
 #     done
 #     echo 'bottom'
 #     } | bc`       # Embeds a 'for loop' within command substitution.
+# --------------------------------------------------------------------------
+#  On the other hand, Frank Wang suggests:
+#  bottom=$(echo "scale=9; ($interest_rate^$term-1)/($interest_rate-1)" | bc)
 
-# ==================================================================== 
+#  Because . . .
+#  The algorithm behind the loop
+#+ is actually a sum of geometric proportion series.
+#  The sum formula is e0(1-q^n)/(1-q),
+#+ where e0 is the first element and q=e(n+1)/e(n)
+#+ and n is the number of elements.
+# --------------------------------------------------------------------------
+
 
  # let "payment = $top/$bottom"
  payment=$(echo "scale=2; $top/$bottom" | bc)
@@ -74,6 +86,7 @@ read term
 
 
  exit 0
+
 
  # Exercises:
  #   1) Filter input to permit commas in principal amount.

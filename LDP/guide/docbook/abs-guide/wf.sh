@@ -43,6 +43,11 @@ sed -e 's/\.//g'  -e 's/\,//g' -e 's/ /\
 #+ least significant column
 #+ (word or string, optionally case-insensitive)
 #+ and last on the most significant column (frequency)."
+#
+#  As Frank Wang explains, the above is equivalent to
+#+       . . . | sort | uniq -c | sort +0 -nr
+#+ and the following also works:
+#+       . . . | sort | uniq -c | sort -k1nr -k
 ########################################################
 
 exit 0

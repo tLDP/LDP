@@ -31,6 +31,8 @@ echo "Random number less than $RANGE  ---  $number"
 
 echo
 
+
+
 #  If you need a random integer greater than a lower bound,
 #+ then set up a test to discard all numbers below that.
 
@@ -43,6 +45,12 @@ do
 done
 echo "Random number greater than $FLOOR ---  $number"
 echo
+
+   # Let's examine a simple alternative to the above loop, namely
+   #       let "number = $RANDOM + $FLOOR"
+   # That would eliminate the while-loop and run faster.
+   # But, there might be a problem with that. What is it?
+
 
 
 # Combine above two techniques to retrieve random number between two limits.

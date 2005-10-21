@@ -69,8 +69,15 @@ exit 0
 #  I ran it with limit = 500 and after the first few hundred iterations,
 #+ one of the concurrent threads disappeared!
 #  Not sure if this is collisions from trap signals or something else.
+#  Once the trap is received, there's a brief moment while executing the
+#+ trap handler but before the next trap is set.  During this time, it may
+#+ be possible to miss a trap signal, thus miss spawning a child process.
+
 #  No doubt someone may spot the bug and will be writing 
 #+ . . . in the future.
+
+
+
 # ===================================================================== #
 
 

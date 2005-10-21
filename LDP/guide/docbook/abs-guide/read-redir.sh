@@ -34,7 +34,7 @@ while read name passwd uid gid fullname ignore
 do
   echo "$name ($fullname)"
 done &lt;/etc/passwd   # I/O redirection.
-IFS=$OIFS              # Restore originial $IFS.
+IFS=$OIFS              # Restore original $IFS.
 # This code snippet also by Heiner Steven.
 
 

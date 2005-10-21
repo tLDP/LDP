@@ -32,14 +32,13 @@ fi
 gcd ()
 {
 
-                                 #  Arbitrary assignment.
-  dividend=$1                    #  It does not matter
-  divisor=$2                     #+ which of the two is larger.
-                                 #  Why?
+  dividend=$1                    #  Arbitrary assignment.
+  divisor=$2                     #+ It doesn't matter which of the two is larger.
+                                 #  Why not?
 
   remainder=1                    #  If uninitialized variable used in loop,
                                  #+ it results in an error message
-				 #+ on first pass through loop.
+                                 #+ on the first pass through loop.
 
   until [ "$remainder" -eq 0 ]
   do
