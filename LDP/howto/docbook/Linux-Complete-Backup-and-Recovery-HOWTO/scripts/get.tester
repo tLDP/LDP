@@ -1,14 +1,14 @@
 #! /bin/sh
 
-# Back up another computer's drive to this system. To make this work, we
-# need a convenient chunk of disk space on this computer. This version
-# uses ssh to do its transfer, and compresses using bz2. This version was
-# developed so that the system to be backed up won't be authenticated to
-# log onto the backup computer. This script is intended to be used on a
-# firewall. You don't want the firewall to be authenticated to the backup
-# system in case the firewall is cracked.
+# Back up another computer's drive to this system. To make this work,
+# we need a convenient chunk of disk space on this computer. This
+# version uses ssh to do its transfer, and compresses using bz2. This
+# version was developed so that the system to be backed up won't be
+# authenticated to log onto the backup computer. This script is
+# intended to be used on a firewall. You don't want the firewall to be
+# authenticated to the backup system in case the firewall is cracked.
 
-# Time-stamp: <2004-04-03 12:24:12 ccurley get.tester>
+# Time-stamp: <2005-10-13 12:06:28 root get.tester>
 
 # Copyright 2000 through the last date of modification Charles Curley.
 
@@ -41,10 +41,10 @@
 # script has been changed to reflect that.
 
 
-
 # The host name of the computer to be backed up.
 target=tester
-zip=/mnt/zip
+#zip=/mnt/zip
+export zip="/var/bare.metal";	# Where we will put archives. Not the ZIP drive here.
 
 echo Backing up $target
 
@@ -54,7 +54,7 @@ rm -r $target.old.zip
 
 mv $target.zip $target.old.zip
 
-ssh $target "modprobe ppa ; mount -r $zip"
+# ssh $target "modprobe ppa ; mount -r $zip"
 
 echo Copying the ZIP disk.
 
@@ -63,7 +63,7 @@ echo Copying the ZIP disk.
 
 scp -qpr $target:$zip $target.zip
 
-du -hs $target.zip
+du -hs $target.*zip
 
 
 echo Aging the archives
@@ -72,14 +72,20 @@ rm $target.tar.old.bz2
 
 mv $target.tar.bz2 $target.tar.old.bz2
 
+echo Cleaning out old yum packages
+ssh $target "yum clean packages"
 
 echo Backing up $target to the backup server.
 
-ssh $target tar -cf - / --exclude /sys --exclude /mnt --exclude /proc\
-    --exclude /var/spool/squid\
-    | bzip2 -9 | cat > $target.tar.bz2
+# The "--anchored" option is there to prevent --exclude from excluding
+# all files with that name. E.g. we only want to exclude /sys, not
+# some other sys elsewhere in the file system.
+
+ssh $target "cd / ; tar -cf - --anchored --exclude sys --exclude $zip\
+ --exclude $zip.old --exclude mnt --exclude proc --exclude var/spool/squid\
+ *" | bzip2 -9 | cat > $target.tar.bz2
+
+# ssh $target "eject $zip"
 
 echo Testing the results.
 find . -iname "*.bz2" | xargs bunzip2 -t
-
-ssh $target "eject $zip"
