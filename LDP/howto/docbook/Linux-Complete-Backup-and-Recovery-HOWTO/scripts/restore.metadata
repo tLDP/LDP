@@ -5,7 +5,7 @@
 # and mounted. It also assumes the ZIP disk has already been
 # mounted. Mounting the ZIP disk read only is probably a good idea.
 
-# Time-stamp: <2003-08-23 10:09:16 ccurley restore.metadata>
+# Time-stamp: <2005-10-11 08:45:19 root restore.metadata>
 
 # Copyright 2000 through the last date of modification Charles Curley.
 
@@ -25,6 +25,11 @@
 
 # You can also contact the Free Software Foundation at http://www.fsf.org/
 
+# 2005-08-03: We now use a relative path, so you can load from
+# different places depending on the first stage system you are
+# using. Also added some FC4 tricks, and some changes to better
+# reproduce the permissions and ownerships.
+
 # 2003 08 23: Oops: tar on tomsrtbt does not respect -p. Try setting
 # umask to 0000 instead.
 
@@ -40,31 +45,46 @@
 
 umask 0000
 
-zip="/mnt";			# Where we mount the zip drive.
+cd ..				# Assume we are in root.bin
+zip=$(pwd);			# Where we mount the zip drive.
 target="/target";		# Where the hard drive to restore is mounted.
 
-ls -lt $zip			# Warm fuzzies for the user.
+ls -lt $zip/*.bz2		# Warm fuzzies for the user.
 
 cd $target
 
 # Restore the archived metadata files.
 for archive in $( ls $zip/*.bz2 ); do
-echo $archive
-ls -al $archive
-bzip2 -dc $archive | tar -xf -
+  echo $archive
+  ls -al $archive
+  bzip2 -dc $archive | tar -xf -
 done
 
 # Build the mount points for our second stage restoration and other
 # things.
 
 # If you boot via an initrd, make sure you build a directory here so
-# the kernel can mount the initrd at boot.
+# the kernel can mount the initrd at boot. tmp/.font-unix is for the
+# xfs font server.
 
-for dir in mnt/zip mnt/cdrom mnt/floppy mnt/imports proc initrd; do
-mkdir -p $target/$dir
+for dir in mnt/dosc mnt/zip mnt/imports mnt/nfs proc initrd tmp/.font-unix\
+ var/empty/sshd var/log back selinux sys /var/cache/yum; do
+  mkdir -p $target/$dir
 done
 
-chmod a-w $target/proc		# Restore /proc's read-only permissions
+for dir in mnt usr usr/share $(ls -d var/*) selinux usr/lib var var/cache/yum; do
+  chmod go-w $target/$dir
+done
+
+# chmod a-w $target/proc		# Restore /proc's read-only permissions
+
+# Set modes
+chmod 0111 $target/var/empty/sshd
+
+# For Fedora. First two for xfs.
+# chroot $target chown xfs:xfs /tmp/.font-unix
+# chmod 1777 $target/tmp/.font-unix # set the sticky bit.
+chmod 1777 $target/tmp
 
 # Restore the scripts we used to create the ZIP disk and the ones we will
 # use to restore it. These should be the latest & greatest in case we had
@@ -72,6 +92,7 @@ chmod a-w $target/proc		# Restore /proc's read-only permissions
 cp -p $zip/root.bin/* $target/root/bin
 
 # Now install the boot sector.
-chroot $target /sbin/lilo -C /etc/lilo.conf
+# chroot $target /sbin/lilo -C /etc/lilo.conf
+chroot $target /sbin/grub-install /dev/hda
 
 df -m
