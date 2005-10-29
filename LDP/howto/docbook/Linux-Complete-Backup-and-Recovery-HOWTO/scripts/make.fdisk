@@ -9,7 +9,7 @@
 # run at restore time to rebuild hard drive x, prior to running
 # restore.metadata. dev.x is the input file for fdisk.
 
-# Time-stamp: <2004-04-10 13:51:37 root make.fdisk>
+# Time-stamp: <2005-10-29 10:03:39 ccurley make.fdisk>
 
 # Copyright 2001 through the last date of modification Charles Curley
 # except for the subroutine cut2fmt.
@@ -50,6 +50,14 @@
 # http://www.fsf.org/
 
 # Changes:
+
+# 2005-10-29: We now provide the geometry as an argument to fdisk
+# (which does not work on tomsrtbt). We also save data for sfdisk, and
+# write out make.dev.xxx so that it will use sfdisk if it finds it.
+
+# 2005-08-14: Due to experience on Knoppix, we now add the code to
+# change the partition types to the end of the fdisk input file
+# instead of right after creating the partition.
 
 # 2004 04 10: fdisk v > 2.11 has wider columns. Added code to select
 # the appropriate cut string based on fdisk's version.
@@ -219,9 +227,15 @@ FINIS
 
 }
 
+sub getBootSector {
+    my $infile = $_[0];
+    my $outfile = $_[1];
+
+    $systemcmd = "dd if=$infile of=$outfile bs=512 count=1 &> /dev/null ";
+    system ($systemcmd);
+}
 
 # Begin main line code.
-
 
 
 # Provide a default device.
@@ -240,7 +254,8 @@ if ( -l $device) {
     # an absolute path, preserving the numbering.
 
     $mountdev = '/dev/' . readlink ($device);
-    $mountdev =~ s|ide/host(\d+)/bus(\d+)/target(\d+)/lun(\d+)/disc|ide/host\1/bus\2/target\3/lun\4|;
+    $mountdev =~ s|ide/host(\d+)/bus(\d+)/target(\d+)/lun(\d+)/disc
+        |ide/host\1/bus\2/target\3/lun\4|x;
 } else {
     # not a sym link; just assign it.
     $mountdev = $device;
@@ -286,7 +301,7 @@ $outputfilename = $device;
 $outputfilename =~ s/\//./g;
 $outputfilename = substr ($outputfilename, 1, 100);
 
-$outputfilepath = "\/root\/bin\/";
+$outputfilepath = "/root/bin/";
 
 
 # Make a hash of the labels.
@@ -326,12 +341,20 @@ while (<MOUNT>) {
                 $_[0] =~ s/hd/hd$letter/;
             }
             $mountpoints{$_[2]} = $_[0];
-#             print "$_[2] is the mountpoint for tomsrtbt device $mountpoints{$_[2]}.\n";
+#             print "$_[2] is the mountpoint for tomsrtbt";
+#             print " device $mountpoints{$_[2]}.\n";
         }
     }
 }
 close (MOUNT);
 
+# Get sfdisk output. If we have sfdisk at restore time (e.g. Knoppix),
+# we'll use it.
+
+system "sfdisk -d $device > $outputfilepath${outputfilename}.sfd";
+
+# Otherwise we'll use the output from fdisk, which may or may not be
+# any more accurate.
 
 $fpid = open (FDISK, "fdisk -l $device |") or die "Couldn't fork: $!\n";
 
@@ -344,14 +367,16 @@ while (<FDISK>) {
         chop;                   # kill trailing \r
         @_ = unpack ($fmt, $_);
 
-        # now strip white spaces from cylinder numbers
+        # Now strip white spaces from cylinder numbers, white space &
+        # leading plus signs from partition type.
         @_[$firstcyl] =~ s/[ \t]+//;
         @_[$lastcyl] =~ s/[ \t]+//;
-        @_[$parttype] =~ s/[ \t]+//;
+        @_[$parttype] =~ s/[+ \t]+//;
 
         $partnumber = substr(@_[$dev], 8, 10); # get partition number for this line
         # just for grins
-#       print "  $partnumber, @_[$firstcyl], @_[$lastcyl], @_[$parttype], @_[$partstring]\n";
+#         print "  $partnumber, @_[$firstcyl], @_[$lastcyl],";
+#         print " @_[$parttype], @_[$partstring]\n";
 
         # Here we start creating the input to recreate the partition
         # this line represents.
@@ -361,7 +386,8 @@ while (<FDISK>) {
             # primary Linux partition
             if (@_[$parttype] == 83) {
                 print OUTPUT "p\n$partnumber\n@_[$firstcyl]\n";
-                if (@_[$firstcyl] ne @_[$lastcyl]) { # in case it's all on one cylinder
+                # in case it's all on one cylinder
+                if (@_[$firstcyl] ne @_[$lastcyl]) {
                     print OUTPUT "@_[$lastcyl]\n";
                 }
 
@@ -375,7 +401,8 @@ while (<FDISK>) {
                 # have to remember to reset it to the null string when
                 # we're done.
 
-                $dpid = open (DUMPE2FS, "dumpe2fs @_[$dev] 2>/dev/null | grep -i journal |")
+                $dpid = open (DUMPE2FS,
+                              "dumpe2fs @_[$dev] 2>/dev/null | grep -i journal |")
                     or die "Couldn't fork: $!\n";
                 while (<DUMPE2FS>) {
 #                   print "Dumpe2fs: $_";
@@ -386,7 +413,8 @@ while (<FDISK>) {
 
                 if ($labels{@_[$dev]}) { # do we have a label?
                     $format .= "echo\necho formatting $checking@_[$dev]\n";
-                    $format .= "mke2fs $ext3{$_[$dev]}\$blockcheck -L $labels{@_[$dev]} @_[$dev]\n\n";
+                    $format .= "mke2fs $ext3{$_[$dev]}\$blockcheck";
+                    $format .= " -L $labels{@_[$dev]} @_[$dev]\n\n";
                 } else {
                     $format .= "echo\necho formatting $checking@_[$dev]\n";
                     $format .= "mke2fs $ext3{$_[$dev]}\$blockcheck @_[$dev]\n\n";
@@ -407,7 +435,7 @@ while (<FDISK>) {
                 if (@_[$firstcyl] ne @_[$lastcyl]) {
                     print OUTPUT "@_[$lastcyl]\n";
                 }
-                print OUTPUT "t\n$partnumber\nf\n";
+                $typechanges .= "t\n$partnumber\nf\n";
 
                 # primary Linux swap partition
             } elsif (@_[$parttype] == 82) {
@@ -415,9 +443,14 @@ while (<FDISK>) {
                 if (@_[$firstcyl] ne @_[$lastcyl]) {
                     print OUTPUT "@_[$lastcyl]\n";
                 }
-                print OUTPUT "t\n$partnumber\n82\n";
+                $typechanges .= "t\n$partnumber\n82\n";
                 $format .= "echo Making @_[$dev] a swap partition.\n";
-                $format .= "mkswap \$blockcheck @_[$dev]\n\n";
+                if ($labels{@_[$dev]}) { # do we have a label?
+                    $format .= "mkswap \$blockcheck -L $labels{@_[$dev]}";
+                    $format .= " @_[$dev]\n\n";
+                } else {
+                    $format .= "mkswap \$blockcheck @_[$dev]\n\n";
+                }
 
                 # Primary mess-dos partition. We don't handle hidden
                 # partitions.
@@ -425,14 +458,16 @@ while (<FDISK>) {
                       || @_[$parttype] eq "b" || @_[$parttype] eq "c"
                       || @_[$parttype] eq "e" ) {
                 # print ("Making DOS primary partition.\n");
-                print ("dd if=@_[$dev] of=$outputfilepath$outputfilename$partnumber");
-                print (" bs=512 count=1\n");
-                system ("dd if=@_[$dev] of=$outputfilepath$outputfilename$partnumber bs=512 count=1");
+
+                getBootSector (@_[$dev], "$outputfilepath$outputfilename$partnumber");
+
                 print OUTPUT "p\n$partnumber\n@_[$firstcyl]\n";
-                if (@_[$firstcyl] ne @_[$lastcyl]) { # in case it's all on one cylinder
+                # in case it's all on one cylinder
+                if (@_[$firstcyl] ne @_[$lastcyl]) {
                     print OUTPUT "@_[$lastcyl]\n";
                 }
-                print OUTPUT "t\n$partnumber\n@_[$parttype]\n";
+
+                $typechanges .= "t\n$partnumber\n@_[$parttype]\n";
                 $format .= "echo\necho formatting $checking@_[$dev]\n";
                 $format .= "mkdosfs \$blockcheck";
                 if ( @_[$parttype] == b || @_[$parttype] == c) {
@@ -441,7 +476,8 @@ while (<FDISK>) {
                 }
                 $format .= " @_[$dev]\n";
                 $format .= "# restore FAT boot sector.\n";
-                $format .= "dd if=$outputfilename$partnumber of=@_[$dev] bs=512 count=1\n\n";
+                $format .= "dd if=$outputfilename$partnumber";
+                $format .= " of=@_[$dev] bs=512 count=1\n\n";
 
             } else {
                 # anything else partition
@@ -449,7 +485,7 @@ while (<FDISK>) {
                 if (@_[$firstcyl] ne @_[$lastcyl]) {
                     print OUTPUT "@_[$lastcyl]\n";
                 }
-                print OUTPUT "t\n$partnumber\n@_[$parttype]\n";
+                $typechanges .= "t\n$partnumber\n@_[$parttype]\n";
             }
 
         } else {
@@ -470,7 +506,8 @@ while (<FDISK>) {
                 # have to remember to reset it to the null string when
                 # we're done.
 
-                $dpid = open (DUMPE2FS, "dumpe2fs @_[$dev] 2>/dev/null | grep -i journal |")
+                $dpid = open (DUMPE2FS,
+                              "dumpe2fs @_[$dev] 2>/dev/null | grep -i journal |")
                     or die "Couldn't fork: $!\n";
                 while (<DUMPE2FS>) {
 #                   print "Dumpe2fs: $_";
@@ -481,7 +518,8 @@ while (<FDISK>) {
 
                 if ($labels{@_[$dev]}) { # do we have a label?
                     $format .= "echo\necho formatting $checking@_[$dev]\n";
-                    $format .= "mke2fs $ext3{@_[$dev]}\$blockcheck -L $labels{@_[$dev]} @_[$dev]\n\n";
+                    $format .= "mke2fs $ext3{@_[$dev]}\$blockcheck";
+                    $format .= " -L $labels{@_[$dev]} @_[$dev]\n\n";
                 } else {
                     $format .= "echo\necho formatting $checking@_[$dev]\n";
                     $format .= "mke2fs $ext3{@_[$dev]}\$blockcheck @_[$dev]\n\n";
@@ -493,9 +531,14 @@ while (<FDISK>) {
                 if (@_[$firstcyl] ne @_[$lastcyl]) {
                     print OUTPUT "@_[$lastcyl]\n";
                 }
-                print OUTPUT "t\n$partnumber\n82\n";
+                $typechanges .= "t\n$partnumber\n82\n";
                 $format .= "echo Making @_[$dev] a swap partition.\n";
-                $format .= "mkswap \$blockcheck @_[$dev]\n\n";
+                if ($labels{@_[$dev]}) { # do we have a label?
+                    $format .= "mkswap \$blockcheck -L $labels{@_[$dev]}";
+                    $format .= " @_[$dev]\n\n";
+                } else {
+                    $format .= "mkswap \$blockcheck @_[$dev]\n\n";
+                }
 
                 # Logical mess-dos partition. We don't handle hidden
                 # partitions.
@@ -504,14 +547,15 @@ while (<FDISK>) {
                       || @_[$parttype] eq "b" || @_[$parttype] eq "c"
                       || @_[$parttype] eq "e" ) {
 #               print ("Making DOS logical partition.\n");
-                print ("dd if=@_[$dev] of=$outputfilepath$outputfilename$partnumber");
-                print (" bs=512 count=1\n");
-                system ("dd if=@_[$dev] of=$outputfilepath$outputfilename$partnumber bs=512 count=1");
+
+                getBootSector (@_[$dev], "$outputfilepath$outputfilename$partnumber");
+
                 print OUTPUT "l\n$partnumber\n@_[$firstcyl]\n";
-                if (@_[$firstcyl] ne @_[$lastcyl]) { # in case it's all on one cylinder
+                # in case it's all on one cylinder
+                if (@_[$firstcyl] ne @_[$lastcyl]) {
                     print OUTPUT "@_[$lastcyl]\n";
                 }
-                print OUTPUT "t\n$partnumber\n@_[$parttype]\n";
+                $typechanges .= "t\n$partnumber\n@_[$parttype]\n";
                 $format .= "echo\necho formatting $checking@_[$dev]\n";
                 $format .= "mkdosfs \$blockcheck";
                 if ( @_[$parttype] == b || @_[$parttype] == c) {
@@ -520,7 +564,8 @@ while (<FDISK>) {
                 }
                 $format .= " @_[$dev]\n";
                 $format .= "# restore FAT boot sector.\n";
-                $format .= "dd if=$outputfilename$partnumber of=@_[$dev] bs=512 count=1\n\n";
+                $format .= "dd if=$outputfilename$partnumber";
+                $format .= " of=@_[$dev] bs=512 count=1\n\n";
 
             } else {
                 # anything else partition
@@ -528,7 +573,7 @@ while (<FDISK>) {
                 if (@_[$firstcyl] ne @_[$lastcyl]) {
                     print OUTPUT "@_[$lastcyl]\n";
                 }
-                print OUTPUT "t\n$partnumber\n@_[$parttype]\n";
+                $typechanges .= "t\n$partnumber\n@_[$parttype]\n";
             }
 
         }
@@ -537,10 +582,27 @@ while (<FDISK>) {
         if (@_[$bootable] =~ /\*/) {
             print OUTPUT "a\n$partnumber\n";
         }
+    } else {
+        # If we got here, the current line does not have a partition in it.
+
+        # Get the geometry for fdisk. Force fdisk to use the current
+        # geometry at restoration time. Comment this out for
+        # tomstrbt's fdisk; it doesn't like it.
+
+        if ($_ =~ /heads.*sectors.*cylinders/i) {
+#           print $_;               # again, for grins.
+            chop;
+            @geometry = split (/ /, $_);
+            $geometry = " -H $geometry[0] -S $geometry[2] -C $geometry[4]";
+#           print $geometry;
+        }
     }
 }
 
-print OUTPUT "v\nw\n";
+# Append all the partition type changes, validate, and print out the
+# results.
+
+print OUTPUT "${typechanges}v\nw\n";
 
 close (OUTPUT);
 close (FDISK);
@@ -572,10 +634,25 @@ fi
 
 FINIS
 
-# Clean the old partition table out.
-print OUTPUT "dd if=/dev/zero of=$device bs=512 count=2\n\nsync\n\n";
+# Clean the old partition table out. Turn off swap in case we're using
+# it.
 
-print OUTPUT "fdisk $device \< $outputfilename\n\nsync\n\n";
+print OUTPUT "dd if=/dev/zero of=$device bs=512 count=2\n\nswapoff -a\nsync\n\n";
+
+
+# command for fdisk
+
+$fdiskcmd .= "# see if we have sfdisk & if so use it.\n";
+$fdiskcmd .= "if which sfdisk ; then\n";
+$fdiskcmd .= "  echo \"Using sfdisk.\"\n";
+$fdiskcmd .= "  sfdisk $geometry $device < ${outputfilename}.sfd\n";
+$fdiskcmd .= "else\n";
+$fdiskcmd .= "  echo \"using fdisk.\"\n";
+$fdiskcmd .= "  fdisk $geometry $device \< $outputfilename\n";
+$fdiskcmd .= "fi\n\nsync\n\n";
+
+
+print OUTPUT $fdiskcmd;
 print OUTPUT $format;
 
 print OUTPUT "fdisk -l \"$device\"\n";
@@ -621,7 +698,8 @@ FINIS
 # untarring the contents of the ZIP disk, done in restore.metadata.
 
 foreach $point ( sort keys %mountpoints) {
-    print OUTPUT "\n# $point is the mountpoint for tomsrtbt device $mountpoints{$point}.\n";
+    print OUTPUT "\n# $point is the mountpoint for";
+    print OUTPUT " tomsrtbt device $mountpoints{$point}.\n";
     print OUTPUT "mkdir $target$point\n";
     print OUTPUT "mount $mountpoints{$point} $target$point\n";
 }
@@ -634,4 +712,4 @@ close (OUTPUT);
 
 chmod 0700, "${outputfilepath}make.$outputfilename";
 chmod 0700, "${outputfilepath}mount.$outputfilename";
-chmod 0600, "${outputfilepath}$outputfilename";
+chmod 0600, "${outputfilepath}${outputfilename}*";
