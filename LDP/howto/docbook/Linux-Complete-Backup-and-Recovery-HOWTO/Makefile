@@ -1,6 +1,6 @@
 # a makefile for generating the Bare Metal Recovery HOW-TO
 
-# Time-stamp: <2003-12-18 16:29:29 ccurley Makefile>
+# Time-stamp: <2005-10-13 09:54:10 ccurley Makefile>
 
 # All the scripts we incorporate into the HOWTO. We filter out CVS,
 # which is the CVS directory, and files with ~ in them, as these are
@@ -122,7 +122,7 @@ ship: all
 	cd .. ; mv  $(DOCUMENT).smooth.html.tar.bz2 $(INSTALL)/
 
 	# Chunky version for download
-	tar -cvf $(DOCUMENT).chunky.html.tar $(DOCUMENT) images --exclude images/CVS
+	tar -cvf $(DOCUMENT).chunky.html.tar --exclude images/CVS $(DOCUMENT) images
 	bzip2 -9 $(DOCUMENT).chunky.html.tar
 	mv $(DOCUMENT).chunky.html.tar.bz2  $(INSTALL)/
 
@@ -131,6 +131,7 @@ ship: all
 	cd .. ; bzip2 -9 $(DOCUMENT).tar
 	cd .. ; mv $(DOCUMENT).tar.bz2  $(INSTALL)/
 	cd $(INSTALL) ; md5sum *.bz2 > md5sums.txt
+	cd $(INSTALL) ; sha1sum *.bz2 > sha1sums.txt
 	ls -l $(INSTALL)
 
 install: ship
