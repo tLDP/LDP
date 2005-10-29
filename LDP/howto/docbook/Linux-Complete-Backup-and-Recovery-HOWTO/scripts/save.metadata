@@ -3,7 +3,7 @@
 # A script to save certain meta-data off to the boot partition. Useful for
 # restoration.
 
-# Time-stamp: <2004-04-29 15:36:52 root save.metadata>
+# Time-stamp: <2005-10-11 09:06:56 root save.metadata>
 
 # Copyright 2000 through the last date of modification, Charles Curley.
 
@@ -21,8 +21,19 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 
-# You can also contact the Free Software Foundation at http://www.fsf.org/
+# You can also contact the Free Software Foundation at
+# http://www.fsf.org/
 
+# 2005-09-09: Added a line to create a boot disk ISO in the ZIP drive.
+
+# 2005-08-30: Modernized sub-shell calls, a few other tweaks.
+
+# 2005-07-29: Fedora Core 4 mods. Name of the directory to be saved
+# has to be last. Also, we now specify --numeric-owner so as to avoid
+# UID problems when using some live CD systems. And we now save to
+# /var instead of a mounted ZIP disk.
+
+# 2005-02-19: Fedora Core 3 mods.
 
 # 2003 01 08: We now age the output from rpm -VA to make back
 # comparisons easier.
@@ -68,9 +79,11 @@ else
    local file=$1		# The archive file to create
    shift			# Discard the file name
    local dirs=$@		# The director[y|ies] to archive
-   local tarcmd="tar -cjf"	# The tar command.
+   local tarcmd="tar --numeric-owner -cjf"	# The tar command.
 
-   $tarcmd  $zip/$file.tar.bz2 $dirs # do it!!
+   local tarit="$tarcmd  $zip/$file.tar.bz2 $dirs"
+   echo $tarit
+   $tarit			# do it!!
 
    error=$?			# Preserve the exit code
 
@@ -86,7 +99,7 @@ fi
 }
 
 # Begin the main line code
-export zip="/mnt/zip";		# Where we will put archives
+export zip="/var/bare.metal";	# Where we will put archives. Not the ZIP drive here.
 #  export save="/mnt/save";
 
 RPMVABACKS=/etc			# where we keep our backups
@@ -136,20 +149,37 @@ make.fdisk /dev/hda
 
 echo "Verifying RPMs."
 
-rpm -Va | sort +2 -t ' ' > ${NEW}
+rpm -Va | sort +2 -t ' ' | uniq > ${NEW}
 
 echo "Finished verifying RPMs; now mounting the ZIP drive."
 
 # Make sure we have the ZIP drive mounted.
-umount $zip
-modprobe ppa			# Driver for 100MB parallel port ZIP disk
-mount $zip			# It should have ext2fs on partition 1.
+# umount $zip
+# modprobe ppa			# Driver for 100MB parallel port ZIP disk
+# mount $zip			# It should have ext2fs on partition 1.
 
 # clean it all out
-rm -r $zip/*
-mkdir $zip/lost+found
+# rm -r $zip/*
+# mkdir -p $zip/lost+found
 
-echo "`hostname` bare metal ZIP disk, created `date`. `uname -a`" > $zip/README.txt
+# Since we aren't saving to ZIP disk, we age the local copy.
+rm -r $zip.old
+mv $zip $zip.old
+mkdir $zip
+
+echo -e "$(hostname) bare metal ZIP disk, created $(date)" > $zip/README.txt
+uname -a >> $zip/README.txt
+
+# Preserve the release information. Tested with Red Hat/Fedora, should
+# work with SuSE, Mandrake and other RPM based systems. Debian
+# equivalent, anyone?
+
+for releasefile in $(ls /etc/*release*) ; do
+  # echo $releasefile
+  if [ -e $releasefile ] && [ ! -L $releasefile ] ; then
+    cat $releasefile >> $zip/README.txt
+  fi
+done
 
 echo "Building the ZIP drive backups."
 
@@ -167,17 +197,28 @@ cd /
 # Build our minimal archives on the ZIP disk. These appear to be
 # required so we can restore later on.
 
+crunch root --exclude root/.cpan --exclude root/.mozilla --exclude root/down root
 crunch boot boot
-crunch root root --exclude root/.cpan --exclude root/.mozilla
-crunch etc etc --exclude etc/samba --exclude X11
+crunch etc --exclude etc/samba --exclude etc/X11 --exclude etc/gconf etc
 crunch lib lib
 
 crunch usr.sbin usr/sbin
-crunch usr.bin usr/bin --exclude usr/bin/emacs --exclude usr/bin/emacs-21.2 --exclude usr/bin/emacsclient --exclude usr/bin/emacs-nox --exclude usr/bin/gs --exclude usr/bin/pine --exclude usr/bin/gimp-1.2 --exclude usr/bin/doxygen --exclude usr/bin/postgres --exclude usr/bin/gdb --exclude usr/bin/kmail --exclude usr/bin/splint --exclude usr/bin/odbctest --exclude usr/bin/php --exclude usr/bin/xchat --exclude usr/bin/gnucash --exclude usr/bin/pdfetex  --exclude usr/bin/pdftex --exclude usr/bin/smbcacls --exclude usr/bin/evolution-calendar --exclude usr/bin/xpdf --exclude usr/bin/xmms
+crunch usr.bin --exclude usr/bin/emacs-x --exclude usr/bin/emacs-21.4-x\
+ --exclude usr/bin/emacsclient --exclude usr/bin/emacs-nox --exclude\
+  usr/bin/gs --exclude usr/bin/pine --exclude usr/bin/gimp-1.2\
+   --exclude usr/bin/doxygen --exclude usr/bin/postgres --exclude\
+    usr/bin/gdb --exclude usr/bin/kmail --exclude usr/bin/splint\
+	 --exclude usr/bin/odbctest --exclude usr/bin/php --exclude \
+	 usr/bin/xchat --exclude usr/bin/gnucash --exclude usr/bin/pdfetex\
+	  --exclude usr/bin/pdftex --exclude usr/bin/smbcacls\
+	   --exclude usr/bin/evolution-calendar --exclude usr/bin/xpdf\
+	    --exclude usr/bin/xmms usr/bin
 crunch sbin sbin
 crunch bin bin
 crunch dev dev
-crunch kerberos usr/kerberos/lib/
+
+# RH8. Fedora 1 puts them in /lib
+# crunch kerberos usr/kerberos/lib/
 
 # Now optional saves.
 
@@ -186,13 +227,28 @@ crunch kerberos usr/kerberos/lib/
 
 # save these so we can use ssh for restore. *crack* for RH 7.0 login
 # authentication.
-crunch usr.lib usr/lib/*crack* usr/lib/libz* usr/lib/libssl* usr/lib/libcrypto*
+# RH 8.0
+# crunch usr.lib usr/lib/*crack* usr/lib/libz* usr/lib/libssl* usr/lib/libcrypto*
+# Fedora 1
+# crunch usr.lib usr/lib/*crack* usr/lib/libz* usr/lib/libwrap*\
+#  usr/lib/libk* usr/lib/*krb5* /usr/lib/libgss*
+# Fedora 3
+crunch usr.lib usr/lib/*crack* usr/lib/libz* usr/lib/libwrap*\
+ usr/lib/libk* usr/lib/*krb5* usr/lib/libgss*
+
+# Grub requires these at installation time.
+crunch usr.share.grub usr/share/grub
 
 # save the scripts we used to create the ZIP disk and the ones we will
 # use to restore it.
 mkdir $zip/root.bin
 cp -p /root/bin/* $zip/root.bin
 rm $zip/root.bin/*~ $zip/root.bin/#*#
+
+# Since we're doing system stuff anyway, make a boot disk ISO image
+# suitable for burning. It uses the current kernel.
+
+mkbootdisk --iso --device $zip/bootdisk.$(uname -r).iso $(uname -r)
 
 echo "Testing our results."
 find $zip -iname "*.bz2" | xargs bunzip2 -t
@@ -206,7 +262,7 @@ find $zip -iname "*.bz2" | xargs bunzip2 -t
 #  mount $save
 
 #  rm -r $save/zip
-#  mkdir $save/zip
+#  mkdir -p $save/zip
 #  cp -pr $zip $save
 
 du -hs ${zip}*
