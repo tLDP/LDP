@@ -11,6 +11,8 @@
  */
 #include "chardev.h"
 
+#include <stdio.h>
+#include <stdlib.h>
 #include <fcntl.h>		/* open */
 #include <unistd.h>		/* exit */
 #include <sys/ioctl.h>		/* ioctl */
@@ -62,7 +64,7 @@ ioctl_get_nth_byte(int file_desc)
 	printf("get_nth_byte message:");
 
 	i = 0;
-	while (c != 0) {
+	do {
 		c = ioctl(file_desc, IOCTL_GET_NTH_BYTE, i++);
 
 		if (c < 0) {
@@ -73,7 +75,7 @@ ioctl_get_nth_byte(int file_desc)
 		}
 
 		putchar(c);
-	}
+	} while (c != 0);
 	putchar('\n');
 }
 

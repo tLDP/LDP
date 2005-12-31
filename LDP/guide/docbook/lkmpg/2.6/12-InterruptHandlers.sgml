@@ -3,114 +3,127 @@
 	<indexterm><primary>interrupt handlers</primary></indexterm>
 	<indexterm><primary>handlers</primary><secondary>interrupt</secondary></indexterm>
 
+	<sect2><title>Interrupt Handlers</title>
+		<para>
+                Except for the last chapter, everything we did in the kernel so far we've done as a response to a process 
+                asking for it, either by dealing with a special file, sending an <function>ioctl()</function>, or issuing 
+                a system call.  But the job of the kernel isn't just to respond to process requests.  Another job, which 
+                is every bit as important, is to speak to the hardware connected to the machine.
+                </para>
+
+		<para>There are two types of interaction between the CPU and the rest of the computer's hardware.
+                The first type is when the CPU gives orders to the hardware, the other is when the hardware needs to tell 
+                the CPU something.  The second, called interrupts, is much harder to implement because it has to be dealt 
+                with when convenient for the hardware, not the CPU. Hardware devices typically have a very small amount of 
+                RAM, and if you don't read their information when available, it is lost.
+                </para>
+
+		<para>
+                Under Linux, hardware interrupts are called IRQ's (<emphasis>I</emphasis>nterrupt<emphasis>R</emphasis>e
+                <emphasis>q</emphasis>uests)<footnote><para>This is standard nomencalture on the Intel architecture where 
+                Linux originated.</para></footnote>.  There are two types of IRQ's, short and long.  A short IRQ is one which 
+                is expected to take a <emphasis>very</emphasis> short period of time, during which the rest of the machine 
+                will be blocked and no other interrupts will be handled.  A long IRQ is one which can take longer, and during
+                which other interrupts may occur (but not interrupts from the same device).  If at all possible, it's better
+                to declare an interrupt handler to be long.
+                </para>
+
+		<indexterm><primary>bottom half</primary></indexterm>
+
+		<para>
+                When the CPU receives an interrupt, it stops whatever it's doing (unless it's processing a more important
+                interrupt, in which case it will deal with this one only when the more important one is done), saves certain 
+                parameters on the stack and calls the interrupt handler.  This means that certain things are not allowed 
+                in the interrupt handler itself, because the system is in an unknown state.  The solution to this problem
+                is for the interrupt handler to do what needs to be done immediately, usually read something from the hardware
+                or send something to the hardware, and then schedule the handling of the new information at a later time 
+                (this is called the <quote>bottom half</quote>) and return.  The kernel is then	guaranteed to call the bottom
+                half as soon as possible -- and when it does, everything allowed in kernel modules will be allowed.
+                </para>
+
+		<indexterm><primary>request_irq()</primary></indexterm>
+		<indexterm><primary>/proc/interrupts</primary></indexterm>
+		<indexterm><primary>SA_INTERRUPT</primary></indexterm>
+		<indexterm><primary>SA_SHIRQ</primary></indexterm>
+
+		<para>
+                The way to implement this is to call <function>request_irq()</function> to get your interrupt handler 
+                called when the relevant IRQ is received. <footnote><para>In practice IRQ handling can be a bit more 
+                complex. Hardware is often designed in a way that chains two interrupt controllers, so that all the IRQs
+                from interrupt controller B are cascaded to a certain IRQ from interrupt controller A. Of course that 
+                requires that the kernel finds out which IRQ it really was afterwards and that adds overhead. Other 
+                architectures offer some special, very low overhead, so called "fast IRQ" or FIQs. To take advantage 
+                of them requires handlers to be written in assembler, so they do not really fit into the kernel. They 
+                can be made to work similar to the others, but after that procedure, they're no longer any faster than 
+                "common" IRQs. SMP enabled kernels running on systems with more than one processor need to solve another
+                truckload of problems. It's not enough to know if a certain IRQs has happend, it's also important for 
+                what CPU(s) it was for. People still interested in more details, might want to do a web search for 
+                "APIC" now ;)</para></footnote>This function receives the IRQ number, the name of the function, flags, 
+                a name for <filename>/proc/interrupts</filename> and a parameter to pass to the interrupt handler. Usually 
+                there is a certain number of IRQs available. How many IRQs there are is hardware dependant. The flags can 
+                include <parameter>SA_SHIRQ</parameter> to indicate you're willing to share the IRQ with other interrupt 
+                handlers (usually because a number of hardware devices sit on the same IRQ) and <parameter>SA_INTERRUPT
+                </parameter> to indicate this is a fast interrupt.  This function will only succeed if there isn't already 
+                a handler on this IRQ, or if you're both willing to share.
+                </para>
+
+		<indexterm><primary>queue_work</primary></indexterm>
+
+		<para>
+                Then, from within the interrupt handler, we communicate with the hardware and then use <function>queue_work()
+                </function> <function>mark_bh(BH_IMMEDIATE)</function> to schedule the bottom half.
+                </para>
+	</sect2>
 
 
-		<sect2><title>Interrupt Handlers</title>
 
-			<para>Except for the last chapter, everything we did in the kernel so far we've done as a response to a process asking for
-			it, either by dealing with a special file, sending an <function>ioctl()</function>, or issuing a system call.  But the job
-			of the kernel isn't just to respond to process requests.  Another job, which is every bit as important, is to speak to the
-			hardware connected to the machine.</para>
+	<sect2 id="keyboard"><title>Keyboards on the Intel Architecture</title>
 
-			<para>There are two types of interaction between the CPU and the rest of the computer's hardware.  The first type is when
-			the CPU gives orders to the hardware, the other is when the hardware needs to tell the CPU something.  The second, called
-			interrupts, is much harder to implement because it has to be dealt with when convenient for the hardware, not the CPU.
-			Hardware devices typically have a very small amount of RAM, and if you don't read their information when available, it is
-			lost.</para>
+		<indexterm><primary>keyboard</primary></indexterm>
+		<indexterm><primary>Intel architecture</primary><secondary>keyboard</secondary></indexterm>
 
-			<para>Under Linux, hardware interrupts are called IRQ's (<emphasis>I</emphasis>nterrupt
-			<emphasis>R</emphasis>e<emphasis>q</emphasis>uests)<footnote><para>This is standard nomencalture on the Intel architecture
-			where Linux originated.<para></footnote>.  There are two types of IRQ's, short and long.  A short IRQ is one which is
-			expected to take a <emphasis>very</emphasis> short period of time, during which the rest of the machine will be blocked
-			and no other interrupts will be handled.  A long IRQ is one which can take longer, and during which other interrupts may
-			occur (but not interrupts from the same device).  If at all possible, it's better to declare an interrupt handler to be
-			long.</para>
+		<!-- <warning> -->
+		<para>
+                The rest of this chapter is completely Intel specific.  If you're not running on an Intel platform, it
+		will not work.  Don't even try to compile the code here.
+                </para>
 
-			<indexterm><primary>bottom half</primary></indexterm>
+		<!-- </warning> -->
+		<para>
+                I had a problem with writing the sample code for this chapter.  On one hand, for an example to be useful
+                it has to run on everybody's computer with meaningful results.  On the other hand, the kernel already 
+                includes device drivers for all of the common devices, and those device drivers won't coexist with what 
+                I'm going to write.  The solution I've found was to write something for the keyboard interrupt, and disable
+                the regular keyboard interrupt handler first.  Since it is defined as a static symbol in the kernel source
+                files (specifically, <filename>drivers/char/keyboard.c</filename>), there is no way to restore it. Before 
+                <userinput>insmod</userinput>'ing this code, do on another terminal <userinput>sleep 120; reboot</userinput>
+                if you value your file system.
+                </para>
 
-			<para>When the CPU receives an interrupt, it stops whatever it's doing (unless it's processing a more important interrupt,
-			in which case it will deal with this one only when the more important one is done), saves certain parameters on the stack
-			and calls the interrupt handler.  This means that certain things are not allowed in the interrupt handler itself, because
-			the system is in an unknown state.  The solution to this problem is for the interrupt handler to do what needs to be done
-			immediately, usually read something from the hardware or send something to the hardware, and then schedule the handling of
-			the new information at a later time (this is called the <quote>bottom half</quote>) and return.  The kernel is then
-			guaranteed to call the bottom half as soon as possible -- and when it does, everything allowed in kernel modules will be
-			allowed.</para>
+		<indexterm><primary>inb</primary></indexterm>
 
-			<indexterm><primary>request_irq()</primary></indexterm>
-			<indexterm><primary>/proc/interrupts</primary></indexterm>
-			<indexterm><primary>SA_INTERRUPT</primary></indexterm>
-			<indexterm><primary>SA_SHIRQ</primary></indexterm>
+		<para>
+                This code binds itself to IRQ 1, which is the IRQ of the keyboard controlled under Intel architectures.
+                Then, when it receives a keyboard interrupt, it reads the keyboard's status (that's the purpose of the
+                <userinput>inb(0x64)</userinput>) and the scan code, which is the value returned by the keyboard. Then, 
+                as soon as the kernel thinks it's feasible, it runs <function>got_char</function> which gives the code 
+                of the key used (the first seven bits of the scan code) and whether it has been pressed (if the 8th bit
+                is zero) or released (if it's one).
+                </para>
 
-			<para>The way to implement this is to call <function>request_irq()</function> to get your interrupt handler called
-			when the relevant IRQ is received.	
-
-			<footnote><para>
-			In practice IRQ handling can be a bit more complex. Hardware is often designed in a way that chains two interrupt
-			controllers, so that all the IRQs from interrupt controller B are cascaded to a certain IRQ from
-			interrupt controller A. Of course that requires that the kernel finds out which IRQ it really was
-			afterwards and that adds overhead. Other architectures offer some special, very low overhead,
-			so called "fast IRQ" or FIQs. To take advantage of them requires handlers to be written in assembler,
-			so they do not really fit into the kernel. They can be made to work similar to the others, but after
-			that procedure, they're no longer any faster than "common" IRQs. SMP enabled kernels running on systems 
-			with more than one processor need to solve another truckload of problems. It's not enough to know if a certain IRQs
-			has happend, it's also important for what CPU(s) it was for. People still interested in more details,
-			might want to do a web search for "APIC" now ;)
-			</para></footnote>
-									
-			This function receives the IRQ number, the name of the function, flags, a name for
-			<filename>/proc/interrupts</filename> and a parameter to pass to the interrupt handler. 
-			Usually there is a certain number of IRQs available. How many IRQs there are is hardware dependant.
-			The flags can include <parameter>SA_SHIRQ</parameter> to indicate you're willing to share the IRQ with other
-			interrupt handlers (usually because a number of hardware devices sit on the same IRQ) and 
-			<parameter>SA_INTERRUPT</parameter> to indicate this is a fast interrupt.  This function will only succeed if
-			there isn't already a handler on this IRQ, or if you're both willing to	share.</para>
-
-			<indexterm><primary>queue_work</primary></indexterm>
-
-			<para>Then, from within the interrupt handler, we communicate with the hardware and then use
-			<function>queue_work()</function> <function>mark_bh(BH_IMMEDIATE)</function> to schedule the bottom half.
-			</sect2>
+		<indexterm><primary>source file</primary><secondary><filename>intrpt.c</filename></secondary></indexterm>
 
 
+                <example>
+                <title>intrpt.c</title>
+                <programlisting>
+<inlinegraphic fileref="lkmpg-examples/12-InterruptHandlers/intrpt.c" format="linespecific"/></inlinegraphic>
+                </programlisting>
+                </example>
 
-		<sect2 id="keyboard"><title>Keyboards on the Intel Architecture</title>
-
-			<indexterm><primary>keyboard</primary></indexterm>
-			<indexterm><primary>Intel architecture</primary><secondary>keyboard</secondary></indexterm>
-
-			<!-- <warning> -->
-			<para>The rest of this chapter is completely Intel specific.  If you're not running on an Intel platform, it
-			will not work.  Don't even try to compile the code here.</para>
-			<!-- </warning> -->
-
-			<para>I had a problem with writing the sample code for this chapter.  On one hand, for an example to be useful it has to
-			run on everybody's computer with meaningful results.  On the other hand, the kernel already includes device drivers for
-			all of the common devices, and those device drivers won't coexist with what I'm going to write.  The solution I've found
-			was to write something for the keyboard interrupt, and disable the regular keyboard interrupt handler first.  Since it is
-			defined as a static symbol in the kernel source files (specifically, <filename>drivers/char/keyboard.c</filename>), there
-			is no way to restore it.  Before <userinput>insmod</userinput>'ing this code, do on another terminal <userinput>sleep 120
-			; reboot</userinput> if you value your file system.</para>
-
-			<indexterm><primary>inb</primary></indexterm>
-
-			<para> This code binds itself to IRQ 1, which is the IRQ of the keyboard controlled under Intel architectures.  Then, when
-			it receives a keyboard interrupt, it reads the keyboard's status (that's the purpose of the
-			<userinput>inb(0x64)</userinput>) and the scan code, which is the value returned by the keyboard.  Then, as soon as the
-			kernel thinks it's feasible, it runs <function>got_char</function> which gives the code of the key used (the first seven
-			bits of the scan code) and whether it has been pressed (if the 8th bit is zero) or released (if it's one).</para>
-
-			<indexterm><primary>source file</primary><secondary><filename>intrpt.c</filename></secondary></indexterm>
-
-
-<example><title>intrpt.c</title><programlisting><inlinegraphic fileref="lkmpg-examples/12-InterruptHandlers/intrpt.c" format="linespecific"/></inlinegraphic></programlisting></example>
-
-
-		</sect2>
+	</sect2>
 
 </sect1>
-
-
 
 <!--
 vim: tw=128

@@ -7,6 +7,7 @@
 #include <linux/init.h>
 #include <linux/tty.h>		/* For fg_console, MAX_NR_CONSOLES */
 #include <linux/kd.h>		/* For KDSETLED */
+#include <linux/vt.h>
 #include <linux/console_struct.h>	/* For vc_cons */
 
 MODULE_DESCRIPTION("Example module illustrating the use of Keyboard LEDs.");
