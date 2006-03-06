@@ -20,7 +20,8 @@ then
 fi  
 
 
-IFS="\n"         # Per suggestion of Paulo Marcel Coelho Aragao.
+IFS=$'\012'       # Per suggestion of Anton Filippov.
+                  # was:  IFS="\n"
 for word in $( strings "$2" | grep "$1" )
 # The "strings" command lists strings in binary files.
 # Output then piped to "grep", which tests for desired string.
@@ -28,7 +29,7 @@ do
   echo $word
 done
 
-# As S.C. points out, lines 23 - 29 could be replaced with the simpler
+# As S.C. points out, lines 23 - 30 could be replaced with the simpler
 #    strings "$2" | grep "$1" | tr -s "$IFS" '[\n*]'
 
 

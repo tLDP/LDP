@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copying a directory tree using 'cpio.'
+# Copying a directory tree using cpio.
 
 # Advantages of using 'cpio':
 #   Speed of copying. It's faster than 'tar' with pipes.
@@ -19,9 +19,10 @@ fi
 source=$1
 destination=$2
 
+
 find "$source" -depth | cpio -admvp "$destination"
 #               ^^^^^         ^^^^^
-# Read the 'find' and 'cpio' man page to decipher these options.
+# Read the 'find' and 'cpio' man pages to decipher these options.
 
 
 # Exercise:

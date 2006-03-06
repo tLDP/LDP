@@ -6,6 +6,7 @@
 
 EQUAL=0             # Return value if both params equal.
 E_PARAM_ERR=-99999  # Not enough params passed to function.
+#           ^^^^^^    Out of range of any params that might be passed.
 
 max2 ()             # "Returns" larger of two numbers.
 {
@@ -29,7 +30,7 @@ else
 fi
 
 echo $retval        # Echoes (to stdout), rather than returning value.
-
+                    # Why?
 }
 
 

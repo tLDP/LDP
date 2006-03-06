@@ -67,3 +67,11 @@ ls $datadir | grep -v m3u > $datadir/podcast.m3u
 
 
 exit 0
+
+#################################################
+For a different scripting approach to Podcasting,
+see Phil Salkie's article, 
+"Internet Radio to Podcast with Shell Tools"
+in the September, 2005 issue of LINUX JOURNAL,
+http://www.linuxjournal.com/article/8171
+#################################################

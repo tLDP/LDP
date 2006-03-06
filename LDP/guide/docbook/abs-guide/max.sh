@@ -3,6 +3,8 @@
 
 E_PARAM_ERR=-198    # If less than 2 params passed to function.
 EQUAL=-199          # Return value if both params equal.
+#  Error values out of range of any
+#+ params that might be fed to the function.
 
 max2 ()             # Returns larger of two numbers.
 {                   # Note: numbers compared must be less than 257.

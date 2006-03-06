@@ -33,8 +33,9 @@ exit 0
 #+ so that this script, for example, runs correctly.
 #  (Thanks to Heiner Steven for pointing this out.)
 
-# However . . .
-# Bash *can* sometimes start a subshell in a *redirected* "while" loop.
+#  However . . .
+#  Bash *can* sometimes start a subshell in a PIPED "while-read" loop,
+#+ as distinct from a REDIRECTED "while" loop.
 
 abc=hi
 echo -e "1\n2\n3" | while read l
@@ -43,5 +44,6 @@ echo -e "1\n2\n3" | while read l
      done
 echo $abc
 
-# (Thanks, Bruno de Oliveira Schneider, for demonstrating this
-#+ with the above snippet of code.)
+#  Thanks, Bruno de Oliveira Schneider, for demonstrating this
+#+ with the above snippet of code.
+#  And, thanks, Brian Onn, for correcting an annotation error.
