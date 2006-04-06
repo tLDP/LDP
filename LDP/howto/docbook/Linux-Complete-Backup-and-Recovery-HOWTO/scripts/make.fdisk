@@ -9,7 +9,7 @@
 # run at restore time to rebuild hard drive x, prior to running
 # restore.metadata. dev.x is the input file for fdisk.
 
-# Time-stamp: <2005-10-29 10:03:39 ccurley make.fdisk>
+# Time-stamp: <2006-04-05 20:36:21 ccurley make.fdisk>
 
 # Copyright 2001 through the last date of modification Charles Curley
 # except for the subroutine cut2fmt.
@@ -50,6 +50,13 @@
 # http://www.fsf.org/
 
 # Changes:
+
+# 2006-03-28: We have a problem if swap partitions have
+# labels. There's no way to retrieve the label from a swap
+# partition. If we have one & only one swap partition, then we can
+# pull it out of /etc/fstab. Otherwise the user is on her own. We scan
+# fstab for swap mount points that have labels for their devices. If
+# there is one and only one, we assume that's it, otherwise pass.
 
 # 2005-10-29: We now provide the geometry as an argument to fdisk
 # (which does not work on tomsrtbt). We also save data for sfdisk, and
@@ -175,6 +182,7 @@
 # For more information contact the author, Charles Curley, at
 # http://www.charlescurley.com/.
 
+use File::Copy;
 
 # cut2fmt figures out the format string for the unpack function we use
 # to slice and dice the output from fdisk. From Christiansen and
@@ -199,10 +207,12 @@ sub cut2fmt {
 # to the current output file.
 
 sub gpl {
+    my $FILE = shift;
+    my $year = shift;
 
-print OUTPUT <<FINIS;
+    print $FILE <<FINIS;
 
-# Copyright 2001 through the last date of modification Charles Curley.
+# Copyright $year through the last date of modification Charles Curley.
 
 # This program is free software; you can redistribute it and/or modify it
 # under the terms of the GNU General Public License as published by the
@@ -235,8 +245,162 @@ sub getBootSector {
     system ($systemcmd);
 }
 
-# Begin main line code.
 
+# If we have one & only one swap partition, then this must be
+# it. Otherwise the user is on her own. We scan fstab for swap mount
+# points that have labels for their devices. If there is one and only
+# one, we assume that's it, otherwise pass.
+
+sub getswaplabel {
+    my $dev = $_[0];
+
+    $fstabpid = open (FSTAB, "< /etc/fstab")
+        or die "Couldn't fork: $!\n";
+    while (defined (my $line = <FSTAB>)) {
+        chop ($line);
+        @fstabs = split (" ", $line);
+        if (@fstabs[1] eq "swap") {
+            $swaplabel = @fstabs[0];
+            if ($swaplabel =~ /LABEL/) {
+                $swaps++;
+                $sl = substr ($swaplabel, 6);
+            }
+#           print ("\"@fstabs[0]\", \"@fstabs[1]\", \"$sl\", $swaps.\n");
+            break;
+        }
+    }
+    close (FSTAB);
+
+#   print "label is $sl.\n";
+
+    if ($swaps == 1) {
+        $ret = "mkswap \$blockcheck -L $sl";
+        $ret .= " $dev\n\n";
+    } else {
+        $ret = "mkswap \$blockcheck $dev\n\n";
+    }
+
+#   print ("Returning :$ret\n");
+
+    return $ret;
+}
+
+# dolvm is a subroutine to handle LVM partitions. This is
+# experimental....
+
+sub dolvm {
+    my $dev = $_[0];
+
+    print ("In dolvm ()...\n");
+
+    # back up the LVM's lvm details. Get the config files.
+    system ("vgcfgbackup -f LVM.backs");
+
+    # Scan /etc/fstab for the logical volumes and write a script to
+    # make file systems on them and another to mount 'em later on.
+
+    $mklvs = open (MKLVS, "> make.lvs")
+        or die "Couldn't fork: $!\n";
+
+    print MKLVS <<FINIS;
+#! /bin/sh
+
+# A script to create file systems on logical volumes. Created at bare
+# metal backup time by the Perl script make.fdisk.
+FINIS
+
+    &gpl (*MKLVS, "2006");
+
+
+    print MKLVS <<FINIS;
+
+export blockcheck=\$1;
+
+if [ "\$blockcheck" != "-c" ] && [ -n "\$blockcheck" ]
+then
+    echo "\${0}: Build file systems on logical volumes."
+    echo "\${0}: -c: block check during file system making."
+    exit 1;
+fi
+
+export LVM_SYSTEM_DIR=\$(pwd)/lvm.cfg
+
+FINIS
+
+    $mtlvs = open (MTLVS, "> mount.lvs")
+        or die "Couldn't fork: $!\n";
+
+    print MTLVS <<FINIS;
+#! /bin/sh
+
+# A script to mount file systems on logical volumes. Created at bare
+# metal backup time by the Perl script make.fdisk.
+FINIS
+
+    &gpl (*MTLVS, "2006");
+
+
+    # Now cycle through all the known logical volumes & set them
+    # up. N.B.: This has been tested on a machine with only one
+    # LV. But it *should* work.
+
+$pvdisp = open (PVDISP, "pvdisplay -c |")
+or die ("Can't open LVM display.\n");
+    while (defined (my $pv = <PVDISP>)) {
+        chop ($pv);
+        print ("$pv\n");
+        @pv = split (":", $pv);
+        $uid = @pv[11];
+        $pvname = @pv[1];
+        $phv = @pv[0];
+        print ("pv $pvname has uid $uid.\n");
+
+        print (MKLVS "echo \"y\\n\" | pvcreate -ff --uuid \"$uid\" --restorefile lvm.cfg/archive/${pvname}_*.vg $phv\n");
+        print (MKLVS "vgcfgrestore --file LVM.backs $pvname\n\n");
+    }
+
+    print (MKLVS "# Hideously disty dependent!\nif [ -e /etc/init.d/lvm ] ; then\n    /etc/init.d/lvm start\nfi\n\n");
+
+    $fstabpid = open (FSTAB, "< /etc/fstab")
+        or die "Couldn't fork: $!\n";
+    while (defined (my $line = <FSTAB>)) {
+        chop ($line);
+        @fstabs = split (" ", $line);
+        if (@fstabs[0] =~ /VolGroup/ ) {
+#           print ("$line\n");
+            if (@fstabs[2] eq "swap") {
+                print (MKLVS "echo\necho making LV @fstabs[0] a swap partition.\n");
+                print (MKLVS "mkswap \$blockcheck @fstabs[0]\n\n");
+            } elsif (@fstabs[2] == "ext3") {
+                print (MKLVS "echo\necho making LV @fstabs[0] an ext3 partition.\n");
+                print (MKLVS "mke2fs -j \$blockcheck @fstabs[0]\n\n");
+
+                print (MTLVS "mkdir -p /target$fstabs[1]\n");
+                print (MTLVS "mount @fstabs[0] /target$fstabs[1]\n\n");
+            } elsif (@fstabs[2] == "ext2") {
+                print (MKLVS "echo\necho making LV @fstabs[0] an ext2 partition.\n");
+                print (MKLVS "mke2fs \$blockcheck @fstabs[0]\n\n");
+
+                print (MTLVS "mkdir -p /target$fstabs[1]\n");
+                print (MTLVS "mount @fstabs[0] /target$fstabs[1]\n\n");
+            } else {
+                print ("Opps, unknown type of logical volume, @fstabs[0]\n");
+            }
+        }
+    }
+    print (MTLVS "\nmount | grep -i \"/target\"\n");
+
+    close (FSTAB);
+    close (MKLVS);
+    close (MTLVS);
+
+    print ("Leaving dolvm ()...\n");
+
+    return ($ret);
+}
+
+
+# Begin main line code.
 
 # Provide a default device.
 
@@ -444,16 +608,17 @@ while (<FDISK>) {
                     print OUTPUT "@_[$lastcyl]\n";
                 }
                 $typechanges .= "t\n$partnumber\n82\n";
-                $format .= "echo Making @_[$dev] a swap partition.\n";
+                $format .= "echo\necho Making @_[$dev] a swap partition.\n";
                 if ($labels{@_[$dev]}) { # do we have a label?
                     $format .= "mkswap \$blockcheck -L $labels{@_[$dev]}";
                     $format .= " @_[$dev]\n\n";
                 } else {
-                    $format .= "mkswap \$blockcheck @_[$dev]\n\n";
+                    $format .= getswaplabel (@_[$dev]);
                 }
 
                 # Primary mess-dos partition. We don't handle hidden
                 # partitions.
+
             } elsif ( @_[$parttype] == 1 || @_[$parttype] == 4 || @_[$parttype] == 6
                       || @_[$parttype] eq "b" || @_[$parttype] eq "c"
                       || @_[$parttype] eq "e" ) {
@@ -479,6 +644,8 @@ while (<FDISK>) {
                 $format .= "dd if=$outputfilename$partnumber";
                 $format .= " of=@_[$dev] bs=512 count=1\n\n";
 
+            } elsif ( @_[$parttype] == "8e") {
+                $format .= dolvm ($_[$dev]);
             } else {
                 # anything else partition
                 print OUTPUT "p\n@_[$firstcyl]\n";
@@ -532,12 +699,12 @@ while (<FDISK>) {
                     print OUTPUT "@_[$lastcyl]\n";
                 }
                 $typechanges .= "t\n$partnumber\n82\n";
-                $format .= "echo Making @_[$dev] a swap partition.\n";
+                $format .= "echo\necho Making @_[$dev] a swap partition.\n";
                 if ($labels{@_[$dev]}) { # do we have a label?
                     $format .= "mkswap \$blockcheck -L $labels{@_[$dev]}";
                     $format .= " @_[$dev]\n\n";
                 } else {
-                    $format .= "mkswap \$blockcheck @_[$dev]\n\n";
+                    $format .= getswaplabel (@_[$dev]);
                 }
 
                 # Logical mess-dos partition. We don't handle hidden
@@ -567,6 +734,8 @@ while (<FDISK>) {
                 $format .= "dd if=$outputfilename$partnumber";
                 $format .= " of=@_[$dev] bs=512 count=1\n\n";
 
+            } elsif ( @_[$parttype] == "8e") {
+                $format .= dolvm ($_[$dev]);
             } else {
                 # anything else partition
                 print OUTPUT "l\n@_[$firstcyl]\n";
@@ -575,7 +744,6 @@ while (<FDISK>) {
                 }
                 $typechanges .= "t\n$partnumber\n@_[$parttype]\n";
             }
-
         }
 
         # handle bootable partitions
@@ -593,7 +761,7 @@ while (<FDISK>) {
 #           print $_;               # again, for grins.
             chop;
             @geometry = split (/ /, $_);
-            $geometry = " -H $geometry[0] -S $geometry[2] -C $geometry[4]";
+            $geometry = "-H $geometry[0] -S $geometry[2] -C $geometry[4]";
 #           print $geometry;
         }
     }
@@ -619,9 +787,15 @@ print OUTPUT <<FINIS;
 # make.fdisk.
 FINIS
 
-&gpl;
+&gpl (*OUTPUT, "2001");
 
 print OUTPUT <<FINIS;
+
+swapoff -a
+# Hideously disty dependent!
+if [ -e /etc/init.d/lvm ] ; then
+    /etc/init.d/lvm stop
+fi
 
 export blockcheck=\$1;
 
@@ -637,7 +811,7 @@ FINIS
 # Clean the old partition table out. Turn off swap in case we're using
 # it.
 
-print OUTPUT "dd if=/dev/zero of=$device bs=512 count=2\n\nswapoff -a\nsync\n\n";
+print OUTPUT "dd if=/dev/zero of=$device bs=512 count=2\n\nsync\n\n";
 
 
 # command for fdisk
@@ -673,7 +847,7 @@ print OUTPUT <<FINIS;
 # the Perl script make.fdisk.
 FINIS
 
-&gpl;
+&gpl (*OUTPUT, "2001");
 
 print OUTPUT <<FINIS;
 
@@ -700,16 +874,17 @@ FINIS
 foreach $point ( sort keys %mountpoints) {
     print OUTPUT "\n# $point is the mountpoint for";
     print OUTPUT " tomsrtbt device $mountpoints{$point}.\n";
-    print OUTPUT "mkdir $target$point\n";
+    print OUTPUT "mkdir -p $target$point\n";
     print OUTPUT "mount $mountpoints{$point} $target$point\n";
 }
 
-print OUTPUT "\nmount | grep -i \"$device\"\n";
+print OUTPUT "\nmount | grep -i \"/target\"\n";
 
 close (OUTPUT);
 
 # These scripts are dangerous & should only be visible to root.
 
 chmod 0700, "${outputfilepath}make.$outputfilename";
+chmod 0700, "${outputfilepath}make.lvs";
 chmod 0700, "${outputfilepath}mount.$outputfilename";
 chmod 0600, "${outputfilepath}${outputfilename}*";
