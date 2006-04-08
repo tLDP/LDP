@@ -9,7 +9,7 @@
 # run at restore time to rebuild hard drive x, prior to running
 # restore.metadata. dev.x is the input file for fdisk.
 
-# Time-stamp: <2006-04-06 09:20:53 ccurley make.fdisk>
+# Time-stamp: <2006-04-08 15:23:55 ccurley make.fdisk>
 
 # Copyright 2001 through the last date of modification Charles Curley
 # except for the subroutine cut2fmt.
@@ -50,6 +50,10 @@
 # http://www.fsf.org/
 
 # Changes:
+
+# 2006-04-08: Primitive LVM support. It is kludgy in that it uses
+# first stage restoration distribution (finnix) specific code to turn
+# LVM on and off, but otherwise seems to work.
 
 # 2006-03-28: We have a problem if swap partitions have
 # labels. There's no way to retrieve the label from a swap
@@ -182,8 +186,6 @@
 # For more information contact the author, Charles Curley, at
 # http://www.charlescurley.com/.
 
-use File::Copy;
-
 # cut2fmt figures out the format string for the unpack function we use
 # to slice and dice the output from fdisk. From Christiansen and
 # Torkington, Perl Cookbook 5.
@@ -288,31 +290,32 @@ sub getswaplabel {
 # dolvm is a subroutine to handle LVM partitions. This is
 # experimental....
 
+$lvms = 0;			# true if we've been here before
+
 sub dolvm {
-    my $dev = $_[0];
 
     print ("In dolvm ()...\n");
 
-    # back up the LVM's lvm details. Get the config files.
-    system ("vgcfgbackup -f LVM.backs");
+    if ($lvms == 0) {
+        $lvms = 1;
 
-    # Scan /etc/fstab for the logical volumes and write a script to
-    # make file systems on them and another to mount 'em later on.
+        # Scan /etc/fstab for the logical volumes and write a script to
+        # make file systems on them and another to mount 'em later on.
 
-    $mklvs = open (MKLVS, "> make.lvs")
-        or die "Couldn't fork: $!\n";
+        $mklvs = open (MKLVS, "> make.lvs")
+            or die "Couldn't fork: $!\n";
 
-    print MKLVS <<FINIS;
+        print MKLVS <<FINIS;
 #! /bin/sh
 
 # A script to create file systems on logical volumes. Created at bare
 # metal backup time by the Perl script make.fdisk.
 FINIS
 
-    &gpl (*MKLVS, "2006");
+        &gpl (*MKLVS, "2006");
 
 
-    print MKLVS <<FINIS;
+        print MKLVS <<FINIS;
 
 export blockcheck=\$1;
 
@@ -323,78 +326,92 @@ then
     exit 1;
 fi
 
-export LVM_SYSTEM_DIR=\$(pwd)/lvm.cfg
+export LVM_SYSTEM_DIR=\$(pwd)/lvm
 
 FINIS
 
-    $mtlvs = open (MTLVS, "> mount.lvs")
-        or die "Couldn't fork: $!\n";
+        $mtlvs = open (MTLVS, "> mount.lvs")
+            or die "Couldn't fork: $!\n";
 
-    print MTLVS <<FINIS;
+        print MTLVS <<FINIS;
 #! /bin/sh
 
 # A script to mount file systems on logical volumes. Created at bare
 # metal backup time by the Perl script make.fdisk.
 FINIS
 
-    &gpl (*MTLVS, "2006");
+        &gpl (*MTLVS, "2006");
 
 
-    # Now cycle through all the known logical volumes & set them
-    # up. N.B.: This has been tested on a machine with only one
-    # LV. But it *should* work.
+        # Now cycle through all the known logical volumes & set them
+        # up. N.B.: This has been tested on a machine with only one
+        # LV. But it *should* work.
 
-$pvdisp = open (PVDISP, "pvdisplay -c |")
-or die ("Can't open LVM display.\n");
-    while (defined (my $pv = <PVDISP>)) {
-        chop ($pv);
-        print ("$pv\n");
-        @pv = split (":", $pv);
-        $uid = @pv[11];
-        $pvname = @pv[1];
-        $phv = @pv[0];
-        print ("pv $pvname has uid $uid.\n");
+        $pvdisp = open (PVDISP, "pvdisplay -c |")
+            or die ("Can't open LVM display.\n");
+        while (defined (my $pv = <PVDISP>)) {
+            chop ($pv);
+            print ("$pv\n");
+            @pv = split (":", $pv);
+            $uid = @pv[11];
+            $pvname = @pv[1];
+            $phv = @pv[0];
+            print ("pv $pvname has uid $uid.\n");
 
-        print (MKLVS "echo \"y\\n\" | pvcreate -ff --uuid \"$uid\"\\\n");
-		print (MKLVS "    --restorefile lvm.cfg/archive/${pvname}_*.vg $phv\n");
-        print (MKLVS "vgcfgrestore --file LVM.backs $pvname\n\n");
-    }
+            # back up the LVM's lvm details. Get the config files.
+            system ("vgcfgbackup -f LVM.backs.$pvname $pvname");
 
-    print (MKLVS "# Hideously disty dependent!\nif [ -e /etc/init.d/lvm ] ; then\n");
-    print (MKLVS "    /etc/init.d/lvm start\nfi\n\n");
+            print (MKLVS "echo \"y\\n\" | pvcreate -ff --uuid \"$uid\"\\\n");
+            print (MKLVS "    --restorefile lvm/archive/${pvname}_*.vg $phv\n");
+            print (MKLVS "vgcfgrestore --file LVM.backs.$pvname $pvname\n\n");
+        }
 
-    $fstabpid = open (FSTAB, "< /etc/fstab")
-        or die "Couldn't fork: $!\n";
-    while (defined (my $line = <FSTAB>)) {
-        chop ($line);
-        @fstabs = split (" ", $line);
-        if (@fstabs[0] =~ /VolGroup/ ) {
-#           print ("$line\n");
-            if (@fstabs[2] eq "swap") {
-                print (MKLVS "echo\necho making LV @fstabs[0] a swap partition.\n");
-                print (MKLVS "mkswap \$blockcheck @fstabs[0]\n\n");
-            } elsif (@fstabs[2] == "ext3") {
-                print (MKLVS "echo\necho making LV @fstabs[0] an ext3 partition.\n");
-                print (MKLVS "mke2fs -j \$blockcheck @fstabs[0]\n\n");
+        print (MKLVS "# Hideously disty dependent!\nif [ -e /etc/init.d/lvm ] ; then\n");
+        print (MKLVS "    /etc/init.d/lvm start\nfi\n\n");
 
-                print (MTLVS "mkdir -p /target$fstabs[1]\n");
-                print (MTLVS "mount @fstabs[0] /target$fstabs[1]\n\n");
-            } elsif (@fstabs[2] == "ext2") {
-                print (MKLVS "echo\necho making LV @fstabs[0] an ext2 partition.\n");
-                print (MKLVS "mke2fs \$blockcheck @fstabs[0]\n\n");
+        $fstabpid = open (FSTAB, "< /etc/fstab")
+            or die "Couldn't fork: $!\n";
+        while (defined (my $line = <FSTAB>)) {
+            chop ($line);
+            @fstabs = split (" ", $line);
+            if (@fstabs[0] =~ /VolGroup/ ) {
+                #           print ("$line\n");
+                if (@fstabs[2] eq "swap") {
+                    print (MKLVS "echo\necho making LV @fstabs[0] a swap partition.\n");
+                    print (MKLVS "mkswap \$blockcheck @fstabs[0]\n\n");
+                } elsif (@fstabs[2] == "ext3") {
+                    print (MKLVS "echo\necho making LV @fstabs[0], @fstabs[1],");
+					print (MKLVS " an ext3 partition.\n");
+                    print (MKLVS "mke2fs -j \$blockcheck @fstabs[0]\n\n");
 
-                print (MTLVS "mkdir -p /target$fstabs[1]\n");
-                print (MTLVS "mount @fstabs[0] /target$fstabs[1]\n\n");
-            } else {
-                print ("Opps, unknown type of logical volume, @fstabs[0]\n");
+                    print (MTLVS "mkdir -p /target$fstabs[1]\n");
+                    print (MTLVS "mount @fstabs[0] /target$fstabs[1]\n\n");
+                } elsif (@fstabs[2] == "ext2") {
+                    print (MKLVS "echo\necho making LV @fstabs[0], @fstabs[1],");
+					print (MKLVS " an ext2 partition.\n");
+                    print (MKLVS "mke2fs \$blockcheck @fstabs[0]\n\n");
+
+                    print (MTLVS "mkdir -p /target$fstabs[1]\n");
+                    print (MTLVS "mount @fstabs[0] /target$fstabs[1]\n\n");
+                } else {
+                    print ("Opps, unknown type of logical volume, @fstabs[0]\n");
+                }
             }
         }
-    }
-    print (MTLVS "\nmount | grep -i \"/target\"\n");
+        print (MTLVS "mount | grep -i \"/target\"\n");
 
-    close (FSTAB);
-    close (MKLVS);
-    close (MTLVS);
+        close (FSTAB);
+        close (MKLVS);
+        close (MTLVS);
+
+        chmod 0700, "${outputfilepath}make.lvs";
+        chmod 0700, "${outputfilepath}mount.lvs";
+
+        # Copy the LVM configuration to where we can get at it...
+
+        system ("cp -rp /etc/lvm .");
+
+    }
 
     print ("Leaving dolvm ()...\n");
 
@@ -647,7 +664,7 @@ while (<FDISK>) {
                 $format .= " of=@_[$dev] bs=512 count=1\n\n";
 
             } elsif ( @_[$parttype] == "8e") {
-                $format .= dolvm ($_[$dev]);
+                $format .= dolvm ();
             } else {
                 # anything else partition
                 print OUTPUT "p\n@_[$firstcyl]\n";
@@ -737,7 +754,7 @@ while (<FDISK>) {
                 $format .= " of=@_[$dev] bs=512 count=1\n\n";
 
             } elsif ( @_[$parttype] == "8e") {
-                $format .= dolvm ($_[$dev]);
+                $format .= dolvm ();
             } else {
                 # anything else partition
                 print OUTPUT "l\n@_[$firstcyl]\n";
@@ -821,7 +838,7 @@ print OUTPUT "dd if=/dev/zero of=$device bs=512 count=2\n\nsync\n\n";
 $fdiskcmd .= "# see if we have sfdisk & if so use it.\n";
 $fdiskcmd .= "if which sfdisk ; then\n";
 $fdiskcmd .= "  echo \"Using sfdisk.\"\n";
-$fdiskcmd .= "  sfdisk $geometry $device < ${outputfilename}.sfd\n";
+$fdiskcmd .= "  sfdisk --force $geometry $device < ${outputfilename}.sfd\n";
 $fdiskcmd .= "else\n";
 $fdiskcmd .= "  echo \"using fdisk.\"\n";
 $fdiskcmd .= "  fdisk $geometry $device \< $outputfilename\n";
@@ -887,6 +904,5 @@ close (OUTPUT);
 # These scripts are dangerous & should only be visible to root.
 
 chmod 0700, "${outputfilepath}make.$outputfilename";
-chmod 0700, "${outputfilepath}make.lvs";
 chmod 0700, "${outputfilepath}mount.$outputfilename";
 chmod 0600, "${outputfilepath}${outputfilename}*";
