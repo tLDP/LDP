@@ -65,7 +65,7 @@ do
     then
       exchange $index `expr $index + 1`  # Swap.
     fi  
-    let "index += 1"
+    let "index += 1"  # Or,   index+=1   on Bash, ver. 3.1 or newer.
   done # End of inner loop
 
 # ----------------------------------------------------------------------

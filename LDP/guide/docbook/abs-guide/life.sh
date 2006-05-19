@@ -31,11 +31,22 @@ startfile=gen0   # Read the starting generation from the file "gen0".
                  #
 if [ -n "$1" ]   # Specify another "generation 0" file.
 then
-  if [ -e "$1" ] # Check for existence.
-  then
     startfile="$1"
-  fi  
 fi  
+
+############################################
+#  Abort script if "startfile" not specified
+#+ AND
+#+ "gen0" not present.
+
+E_NOSTARTFILE=68
+
+if [ ! -e "$startfile" ]
+then
+  echo "Startfile \""$startfile"\" missing!"
+  exit $E_NOSTARTFILE
+fi
+############################################
 
 
 ALIVE1=.
@@ -337,9 +348,9 @@ done
 
 echo
 
-exit 0
+exit 0   # END
 
-# --------------------------------------------------------------
+
 
 # The grid in this script has a "boundary problem."
 # The the top, bottom, and sides border on a void of dead cells.

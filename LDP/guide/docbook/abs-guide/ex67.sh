@@ -28,6 +28,9 @@ while [ "$index" -lt "$element_count" ]
 do    # List all the elements in the array.
   echo ${colors[$index]}
   let "index = $index + 1"
+  # Or:
+  #    index+=1
+  # if running Bash, version 3.1 or later.
 done
 # Each array element listed on a separate line.
 # If this is not desired, use  echo -n "${colors[$index]} "

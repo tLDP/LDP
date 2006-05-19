@@ -9,7 +9,7 @@
 # The first 20 terms of the series are:
 # 1 1 2 3 3 4 5 5 6 6 6 8 8 8 10 9 10 11 11 12 
 
-#  See Hofstadter's book, "Goedel, Escher, Bach: An Eternal Golden Braid",
+#  See Hofstadter's book, _Goedel, Escher, Bach: An Eternal Golden Braid_,
 #+ p. 137, ff.
 
 

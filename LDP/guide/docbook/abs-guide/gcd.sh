@@ -13,7 +13,7 @@
 #+ The gcd = dividend, on the final pass.
 #
 #  For an excellent discussion of Euclid's algorithm, see
-#  Jim Loy's site, http://www.jimloy.com/number/euclids.htm.
+#+ Jim Loy's site, http://www.jimloy.com/number/euclids.htm.
 
 
 # ------------------------------------------------------
@@ -33,7 +33,7 @@ gcd ()
 {
 
   dividend=$1                    #  Arbitrary assignment.
-  divisor=$2                     #+ It doesn't matter which of the two is larger.
+  divisor=$2                     #! It doesn't matter which of the two is larger.
                                  #  Why not?
 
   remainder=1                    #  If uninitialized variable used in loop,
