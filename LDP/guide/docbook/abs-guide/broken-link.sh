@@ -19,16 +19,16 @@
 ##############################################################
 
 
-#If no args are passed to the script set directorys to search 
-#to current directory.  Otherwise set the directorys to search 
-#to the agrs passed.
+#If no args are passed to the script set directories-to-search 
+#to current directory.  Otherwise set the directories-to-search 
+#to the args passed.
 ####################
 [ $# -eq 0 ] && directorys=`pwd` || directorys=$@
 
 #Setup the function linkchk to check the directory it is passed 
 #for files that are links and don't exist, then print them quoted.
 #If one of the elements in the directory is a subdirectory then 
-#send that send that subdirectory to the linkcheck function.
+#send that subdirectory to the linkcheck function.
 ##########
 linkchk () {
     for element in $1/*; do

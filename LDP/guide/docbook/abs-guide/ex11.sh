@@ -11,7 +11,8 @@ fi
 
 echo
 
-if /usr/bin/test -z "$1"      # Same result as "test" builtin".
+if /usr/bin/test -z "$1"      # Equivalent to "test" builtin.
+#  ^^^^^^^^^^^^^              # Specifying full pathname.
 then
   echo "No command-line arguments."
 else

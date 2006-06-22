@@ -12,7 +12,7 @@ LINES=5
 ( date; uname -a ) >>logfile
 # Time and machine name
 echo --------------------------------------------------------------------- >>logfile
-tail -$LINES /var/log/messages | xargs |  fmt -s >>logfile
+tail -$LINES /var/log/messages | xargs | fmt -s >>logfile
 echo >>logfile
 echo >>logfile
 

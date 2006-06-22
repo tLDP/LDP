@@ -2,14 +2,15 @@
 # empty-array.sh
 
 #  Thanks to Stephane Chazelas for the original example,
-#+ and to Michael Zick for extending it.
+#+ and to Michael Zick and Omair Eshkenazi for extending it.
 
 
 # An empty array is not the same as an array with empty elements.
 
-array0=( first second third )
-array1=( '' )   # "array1" consists of one empty element.
-array2=( )      # No elements . . . "array2" is empty.
+  array0=( first second third )
+  array1=( '' )   # "array1" consists of one empty element.
+  array2=( )      # No elements . . . "array2" is empty.
+  array3=(   )    # What about this array?
 
 echo
 ListArray()
@@ -18,14 +19,17 @@ echo
 echo "Elements in array0:  ${array0[@]}"
 echo "Elements in array1:  ${array1[@]}"
 echo "Elements in array2:  ${array2[@]}"
+echo "Elements in array3:  ${array3[@]}"
 echo
 echo "Length of first element in array0 = ${#array0}"
 echo "Length of first element in array1 = ${#array1}"
 echo "Length of first element in array2 = ${#array2}"
+echo "Length of first element in array3 = ${#array3}"
 echo
 echo "Number of elements in array0 = ${#array0[*]}"  # 3
 echo "Number of elements in array1 = ${#array1[*]}"  # 1  (Surprise!)
 echo "Number of elements in array2 = ${#array2[*]}"  # 0
+echo "Number of elements in array3 = ${#array3[*]}"  # 0
 }
 
 # ===================================================================
@@ -38,6 +42,7 @@ ListArray
 array0=( "${array0[@]}" "new1" )
 array1=( "${array1[@]}" "new1" )
 array2=( "${array2[@]}" "new1" )
+array3=( "${array3[@]}" "new1" )
 
 ListArray
 
@@ -45,6 +50,7 @@ ListArray
 array0[${#array0[*]}]="new2"
 array1[${#array1[*]}]="new2"
 array2[${#array2[*]}]="new2"
+array3[${#array3[*]}]="new2"
 
 ListArray
 
@@ -56,7 +62,7 @@ echo
 echo "Stack height for array2 = $height"
 
 # The 'pop' is:
-unset array2[${#array2[@]}-1]	#  Arrays are zero-based,
+unset array2[${#array2[@]}-1]   #  Arrays are zero-based,
 height=${#array2[@]}            #+ which means first element has index 0.
 echo
 echo "POP"
@@ -66,7 +72,7 @@ ListArray
 
 # List only 2nd and 3rd elements of array0.
 from=1		# Zero-based numbering.
-to=2		#
+to=2
 array3=( ${array0[@]:1:2} )
 echo
 echo "Elements in array3:  ${array3[@]}"

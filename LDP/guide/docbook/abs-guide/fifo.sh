@@ -15,9 +15,9 @@
   
   # ==> 'su xyz' runs commands as user "xyz".
   # ==> 'ssh' invokes secure shell (remote login client).
-  su xyz -c "ssh $THERE \"cat >/home/xyz/backup/${HERE}-daily.tar.gz\" < /pipe"&
+  su xyz -c "ssh $THERE \"cat > /home/xyz/backup/${HERE}-daily.tar.gz\" < /pipe"&
   cd /
-  tar -czf - bin boot dev etc home info lib man root sbin share usr var >/pipe
+  tar -czf - bin boot dev etc home info lib man root sbin share usr var > /pipe
   # ==> Uses named pipe, /pipe, to communicate between processes:
   # ==> 'tar/gzip' writes to /pipe and 'ssh' reads from /pipe.
 
@@ -26,6 +26,9 @@
   # ==>  What are the advantages of a "named pipe" in this situation,
   # ==>+ as opposed to an "anonymous pipe", with |?
   # ==>  Will an anonymous pipe even work here?
+
+  # ==>  Is it necessary to delete the pipe before exiting the script?
+  # ==>  How could that be done?
 
 
   exit 0

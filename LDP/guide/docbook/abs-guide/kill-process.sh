@@ -27,7 +27,9 @@ kill $t                  # May need 'kill -9' for stubborn process.
 
 
 # This entire script could be replaced by
-#    kill $(pidof -x process_name)
+#        kill $(pidof -x process_name)
+# or
+#        killall process_name
 # but it would not be as instructive.
 
 exit 0

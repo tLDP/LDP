@@ -12,7 +12,7 @@ do
      echo "$filename" | grep -q " "         #  Check whether filename
      if [ $? -eq $FOUND ]                   #+ contains space(s).
      then
-       fname=$filename                      # Strip off path.
+       fname=$filename                      # Yes, this filename needs work.
        n=`echo $fname | sed -e "s/ /_/g"`   # Substitute underscore for blank.
        mv "$fname" "$n"                     # Do the actual renaming.
        let "number += 1"

@@ -179,6 +179,7 @@ read Wopts
 # Read in the options to be passed to wget.
 
 Woptions=" $Wopts"
+#         ^  Why the leading space?
 # Assign to another variable.
 # Just for fun, or something . . .
 

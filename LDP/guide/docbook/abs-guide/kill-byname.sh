@@ -33,3 +33,6 @@ ps ax | grep "$PROCESS_NAME" | awk '{print $1}' | xargs -i kill {} 2&>/dev/null
 # -----------------------------------------------------------
 
 exit $?
+
+#  The "killall" command has the same effect as this script,
+#+ but using it is not quite as educational.

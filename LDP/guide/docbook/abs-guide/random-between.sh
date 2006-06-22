@@ -93,6 +93,8 @@ randomBetween() {
    #  ---------------------------------------------------------------------
 
    spread=$((max-min))
+   #  Omair Eshkenazi points out that this test is unnecessary,
+   #+ since max and min have already been switched around.
    [ ${spread} -lt 0 ] && spread=$((0-spread))
    let spread+=divisibleBy
    randomBetweenAnswer=$(((RANDOM%spread)/divisibleBy*divisibleBy+min))   

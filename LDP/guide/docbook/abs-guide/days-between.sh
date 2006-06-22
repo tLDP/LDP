@@ -88,7 +88,7 @@ day_index ()          # Gauss' Formula:
 }  
 
 
-calculate_difference ()            # Difference between to day indices.
+calculate_difference ()            # Difference between two day indices.
 {
   let "diff = $1 - $2"             # Global variable.
 }  

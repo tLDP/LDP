@@ -63,7 +63,7 @@ EXCLUDE=(
 
 init () {
     # Let pipe command return possible rsync error, e.g., stalled network.
-    set -o pipefail
+    set -o pipefail                     # Newly introduced in Bash, version 3.
 
     TMP=${TMPDIR:-/tmp}/${0##*/}.$$     # Store refined download list.
     trap "{

@@ -56,7 +56,8 @@ if [ $? != 0 ]; then
 	exit $E_BADARGS
 fi
 shift
-trap 'rm -f ${TMPFILE} ; exit' 0 1 2 3 15
+trap 'rm -f ${TMPFILE} ; exit' 0   1     2              3        15
+# ==>                   Signals:   HUP   INT (Ctl-C)    QUIT     TERM
 # ==> Delete tempfile in case of abnormal exit from script.
 echo "user anonymous ${USER-gnu}@${SITE} > ${TMPFILE}"
 # ==> Added quotes (recommended in complex echoes).

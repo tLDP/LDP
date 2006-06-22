@@ -24,3 +24,7 @@ echo "\"var\" = "$var""
 echo
 
 exit 0
+
+#  This example is similar to the "reply.sh" script.
+#  However, this one shows that $REPLY is available
+#+ even after a 'read' to a variable in the conventional way.
