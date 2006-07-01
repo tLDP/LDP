@@ -54,7 +54,14 @@
 /*  sched.c - scheduale a function to be called on every timer interrupt.
  *
  *  Copyright (C) 2001 by Peter Jay Salzman
+ *
+ *  06/20/2006 - Updated by Rodrigo Rubira Branco <rodrigo@kernelhacking.com>
  */
+
+/* Kernel Programming */
+#define MODULE
+#define LINUX
+#define __KERNEL__
 
 /* The necessary header files */
 
@@ -90,18 +97,15 @@ static int TimerIntrpt = 0;
 /* This is used by cleanup, to prevent the module from being unloaded while
  * intrpt_routine is still in the task queue
  */
-static struct wait_queue *WaitQ = NULL;
+static DECLARE_WAIT_QUEUE_HEAD(WaitQ);
+int waitq=0;
 
 static void intrpt_routine(void *);
 
 /* The task queue structure for this task, from tqueue.h */
 static struct tq_struct Task = {
-   NULL,          /* Next item in list - queue_task will do this for us */
-   0,             /* A flag meaning we haven't been inserted into a task
-                   * queue yet 
-                   */
-   intrpt_routine, /* The function to run */
-   NULL            /* The void* parameter for that function */
+   routine: (void (*)(void *)) intrpt_routine, /* The function to run */
+   data: NULL            /* The void* parameter for that function */
 };
 
 /* This function will be called on every timer interrupt. Notice the void*
@@ -114,7 +118,7 @@ static void intrpt_routine(void *irrelevant)
    TimerIntrpt++;
 
    /* If cleanup wants us to die */
-   if (WaitQ != NULL) 
+   if (waitq) 
       wake_up(&WaitQ);               /* Now cleanup_module can return */
    else
       /* Put ourselves back in the task queue */
@@ -124,7 +128,7 @@ static void intrpt_routine(void *irrelevant)
 /* Put data into the proc fs file. */
 int procfile_read(char *buffer, 
                   char **buffer_location, off_t offset, 
-                  int buffer_length, int zero)
+                  int buffer_length, int *eof, void *data)
 {
    int len;  /* The number of bytes actually used */
 
@@ -151,26 +155,8 @@ int procfile_read(char *buffer,
    return len;
 }
 
-struct proc_dir_entry Our_Proc_File = {
-   0,  /* Inode number - ignore, it'll be filled by proc_register_dynamic */
-   5,                 /* Length of the file name */
-   "sched",           /* The file name */
-   S_IFREG | S_IRUGO, /* File mode - this is a regular file which can be
-                       * read by its owner, its group, and everybody else
-                       */
-   1,      /* Number of links (directories where the file is referenced) */
-   0, 0,             /* The uid and gid for the file - we give it to root */
-   80,               /* The size of the file reported by ls. */
-   NULL, /* functions which can be done on the inode (linking, removing,
-          * etc). - we don't * support any.
-          */
-   procfile_read,  /* The read function for this file, the function called
-									  * when somebody tries to read something from it.
-                    */
-   NULL /* We could have here a function to fill the file's inode, to
-         * enable us to play with permissions, ownership, etc.
-         */
-  }; 
+/* Proc structure pointer */
+struct proc_dir_entry *Our_Proc_File;
 
 /* Initialize the module - register the proc file */
 int init_module()
@@ -181,18 +167,20 @@ int init_module()
    queue_task(&Task, &tq_timer);
 
    /* Success if proc_register_dynamic is a success, failure otherwise */
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2,2,0)
-   return proc_register(&proc_root, &Our_Proc_File);
-#else
-   return proc_register_dynamic(&proc_root, &Our_Proc_File);
-#endif
+   Our_Proc_File=create_proc_read_entry("sched", 0444, NULL, procfile_read, NULL);
+
+   if ( Our_Proc_File == NULL )
+	return -ENOMEM;
+   else
+	return 0;
+
 }
 
 /* Cleanup */
 void cleanup_module()
 {
    /* Unregister our /proc file */
-   proc_unregister(&proc_root, Our_Proc_File.low_ino);
+   remove_proc_entry("sched", NULL);
   
    /* Sleep until intrpt_routine is called one last time. This is necessary,
     * because otherwise we'll deallocate the memory holding intrpt_routine
@@ -202,8 +190,11 @@ void cleanup_module()
     * Since WaitQ is now not NULL, this automatically tells the interrupt
     * routine it's time to die.
     */
+   waitq=1;
    sleep_on(&WaitQ);
 }  
+
+MODULE_LICENSE("GPL");
 ]]></programlisting>
 </example>
 
