@@ -40,7 +40,16 @@
 <example><title>procfs.c</title>
 <programlisting><![CDATA[
 /*  procfs.c -  create a "file" in /proc 
+ *
+ *  Copyright (C) 2001 by Peter Jay Salzman
+ *
+ *  08/02/2006 - Updated by Rodrigo Rubira Branco <rodrigo@kernelhacking.com>
  */
+
+/* Kernel Programming */
+#define MODULE
+#define LINUX
+#define __KERNEL__
 
 #include <linux/kernel.h>   /* We're doing kernel work */
 #include <linux/module.h>   /* Specifically, a module */
@@ -106,11 +115,17 @@
    advantage of having the kernel source code for 
    free - use it.
  */
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2,4,0)
+int procfile_read(char *buffer,
+                  char **buffer_location, off_t offset,
+                  int buffer_length, int *eof, void *data)
+#else
 int procfile_read(char *buffer, 
 		  char **buffer_location, 
 		  off_t offset, 
 		  int buffer_length, 
 		  int zero)
+#endif
 {
   int len;  /* The number of bytes actually used */
 
@@ -150,7 +165,9 @@ int procfile_read(char *buffer,
   return len;
 }
 
-
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2,4,0)
+struct proc_dir_entry *Our_Proc_File;
+#else
 struct proc_dir_entry Our_Proc_File = 
   {
     0, /* Inode number - ignore, it will be filled by 
@@ -169,13 +186,14 @@ struct proc_dir_entry Our_Proc_File =
     NULL, /* functions which can be done on the inode 
            * (linking, removing, etc.) - we don't 
            * support any. */
-    procfile_read, /* The read function for this file, 
+    (struct file_operations *) procfile_read, /* The read function for this file, 
                     * the function called when somebody 
                     * tries to read something from it. */
     NULL /* We could have here a function to fill the 
           * file's inode, to enable us to play with 
           * permissions, ownership, etc. */
   }; 
+#endif
 
 
 
@@ -192,7 +210,16 @@ int init_module()
    * structure , so there's no more need for 
    * proc_register_dynamic
    */
-  return proc_register(&proc_root, &Our_Proc_File);
+  #if LINUX_VERSION_CODE > KERNEL_VERSION(2,4,0)
+	Our_Proc_File=create_proc_read_entry("test", 0444, NULL, procfile_read, NULL);
+
+	if ( Our_Proc_File == NULL )
+		return -ENOMEM;
+	else
+		return 0;
+  #else
+  	return proc_register(&proc_root, &Our_Proc_File);
+  #endif
 #else
   return proc_register_dynamic(&proc_root, &Our_Proc_File);
 #endif
@@ -207,9 +234,14 @@ int init_module()
 /* Cleanup - unregister our file from /proc */
 void cleanup_module()
 {
-  proc_unregister(&proc_root, Our_Proc_File.low_ino);
+  #if LINUX_VERSION_CODE > KERNEL_VERSION(2,4,0)
+	remove_proc_entry("test", NULL);
+  #else
+  	proc_unregister(&proc_root, Our_Proc_File.low_ino);
+  #endif
 }  
 
+MODULE_LICENSE("GPL");
 ]]></programlisting>
 </example>
 
