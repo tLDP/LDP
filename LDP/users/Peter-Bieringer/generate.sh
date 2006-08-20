@@ -83,10 +83,9 @@ create_html_multipage() {
 	echo "INF: Create HTML multipages"
 	if [ ! -d "$file_base" ]; then
 		mkdir "$file_base"
-	else
-		rm -rf "$file_base/*"
 	fi
-	pushd "$file_base"
+	pushd "$file_base" || exit 1
+	rm -f *
 	/usr/bin/jade -t sgml -i html -d "/usr/local/share/sgml/ldp.dsl#html" ../$file_sgml
 	popd
 }
