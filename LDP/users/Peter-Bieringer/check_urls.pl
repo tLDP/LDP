@@ -8,7 +8,13 @@
 
 use strict;
 use Net::HTTP;
+use Net::FTP;
+use Net::NNTP;
+use Crypt::SSLeay;
+use LWP::UserAgent;
 use XML::Dumper;
+use Socket;
+use Socket6;
 
 my $debug = 0xffff & ~(0x20);
 
@@ -19,7 +25,9 @@ my %hosts;
 
 my $time = time;
 
-my $dbfile = "url_database.xml";
+my $dbfile;
+
+my $dbfile_suffix = ".url-database.xml";
 
 
 sub quote($) {
@@ -98,16 +106,56 @@ sub cleanup_old_urls() {
 	};
 };
 
+sub check_ipv6only($$) {
+	print STDERR "DEBUG/check_ipv6only: begin\n" if ($debug & 0x10);
+	print STDERR "DEBUG/check_ipv6only: check: " . $_[0] . "\n" if ($debug & 0x10);
+
+	my ($family, $socktype, $proto, $saddr, $canonname, @res);
+
+	@res = getaddrinfo($_[0], $_[1], AF_INET6, SOCK_STREAM);
+
+	if (scalar(@res) < 5) {
+		return 1;
+	};
+
+	my ($host, $port);
+	$family = -1;
+
+	while (scalar(@res) >= 5) {
+		($family, $socktype, $proto, $saddr, $canonname, @res) = @res;
+
+		($host, $port) = getnameinfo($saddr, NI_NUMERICHOST | NI_NUMERICSERV);
+
+		print STDERR "Trying to connect to $host port port $port...\n";
+
+		socket(Socket_Handle, $family, $socktype, $proto) || next;
+		connect(Socket_Handle, $saddr) && last;
+
+		close(Socket_Handle);
+		$family = -1;
+	};
+
+	if ($family != -1) {
+		print STDERR "connected to $host port $port\n";
+		close(Socket_Handle);
+		return 0;
+	} else {
+		warn "connect attempt failed\n";
+		return 1;
+	};
+};
 
 sub check_urls() {
 	print STDERR "DEBUG/check_urls: begin\n" if ($debug & 0x10);
 
-	for my $url (keys %$p_urls) {
+	for my $url (sort keys %$p_urls) {
 		if (defined $$p_urls{$url}->{'checktime'}) {
 			if ($$p_urls{$url}->{'checktime'} > $time - 60*60*24*7) {
-				# Checked during last 7 days - skip
-				print STDERR "DEBUG/check_urls: checked during last 7 days - skip: $url\n" if ($debug & 0x10);
-				next;
+				if (defined $$p_urls{$url}->{'checkresult'} && $$p_urls{$url}->{'checkresult'} =~ /^ok/) {
+					# Checked during last 7 days - skip
+					print STDERR "DEBUG/check_urls: checked during last 7 days - skip: $url\n" if ($debug & 0x10);
+					next;
+				};
 			};
 		};
 
@@ -130,16 +178,10 @@ sub check_urls() {
 				$port = 80;
 			} elsif ($proto eq "ftp") {
 				$port = 21;
-				$status = "skipped (ftp)";
-				goto ("LABEL_END");
 			} elsif ($proto eq "nntp") {
 				$port = 119;
-				$status = "skipped (nntp)";
-				goto ("LABEL_END");
 			} elsif ($proto eq "https") {
 				$port = 443;
-				$status = "skipped (https)";
-				goto ("LABEL_END");
 			};
 		};
 
@@ -151,28 +193,87 @@ sub check_urls() {
 			goto ("LABEL_PRINT");
 		};
 
-		# Check
-		print STDERR "DEBUG/check_urls: open connection: $host:$port\n" if ($debug & 0x20);
-		my $s = Net::HTTP->new(Host => $host, PeerPort => $port, Timeout => 30);
-		if (! defined $s) {
-			$status = "Host not found";
-			goto ("LABEL_PRINT");
-		};
+		my $s;
 
-		print STDERR "DEBUG/check_urls: send HEAD request: $uri\n" if ($debug & 0x20);
-		if ($s->write_request(HEAD => $uri, 'User-Agent' => "Mozilla/5.0") == 0) {
-			$status = "trouble with uri";
-			goto ("LABEL_PRINT");
-		};
+		if ($proto eq "ftp") {
+			# Check FTP
+			print STDERR "DEBUG/check_urls: open FTP connection: $host:$port\n" if ($debug & 0x20);
+			$s = Net::FTP->new(Host => $host, Port => $port, Timeout => 30, Passive => 1);
 
-		print STDERR "DEBUG/check_urls: wait for response\n" if ($debug & 0x20);
-		my($code, $mess, %h) = $s->read_response_headers;
+			if (! defined $s) {
+				$status = "Host not found";
+				if (! check_ipv6only($host,$port)) {
+					$status = "ok (IPv6 only)";
+				};
+				goto ("LABEL_PRINT");
+			};
 
-		print STDERR "DEBUG/check_urls: check response\n" if ($debug & 0x10);
-		if ($code !~ /^[23]/) {
-			$status = "HTTP reports: $code";
-		} else {
+			if (!$s->login("anonymous",'-anonymous@')) {
+				$status = "FTP anonymous login failed";
+				goto ("LABEL_PRINT");
+			};
+
+			if (!$s->cwd($uri)) {
+				$status = "FTP can't change to directory $uri";
+				goto ("LABEL_PRINT");
+			};
+
 			$status = "ok";
+			$s->quit;
+
+		} elsif ($proto eq "nntp") {
+			my $s = Net::NNTP->new(Host => $host, Timeout => 30);
+
+			if (! defined $s) {
+				$status = "Host not found";
+				if (! check_ipv6only($host,$port)) {
+					$status = "ok (IPv6 only)";
+				};
+				goto ("LABEL_PRINT");
+			};
+			$status = "ok";
+
+			$s->quit;
+
+		} elsif ($proto eq "https") {
+			my $ua = new LWP::UserAgent;
+			my $req = new HTTP::Request('HEAD', $url);
+			my $res = $ua->request($req);
+
+			my $code =  $res->code;
+
+			if ($code !~ /^[23]/) {
+				$status = "HTTPS reports: $code";
+			} else {
+				$status = "ok";
+			};
+		} elsif ($proto eq "http") {
+			# Check HTTP
+			print STDERR "DEBUG/check_urls: open HTTP connection: $host:$port\n" if ($debug & 0x20);
+			$s = Net::HTTP->new(Host => $host, PeerPort => $port, Timeout => 30);
+			if (! defined $s) {
+				$status = "Host not found";
+				if (! check_ipv6only($host,$port)) {
+					$status = "ok (IPv6 only)";
+				};
+				goto ("LABEL_PRINT");
+			};
+
+			print STDERR "DEBUG/check_urls: send HEAD request: $uri\n" if ($debug & 0x20);
+			if ($s->write_request(HEAD => $uri, 'User-Agent' => "Mozilla/5.0") == 0) {
+				$status = "trouble with uri";
+				goto ("LABEL_PRINT");
+			};
+
+			print STDERR "DEBUG/check_urls: wait for response\n" if ($debug & 0x20);
+			my($code, $mess, %h) = $s->read_response_headers;
+
+			print STDERR "DEBUG/check_urls: check response\n" if ($debug & 0x10);
+			if ($code !~ /^[23]/) {
+				$status = "HTTP reports: $code";
+			} else {
+				$status = "ok";
+			};
 		};
 LABEL_PRINT:
 		if ($status ne "ok") {
@@ -192,7 +293,7 @@ sub report_urls() {
 	print STDERR "DEBUG/report_urls: begin\n" if ($debug & 0x10);
 
 	for my $url (sort { $$p_urls{$a}->{'line'} <=> $$p_urls{$b}->{'line'} } ( keys %$p_urls)) {
-		if ($$p_urls{$url}->{'checkresult'} eq "ok") {
+		if ($$p_urls{$url}->{'checkresult'} =~ /^ok/) {
 			next;
 		};
 
@@ -208,6 +309,16 @@ sub report_urls() {
 
 
 ##### Main
+
+if (! defined $ARGV[0] || $ARGV[0] eq "") {
+	die "Missing file name (arg1)";
+};
+
+if (! -f $ARGV[0]) {
+	die "Argument 1 is not an existing file: " . $ARGV[0];
+};
+
+$dbfile = $ARGV[0] . $dbfile_suffix;
 
 load_urls();
 extract_urls($ARGV[0]);
