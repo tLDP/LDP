@@ -86,14 +86,14 @@ create_html_multipage() {
 	fi
 	pushd "$file_base" || exit 1
 	rm -f *
-	/usr/bin/jade -t sgml -i html -d "/usr/local/share/sgml/ldp.dsl#html" ../$file_sgml
+	nice -n 10 /usr/bin/jade -t sgml -i html -d "/usr/local/share/sgml/ldp.dsl#html" ../$file_sgml
 	popd
 }
 
 create_html_singlepage() {
 	echo "INF: Create HTML singlepage '$file_html'"
 	set -x
-	/usr/bin/jade -t sgml -i html -V nochunks -d "/usr/local/share/sgml/ldp.dsl#html" $file_sgml >$file_html
+	nice -n 10 /usr/bin/jade -t sgml -i html -V nochunks -d "/usr/local/share/sgml/ldp.dsl#html" $file_sgml >$file_html
 	set +x
 	local retval=$?
 	if [ $retval -eq 0 ]; then
@@ -107,7 +107,7 @@ create_html_singlepage() {
 create_rtf() {
 	echo "INF: Create RTF file '$file_rtf'"
 	set -x
-	/usr/bin/jade -t rtf -d /usr/local/share/sgml/ldp.dsl $file_sgml
+	nice -n 10 /usr/bin/jade -t rtf -d /usr/local/share/sgml/ldp.dsl $file_sgml
 	set +x
 	local retval=$?
 	if [ $retval -eq 0 ]; then
@@ -121,7 +121,7 @@ create_rtf() {
 create_ps() {
 	echo "INF: Create PS file '$file_ps'"
 	set -x
-	/usr/bin/db2ps --dsl /usr/local/share/sgml/ldp.dsl $file_sgml
+	nice -n 10 /usr/bin/db2ps --dsl /usr/local/share/sgml/ldp.dsl $file_sgml
 	set +x
 	local retval=$?
 	if [ $retval -eq 0 ]; then
@@ -142,13 +142,13 @@ create_pdf() {
 			return 1
 		fi
 		set -x
-		ldp_print $file_html
+		nice -n 10 ldp_print $file_html
 		set +x
 		local retval=$?
 	else
 		echo "INF: Create PDF file (NOT LDP conform) '$file_pdf'"
 		set -x
-		db2pdf --dsl /usr/local/share/sgml/ldp.dsl $file_sgml
+		nice -n 10 db2pdf --dsl /usr/local/share/sgml/ldp.dsl $file_sgml
 		set +x
 		local retval=$?
 	fi
@@ -166,7 +166,7 @@ create_txt() {
 	if [ -f $file_ps ]; then
 		echo "INF: Create TXT file '$file_txt'"
 		set -x
-		ps2ascii $file_ps > $file_txt
+		nice -n 10 ps2ascii $file_ps > $file_txt
 		set +x
 		local retval=$?
 	else
