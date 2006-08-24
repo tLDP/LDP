@@ -306,6 +306,18 @@ sub report_urls() {
 };
 
 
+sub check_rfc_urls() {
+	print STDERR "DEBUG/check_rfc_urls: begin\n" if ($debug & 0x10);
+
+	for my $url (sort { $$p_urls{$a}->{'line'} <=> $$p_urls{$b}->{'line'} } ( keys %$p_urls)) {
+		if ($url =~ /rfc[0-9]{1,4}/) {
+			print "NOTICE: URL has s a RFC  : $url\n";
+			print "        Description      : " . $$p_urls{$url}->{'desc'} . "\n";
+			print "        Line number      : " . $$p_urls{$url}->{'line'} . "\n";
+			print "\n";
+		};
+	};
+};
 
 
 ##### Main
@@ -325,4 +337,5 @@ extract_urls($ARGV[0]);
 cleanup_old_urls();
 check_urls();
 store_urls();
+check_rfc_urls();
 report_urls();
