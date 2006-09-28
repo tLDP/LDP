@@ -296,7 +296,18 @@ lrwx------  1 michel  michel   64 Jan 23 12:11 /proc/self/fd/0 -> /dev/pts/6
 lrwx------  1 michel  michel   64 Jan 23 12:11 /proc/self/fd/1 -> /dev/pts/6
 lrwx------  1 michel  michel   64 Jan 23 12:11 /proc/self/fd/2 -> /dev/pts/6
 </screen>
+<para>Note that each process has its own view of the files under <filename>/proc/self</filename>, as it is actually a symbolic link to <filename>/proc/&lt;process_ID&gt;</filename>.</para>
 <para>You might want to check <command>info MAKEDEV</command> and <command>info proc</command> for more information about <filename>/proc</filename> subdirectories and the way your system handles standard file descriptors for each running process.</para>
+<para>When excuting a given command, the following steps are excuted, in order:</para>
+<itemizedlist>
+<listitem><para>If the standard output of a previous command is being piped to the standard input of the current command, then <filename>/proc/&lt;current_process_ID&gt;/fd/0</filename> is updated to target the same anonymous pipe as <filename>/proc/&lt;previous_process_ID/fd/1</filename>.</para></listitem>
+<listitem><para>If the standard output of the current command is being piped to the standard input of the next command, then <filename>/proc/&lt;current_process_ID&gt;/fd/1</filename> is updated to target another anonymous pipe.</para></listitem>
+<listitem><para>Redirection for the current command is processed from left to right.</para></listitem>
+<listitem><para>Redirection <quote>N&gt;&amp;M</quote> or <quote>N&lt;&amp;M</quote> after a command has the effect of creating or updating the symbolic link <filename>/proc/self/fd/N</filename> with the same target as the symbolic link <filename>/proc/self/fd/M</filename>.</para></listitem>
+<listitem><para>The redirections <quote>N&gt; file</quote> and <quote>N&lt; file</quote> have the effect of creating or updating the symbolic link <filename>/proc/self/fd/N</filename> with the target file.</para></listitem>
+<listitem><para>File descriptor closure <quote>N&gt;&amp;-</quote> has the effect of deleting the symbolic link <filename>/proc/self/fd/N</filename>.</para></listitem>
+<listitem><para>Only now is the current command executed.</para></listitem>
+</itemizedlist>
 <para>When you run a script from the command line, nothing much changes because the child shell process will use the same file descriptors as the parent.  When no such parent is available, for instance when you run a script using the <emphasis>cron</emphasis> facility, the standard file descriptors are pipes or other (temporary) files, unless some form of redirection is used.  This is demonstrated in the example below, which shows output from a simple <command>at</command> script:</para>
 <screen>
 <prompt>michel ~&gt;</prompt> <command>date</command>
@@ -336,11 +347,11 @@ lr-x------    1 michel michel  64 Jan 24 11:32 3 -> /proc/21974/fd
 <para>From the previous examples, it is clear that you can provide input and output files for a script (see <xref linkend="sect_08_02_04" /> for more), but some tend to forget about redirecting errors - output which might be depended upon later on.  Also, if you are lucky, errors will be mailed to you and eventual causes of failure might get revealed.  If you are not as lucky, errors will cause your script to fail and won't be caught or sent anywhere, so that you can't start to do any worthwhile debugging.</para>
 <para>When redirecting errors, note that the order of precedence is significant.  For example, this command, issued in <filename>/var/spool</filename></para>
 <screen>
-<command>ls <option>-l</option> <filename>*</filename> <parameter>2</parameter> &gt; <filename>/var/tmp/unaccessible-in-spool</filename></command>
+<command>ls <option>-l</option> <filename>*</filename> <parameter>2</parameter>&gt; <filename>/var/tmp/unaccessible-in-spool</filename></command>
 </screen>
-<para>will redirect output of the <command>ls</command> command to the file <filename>unaccessible-in-spool</filename> in <filename>/var/tmp</filename>.  The command</para>
+<para>will redirect standard output of the <command>ls</command> command to the file <filename>unaccessible-in-spool</filename> in <filename>/var/tmp</filename>.  The command</para>
 <screen>
-<command>ls <option>-l</option> <filename>*</filename> &gt; <filename>/var/tmp/spoollist</filename> <parameter>2</parameter> &gt;&amp; <parameter>1</parameter></command>
+<command>ls <option>-l</option> <filename>*</filename> &gt; <filename>/var/tmp/spoollist</filename> <parameter>2</parameter>&gt;&amp;<parameter>1</parameter></command>
 </screen>
 <para>will direct both standard input and standard error to the file <filename>spoollist</filename>.  The command</para>
 <screen>
@@ -374,13 +385,13 @@ This text is printed at the end of each print job.
 </sect3>
 <sect3 id="sect_08_02_04_02"><title>Read and exec</title>
 <sect4 id="sect_08_02_04_02_01"><title>Assigning file descriptors to files</title>
-<para>Another way of looking at file descriptors is thinking of them as a way to assign a numeric value to a file.  Instead of using the file name, you can use the file descriptor number.  The <command>exec</command> built-in command is used to assign a file descriptor to a file.  Use</para>
+<para>Another way of looking at file descriptors is thinking of them as a way to assign a numeric value to a file.  Instead of using the file name, you can use the file descriptor number.  The <command>exec</command> built-in command can be used to replace the shell of the current process or to alter the file descriptors of the current shell.  For example, it can be used to assign a file descriptor to a file.  Use</para>
 <cmdsynopsis><command>exec fdN&gt; <filename>file</filename></command></cmdsynopsis>
 <para>for assigning file descriptor N to <filename>file</filename> for output, and</para>
 <cmdsynopsis><command>exec fdN&lt; <filename>file</filename></command></cmdsynopsis>
 <para>for assigning file descriptor N to <filename>file</filename> for input.  After a file descriptor has been assigned to a file, it can be used with the shell redirection operators, as is demonstrated in the following example:</para>
 <screen>
-<prompt>michel ~&gt;</prompt> <command>exec <filename>4</filename> &gt; <filename>result.txt</filename></command>
+<prompt>michel ~&gt;</prompt> <command>exec <filename>4</filename>&gt; <filename>result.txt</filename></command>
 
 <prompt>michel ~&gt;</prompt> <command>filter <filename>body.txt</filename> | cat <filename>header.txt /dev/fd/0 footer.txt</filename> &gt;&amp; <filename>4</filename></command>
 
@@ -410,8 +421,10 @@ rm "$CONFIG" 2&gt;/dev/null
 
 echo "Output will be saved in $CONFIG."
 
+# create fd 7 with same target as fd 0 (save stdin "value")
 exec 7&lt;&amp;0
 
+# update fd 0 to target file /etc/passwd
 exec &lt; /etc/passwd
 
 # Read the first line of /etc/passwd
@@ -421,6 +434,7 @@ echo "Saving root account info..."
 echo "Your root account info:" &gt;&gt; "$CONFIG"
 echo $rootpasswd &gt;&gt; "$CONFIG"
 
+# update fd 0 to target fd 7 target (old fd 0 target); delete fd 7
 exec 0&lt;&amp;7 7&lt;&amp;-
 
 echo -n "Enter comment or [ENTER] for no comment: "
@@ -481,13 +495,17 @@ in central DNS
 
 INPUTDIR="$1"
 
+# fd 6 targets fd 1 target (console out) in current shell
 exec 6&gt;&amp;1
 
+# fd 1 targets pipe, fd 2 targets fd 1 target (pipe),
+# fd 1 targets fd 6 target (console out), fd 6 closed, execute ls
 ls "$INPUTDIR"/* 2&gt;&amp;1 &gt;&amp;6 6&gt;&amp;- \
 				# Closes fd 6 for awk, but not for ls.
 
 | awk 'BEGIN { FS=":" } { print "YOU HAVE NO ACCESS TO" $2 }' 6&gt;&amp;-
 
+# fd 6 closed for current shell
 exec 6&gt;&amp;-
 </screen>
 </sect3>
