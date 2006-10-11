@@ -44,7 +44,7 @@ PMULTIPLIER=4.0  # Scaling factor to approximate PI.
 
 get_random ()
 {
-SEED=$(head -1 /dev/urandom | od -N 1 | awk '{ print $2 }')
+SEED=$(head -n 1 /dev/urandom | od -N 1 | awk '{ print $2 }')
 RANDOM=$SEED                                  #  From "seeding-random.sh"
                                               #+ example script.
 let "rnum = $RANDOM % $DIMENSION"             #  Range less than 10000.

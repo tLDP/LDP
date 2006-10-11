@@ -2,6 +2,7 @@
 # Draw-box.sh: Drawing a box using ASCII characters.
 
 # Script by Stefano Palmeri, with minor editing by document author.
+# Minor edits suggested by Jim Angstadt.
 # Used in the "ABS Guide" with permission.
 
 
@@ -118,9 +119,9 @@ for (( c=$2; count<=$BOX_WIDTH; c++)); do
 done 
 
 plot_char $1 $2 $CORNER_CHAR                   # Draw box angles.
-plot_char $1 `expr $2 + $BOX_WIDTH` +
-plot_char `expr $1 + $BOX_HEIGHT` $2 +
-plot_char `expr $1 + $BOX_HEIGHT` `expr $2 + $BOX_WIDTH` +
+plot_char $1 `expr $2 + $BOX_WIDTH` $CORNER_CHAR
+plot_char `expr $1 + $BOX_HEIGHT` $2 $CORNER_CHAR
+plot_char `expr $1 + $BOX_HEIGHT` `expr $2 + $BOX_WIDTH` $CORNER_CHAR
 
 echo -ne "\E[0m"             #  Restore old colors.
 

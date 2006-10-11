@@ -287,8 +287,8 @@ while [ $COL -lt $WINNING_POS ]; do
           done
           
           # Define old type and position of the "randomized horse".
-          HORSE_TYPE=`cat  horse_${MOVE_HORSE}_position | tail -1`
-          COL=$(expr `cat  horse_${MOVE_HORSE}_position | head -1`) 
+          HORSE_TYPE=`cat  horse_${MOVE_HORSE}_position | tail -n 1`
+          COL=$(expr `cat  horse_${MOVE_HORSE}_position | head -n 1`) 
           
           ADD_POS=1
           # Check if the current position is an handicap position. 
@@ -317,7 +317,7 @@ while [ $COL -lt $WINNING_POS ]; do
           echo -ne '\E[30;42m'
           
           # Move the cursor to new horse position.
-          tput cup `expr $MOVE_HORSE + 5`  `cat  horse_${MOVE_HORSE}_position | head -1` 
+          tput cup `expr $MOVE_HORSE + 5`  `cat  horse_${MOVE_HORSE}_position | head -n 1` 
           
           # Draw the horse.
           $DRAW_HORSE
@@ -351,7 +351,7 @@ echo -ne '\E[30;42m'
 echo -en '\E[5m'
 
 # Make the winning horse blink.
-tput cup `expr $MOVE_HORSE + 5` `cat  horse_${MOVE_HORSE}_position | head -1`
+tput cup `expr $MOVE_HORSE + 5` `cat  horse_${MOVE_HORSE}_position | head -n 1`
 $DRAW_HORSE
 
 # Disable blinking text.

@@ -61,7 +61,7 @@ strip_leading_zero () #  Better to strip possible leading zero(s)
 
 
 day_index ()          # Gauss' Formula:
-{                     # Days from Jan. 3, 1600 to date passed as param.
+{                     # Days from Mar. 1, 1600 to date passed as param.
 
   day=$1
   month=$2
@@ -80,7 +80,7 @@ day_index ()          # Gauss' Formula:
 
   let "Days = $DIY*$year + $year/$LEAPCYCLE - $indexyr + $indexyr/$LEAPCYCLE + $ADJ_DIY*$month/$MIY + $day - $DIM"
   #  For an in-depth explanation of this algorithm, see
-  #+ http://home.t-online.de/home/berndt.schwerdtfeger/cal.htm
+  #+   http://weblogs.asp.net/pgreborio/archive/2005/01/06/347968.aspx
 
 
   echo $Days

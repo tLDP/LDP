@@ -67,8 +67,8 @@ fi  # Doublecheck if in right directory, before messing with log file.
 
 
 
-tail -$lines messages > mesg.temp # Saves last section of message log file.
-mv mesg.temp messages             # Becomes new log directory.
+tail -n $lines messages > mesg.temp # Saves last section of message log file.
+mv mesg.temp messages               # Becomes new log directory.
 
 
 # cat /dev/null > messages

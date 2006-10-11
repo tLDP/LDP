@@ -18,5 +18,5 @@ exit 0
 
 #  Exercise (easy):
 #  ---------------
-#  Convert this script to taking command-line parameters
+#  Convert this script to take command-line parameters
 #+ for $directory and $fstring.

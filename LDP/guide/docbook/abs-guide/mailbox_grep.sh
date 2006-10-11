@@ -3,7 +3,7 @@
 #+ and slightly modified and commented by ABS Guide author.
 #  Used in ABS Guide with permission. (Thank you!)
 
-# This script will not run under Bash version < 3.0.
+# This script will not run under Bash versions < 3.0.
 
 
 E_MISSING_ARG=67

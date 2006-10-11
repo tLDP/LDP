@@ -8,6 +8,7 @@ set -- $variable
 first_param=$1
 second_param=$2
 shift; shift        # Shift past first two positional params.
+# shift 2             also works.
 remaining_params="$*"
 
 echo

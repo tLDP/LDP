@@ -5,8 +5,8 @@ lines=35        # Allow 35 lines for the header (very generous).
 
 for File in *   # Test all the files in $PWD.
 do
-  search1=`head -$lines $File | grep begin | wc -w`
-  search2=`tail -$lines $File | grep end | wc -w`
+  search1=`head -n $lines $File | grep begin | wc -w`
+  search2=`tail -n $lines $File | grep end | wc -w`
   #  Uuencoded files have a "begin" near the beginning,
   #+ and an "end" near the end.
   if [ "$search1" -gt 0 ]

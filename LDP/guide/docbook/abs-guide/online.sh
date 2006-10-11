@@ -28,7 +28,7 @@ echo
 
 while [ $TRUE ]  #Endless loop.
 do
-  tail -$CHECK_LINES $LOGFILE> $TEMPFILE
+  tail -n $CHECK_LINES $LOGFILE> $TEMPFILE
   #  Saves last 100 lines of system log file as temp file.
   #  Necessary, since newer kernels generate many log messages at log on.
   search=`grep $KEYWORD $TEMPFILE`
@@ -77,7 +77,7 @@ done
 
 CHECK_INTERVAL=1
 
-while ! tail -1 "$LOGFILE" | grep -q "$KEYWORD"
+while ! tail -n 1 "$LOGFILE" | grep -q "$KEYWORD"
 do echo -n .
    sleep $CHECK_INTERVAL
 done

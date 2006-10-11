@@ -32,12 +32,16 @@ then                           #+ so no error if this script is run
   mkdir $MOUNTPT               #+ multiple times.
 fi
 
+##############################################################################
 dd if=/dev/zero of=$DEVICE count=$SIZE bs=$BLOCKSIZE  # Zero out RAM device.
                                                       # Why is this necessary?
 mke2fs $DEVICE                 # Create an ext2 filesystem on it.
 mount $DEVICE $MOUNTPT         # Mount it.
 chmod 777 $MOUNTPT             # Enables ordinary user to access ramdisk.
                                # However, must be root to unmount it.
+##############################################################################
+# Need to test whether above commands succeed. Could cause problems otherwise.
+# Exercise: modify this script to make it safer.
 
 echo "\"$MOUNTPT\" now available for use."
 # The ramdisk is now accessible for storing files, even by an ordinary user.

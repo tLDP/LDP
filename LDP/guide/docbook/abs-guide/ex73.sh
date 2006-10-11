@@ -37,11 +37,22 @@ then
 fi  
 
 
+######################################################################
 echo "Creating swap file of size $blocks blocks (KB)."
 dd if=/dev/zero of=$FILE bs=$BLOCKSIZE count=$blocks  # Zero out file.
-
 mkswap $FILE $blocks             # Designate it a swap file.
 swapon $FILE                     # Activate swap file.
+#  Note that if one or more of these commands fails,
+#+ then it could cause nasty problems.
+######################################################################
+
+#  Exercise:
+#  Rewrite the above block of code so that if it does not execute
+#+ successfully, then:
+#    1) an error message is echoed to stderr,
+#    2) all temporary files are cleaned up, and
+#    3) the script exits in an orderly fashion with an
+#+      appropriate error code.
 
 echo "Swap file created and activated."
 

@@ -4,6 +4,8 @@ var0=0
 LIMIT=10
 
 while [ "$var0" -lt "$LIMIT" ]
+#      ^                    ^
+# Spaces, because these are "test-brackets" . . .
 do
   echo -n "$var0 "        # -n suppresses newline.
   #             ^           Space, to separate printed out numbers.
