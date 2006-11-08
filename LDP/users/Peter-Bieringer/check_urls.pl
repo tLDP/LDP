@@ -311,7 +311,7 @@ sub check_rfc_urls() {
 
 	for my $url (sort { $$p_urls{$a}->{'line'} <=> $$p_urls{$b}->{'line'} } ( keys %$p_urls)) {
 		if ($url =~ /rfc[0-9]{1,4}/) {
-			print "NOTICE: URL has s a RFC  : $url\n";
+			print "NOTICE: URL points to RFC: $url\n";
 			print "        Description      : " . $$p_urls{$url}->{'desc'} . "\n";
 			print "        Line number      : " . $$p_urls{$url}->{'line'} . "\n";
 			print "\n";

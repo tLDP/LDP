@@ -86,8 +86,14 @@ create_html_multipage() {
 	fi
 	pushd "$file_base" || exit 1
 	rm -f *
+	set -x
 	nice -n 10 /usr/bin/jade -t sgml -i html -d "/usr/local/share/sgml/ldp.dsl#html" ../$file_sgml
+	local retval=$?
+	set +x
 	popd
+	# Force
+	local retval=0
+	return $retval
 }
 
 create_html_singlepage() {
@@ -185,13 +191,22 @@ validate_sgml
 [ $? -ne 0 ] && exit 1
 
 create_html_multipage
-[ $? -ne 0 ] && exit 1
+if [ $? -ne 0 ]; then
+	echo "ERROR : create_html_multipage was not successful"
+	exit 1
+fi
 
 create_html_singlepage
-[ $? -ne 0 ] && exit 1
+if [ $? -ne 0 ]; then
+	echo "ERROR : create_html_singlepage was not successful"
+	exit 1
+fi
 
 create_pdf
-[ $? -ne 0 ] && exit 1
+if [ $? -ne 0 ]; then
+	echo "ERROR : create_pdf was not successful"
+	exit 1
+fi
 
 #create_ps
 #[ $? -ne 0 ] && exit 1
