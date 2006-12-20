@@ -1,4 +1,5 @@
 #!/bin/bash
+# ex9.sh
 
 # Variables: assignment and substitution
 
@@ -20,13 +21,17 @@ hello=$a
 #-------------------------------------------------------------------------
 
 
-echo hello    # Not a variable reference, just the string "hello".
+echo hello    # hello
+# Not a variable reference, just the string "hello" . . .
 
-echo $hello
-echo ${hello} # Identical to above.
+echo $hello   # 375
+#    ^          This *is* a variable reference.
+echo ${hello} # 375
+# Also a variable reference, as above.
 
-echo "$hello"
-echo "${hello}"
+# Quoting . . .
+echo "$hello"    # 375
+echo "${hello}"  # 375
 
 echo
 
@@ -34,6 +39,7 @@ hello="A B  C   D"
 echo $hello   # A B C D
 echo "$hello" # A B  C   D
 # As you see, echo $hello   and   echo "$hello"   give different results.
+# Why?
 # =======================================
 # Quoting a variable preserves whitespace.
 # =======================================
@@ -42,7 +48,7 @@ echo
 
 echo '$hello'  # $hello
 #    ^      ^
-#  Variable referencing disabled by single quotes,
+#  Variable referencing disabled (escaped) by single quotes,
 #+ which causes the "$" to be interpreted literally.
 
 # Notice the effect of different types of quoting.
@@ -87,7 +93,7 @@ echo "$mixed_bag"         # 2 --- Whatever
 echo; echo
 
 echo "uninitialized_variable = $uninitialized_variable"
-# Uninitialized variable has null value (no value at all).
+# Uninitialized variable has null value (no value at all!).
 uninitialized_variable=   #  Declaring, but not initializing it --
                           #+ same as setting it to a null value, as above.
 echo "uninitialized_variable = $uninitialized_variable"

@@ -125,14 +125,15 @@ fi
 if [ ! -e "$Cookie_List" ]; then
    # Set up a list of cookie files, if there isn't one.
    echo "Hunting for cookies . . ."
-   find -name cookies.txt >> $Cookie_List   # Create the list of cookie files.
+   find -name cookies.txt >> $Cookie_List # Create the list of cookie files.
 fi #  Isolate this in its own 'if' statement,
    #+ in case we got interrupted while searching.
 
 if [ -z "$cFlag" ]; then # If we haven't already done this . . .
    echo                  # Make a nice space after the command prompt.
    echo "Looks like you haven't set up your source of cookies yet."
-   n=0                   # Make sure the counter doesn't contain random values.
+   n=0                   #  Make sure the counter
+                         #+ doesn't contain random values.
    while read; do
       Cookies[$n]=$REPLY # Put the cookie files we found into an array.
       echo "$n) ${Cookies[$n]}"  # Create a menu.
@@ -154,8 +155,8 @@ if [ -z "$cFlag" ]; then # If we haven't already done this . . .
    echo "cFlag=1" >> $Config  # So we know not to ask again.
 fi
 
-# end added section end added section end added section end added section end
-# +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# end added section end added section end added section end added section
+# +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
 
@@ -164,7 +165,8 @@ fi
 # A bit like the small print.
 CookiesON=$Cookie
 # echo "cookie file is $CookiesON" # For debugging.
-# echo "home is ${home}"           # For debugging. Got caught with this one!
+# echo "home is ${home}"           # For debugging.
+                                   # Got caught with this one!
 
 
 wopts()
@@ -212,21 +214,26 @@ usage() # Tell them how it works.
     echo "Welcome to wgetter.  This is a front end to wget."
     echo "It will always run wget with these options:"
     echo "$CommandA"
-    echo "and the pattern to match: $pattern (which you can change at the top of this script)."
-    echo "It will also ask you for recursion depth, and if you want to use a referring page."
+    echo "and the pattern to match: $pattern \
+(which you can change at the top of this script)."
+    echo "It will also ask you for recursion depth, \
+and if you want to use a referring page."
     echo "Wgetter accepts the following options:"
     echo ""
     echo "-$help : Display this help."
-    echo "-$save : Save the command to a file $savePath/wget-($today) instead of running it."
-    echo "-$runn : Run saved wget commands instead of starting a new one --"
+    echo "-$save : Save the command to a file $savePath/wget-($today) \
+instead of running it."
+    echo "-$runn : Run saved wget commands instead of starting a new one -"
     echo "Enter filename as argument to this option."
     echo "-$inpu : Run saved wget commands interactively --"
     echo "The script will ask you for the filename."
     echo "-$cook : Change the cookies file for this session."
-    echo "-$list : Tell wget to use URL's from a list instead of from the command line."
+    echo "-$list : Tell wget to use URL's from a list instead of \
+from the command line."
     echo "-$wopt : Pass any other options direct to wget."
     echo ""
-    echo "See the wget man page for additional options you can pass to wget."
+    echo "See the wget man page for additional options \
+you can pass to wget."
     echo ""
 
     exit $E_USAGE  # End here. Don't process anything else.
@@ -238,8 +245,8 @@ list_func() #  Gives the user the option to use the -i option to wget,
             #+ and a list of URLs.
 {
 while [ 1 ]; do
-   echo "Enter the name of the file containing URL's (press q to change your 
-mind)."
+   echo "Enter the name of the file containing URL's (press q to change
+your mind)."
    read urlfile
    if [ ! -e "$urlfile" ] && [ "$urlfile" != q ]; then
        # Look for a file, or the quit option.
@@ -249,7 +256,7 @@ mind)."
        return
    else
       echo "using $urlfile."
-      echo "If you gave me url's on the command line, I'll use those first."
+      echo "If you gave url's on the command line, I'll use those first."
                             # Report wget standard behaviour to the user.
       lister=" -i $urlfile" # This is what we want to pass to wget.
       return
@@ -272,7 +279,7 @@ it."
    elif [ ! -e "$Cookies" ]; then
       echo "File does not exist.  Try again." # Keep em going . . .
    else
-       CookiesON=" --load-cookies $Cookies"   # File is good -- let's use it!
+       CookiesON=" --load-cookies $Cookies"   # File is good -- use it!
        return
    fi
 done
@@ -284,7 +291,7 @@ run_func()
 {
 if [ -z "$OPTARG" ]; then
 # Test to see if we used the in-line option or the query one.
-   if [ ! -d "$savePath" ]; then      # In case directory doesn't exist . . .
+   if [ ! -d "$savePath" ]; then      # If directory doesn't exist . . .
       echo "$savePath does not appear to exist."
       echo "Please supply path and filename of saved wget commands:"
       read newFile
@@ -295,32 +302,33 @@ if [ -z "$OPTARG" ]; then
          done
 
 
-# -------------------------------------------------------------------------
-#         if [ -z ( grep wget ${newfile} ) ]; then
-          # Assume they haven't got the right file and bail out.
-#         echo "Sorry, that file does not contain wget commands.  Aborting."
-#         exit
-#         fi
+# -----------------------------------------------------------------------
+#       if [ -z ( grep wget ${newfile} ) ]; then
+        # Assume they haven't got the right file and bail out.
+#       echo "Sorry, that file does not contain wget commands.  Aborting."
+#       exit
+#       fi
 #
 # This is bogus code.
 # It doesn't actually work.
 # If anyone wants to fix it, feel free!
-# -------------------------------------------------------------------------
+# -----------------------------------------------------------------------
 
 
       filePath="${newFile}"
    else
    echo "Save path is $savePath"
-      echo "Please enter name of the file which you want to use."
-      echo "You have a choice of:"
-      ls $savePath                                    # Give them a choice.
-      read inFile
-         until [ -f "$savePath/$inFile" ]; do         # Keep going till we get something.
-            if [ ! -f "${savePath}/${inFile}" ]; then # If file doesn't exist.
-               echo "Sorry, that file does not exist.  Please choose from:"
-               ls $savePath                           # If a mistake is made.
-               read inFile
-            fi
+     echo "Please enter name of the file which you want to use."
+     echo "You have a choice of:"
+     ls $savePath                                    # Give them a choice.
+     read inFile
+       until [ -f "$savePath/$inFile" ]; do         #  Keep going till
+                                                    #+ we get something.
+          if [ ! -f "${savePath}/${inFile}" ]; then # If file doesn't exist.
+             echo "Sorry, that file does not exist.  Please choose from:"
+             ls $savePath                           # If a mistake is made.
+             read inFile
+          fi
          done
       filePath="${savePath}/${inFile}"  # Make one variable . . .
    fi
@@ -353,12 +361,12 @@ do
      $cook) cookie_func;; #  Change cookie file.
      $help) usage;;       #  Get help.
      $list) list_func;;   #  Allow wget to use a list of URLs.
-     $runn) run_func;;    #  Useful if you are calling wgetter from, for example,
-                          #+ a cron script.
+     $runn) run_func;;    #  Useful if you are calling wgetter from,
+                          #+ for example, a cron script.
      $inpu) run_func;;    #  When you don't know what your files are named.
      $wopt) wopts;;       #  Pass options directly to wget.
         \?) echo "Not a valid option."
-            echo "Use -${wopt} if you want to pass options directly to wget,"
+            echo "Use -${wopt} to pass options directly to wget,"
             echo "or -${help} for help";;      # Catch anything else.
   esac
 done
@@ -369,7 +377,7 @@ if [ -z "$1" ] && [ -z "$lister" ]; then
                           #  We should be left with at least one URL
                           #+ on the command line, unless a list is 
 			  #+ being used -- catch empty CL's.
-   echo "No URL's given!  You must enter them on the same line as wgetter2."
+   echo "No URL's given! You must enter them on the same line as wgetter2."
    echo "E.g.,  wgetter2 http://somesite http://anothersite."
    echo "Use $help option for more information."
    exit $E_NO_URLS        # Bail out, with appropriate error code.
@@ -385,7 +393,8 @@ while [ 1 ]; do
       Current=""
    else Current=" Current value is $curDepth"
    fi
-       echo "How deep should I go? (integer: Default is $depthDefault.$Current)"
+       echo "How deep should I go? \
+(integer: Default is $depthDefault.$Current)"
        read Depth   # Recursion -- how far should we go?
        inputB=""    # Reset this to blank on each pass of the loop.
        echo "Enter the name of the referring page (default is none)."
@@ -401,22 +410,26 @@ while [ 1 ]; do
             * ) hide="";;
        esac
 
-       if [ -z ${Depth} ]; then       #  User accepted either default or current depth,
-                                      #+ in which case Depth is now empty.
-          if [ -z ${curDepth} ]; then #  See if a depth was set on a previous iteration.
-             Depth="$depthDefault"    #  Set the default recursion depth if nothing
-                                      #+ else to use.
-          else Depth="$curDepth"      #  Otherwise, set the one we used before.
+       if [ -z ${Depth} ]; then
+       #  User accepted either default or current depth,
+       #+ in which case Depth is now empty.
+          if [ -z ${curDepth} ]; then
+          #  See if a depth was set on a previous iteration.
+             Depth="$depthDefault"
+             #  Set the default recursion depth if nothing
+             #+ else to use.
+          else Depth="$curDepth" #  Otherwise, set the one we used before.
           fi
        fi
-   Recurse=" -l $Depth"               # Set how deep we want to go.
-   curDepth=$Depth                    # Remember setting for next time.
+   Recurse=" -l $Depth"          # Set how deep we want to go.
+   curDepth=$Depth               # Remember setting for next time.
 
        if [ ! -z $inputB ]; then
           RefA=" --referer=$inputB"   # Option to use referring page.
        fi
 
-   WGETTER="${CommandA}${pattern}${hide}${RefA}${Recurse}${CookiesON}${lister}${Woptions}${URLS}"
+   WGETTER="${CommandA}${pattern}${hide}${RefA}${Recurse}\
+${CookiesON}${lister}${Woptions}${URLS}"
    #  Just string the whole lot together . . .
    #  NB: no embedded spaces.
    #  They are in the individual elements so that if any are empty,
@@ -424,7 +437,8 @@ while [ 1 ]; do
 
    if [ -z "${CookiesON}" ] && [ "$cFlag" = "1" ] ; then
        echo "Warning -- can't find cookie file"
-       # This should be changed, in case the user has opted to not use cookies.
+       #  This should be changed,
+       #+ in case the user has opted to not use cookies.
    fi
 
    if [ "$Flag" = "S" ]; then
@@ -435,7 +449,8 @@ while [ 1 ]; do
       #+ since the whole command is a bit confusing to look at.
       echo "Command saved to the file $savePath/wget-${today}"
            # Tell the user.
-      echo "Referring page URL saved to the file $savePath/site-list-${today}"
+      echo "Referring page URL saved to the file$ \
+savePath/site-list-${today}"
            # Tell the user.
       Saver=" with save option"
       # Stick this somewhere, so it appears in the loop if set.
@@ -457,7 +472,8 @@ while [ 1 ]; do
        # Let them go again. Tell about save option being set.
 
        read
-       case $REPLY in                # Need to change this to a 'trap' clause.
+       case $REPLY in
+       # Need to change this to a 'trap' clause.
           q|Q ) exit $E_USER_EXIT;;  # Exercise for the reader?
             * ) URLS=" $REPLY";;
        esac

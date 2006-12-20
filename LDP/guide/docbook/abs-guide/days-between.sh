@@ -2,7 +2,7 @@
 # days-between.sh:    Number of days between two dates.
 # Usage: ./days-between.sh [M]M/[D]D/YYYY [M]M/[D]D/YYYY
 #
-# Note: Script modified to account for changes in Bash 2.05b
+# Note: Script modified to account for changes in Bash, v. 2.05b +,
 #+      that closed the loophole permitting large negative
 #+      integer return values.
 
@@ -17,7 +17,7 @@ MIY=12
 DIM=31
 LEAPCYCLE=4
 
-MAXRETVAL=255         #  Largest permissable
+MAXRETVAL=255         #  Largest permissible
                       #+ positive return value from a function.
 
 diff=                 # Declare global variable for date difference.
@@ -46,9 +46,10 @@ Parse_Date ()                 # Parse date from command line params.
 
 check_date ()                 # Checks for invalid date(s) passed.
 {
-  [ "$day" -gt "$DIM" ] || [ "$month" -gt "$MIY" ] || [ "$year" -lt "$REFYR" ] && Param_Error
+  [ "$day" -gt "$DIM" ] || [ "$month" -gt "$MIY" ] ||
+  [ "$year" -lt "$REFYR" ] && Param_Error
   # Exit script on bad value(s).
-  # Uses "or-list / and-list".
+  # Uses or-list / and-list.
   #
   # Exercise: Implement more rigorous date checking.
 }
@@ -61,8 +62,8 @@ strip_leading_zero () #  Better to strip possible leading zero(s)
 
 
 day_index ()          # Gauss' Formula:
-{                     # Days from Mar. 1, 1600 to date passed as param.
-
+{                     # Days from March 1, 1600 to date passed as param.
+                      #           ^^^^^^^^^^^^^
   day=$1
   month=$2
   year=$3
@@ -78,7 +79,8 @@ day_index ()          # Gauss' Formula:
   let "indexyr = $year / $CENTURY"
 
 
-  let "Days = $DIY*$year + $year/$LEAPCYCLE - $indexyr + $indexyr/$LEAPCYCLE + $ADJ_DIY*$month/$MIY + $day - $DIM"
+  let "Days = $DIY*$year + $year/$LEAPCYCLE - $indexyr \
+              + $indexyr/$LEAPCYCLE + $ADJ_DIY*$month/$MIY + $day - $DIM"
   #  For an in-depth explanation of this algorithm, see
   #+   http://weblogs.asp.net/pgreborio/archive/2005/01/06/347968.aspx
 
@@ -141,6 +143,7 @@ diff=$value
 echo $diff
 
 exit 0
+
 #  Compare this script with
 #+ the implementation of Gauss' Formula in a C program at:
 #+    http://buschencrew.hypermart.net/software/datedif

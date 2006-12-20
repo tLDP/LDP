@@ -14,8 +14,8 @@ fi
 # Test for correct file type.
 type=`file $1 | awk '{ print $2, $3, $4, $5 }'`
 # "file $1" echoes file type . . .
-# Then awk removes the first field of this, the filename . . .
-# Then the result is fed into the variable "type".
+# Then awk removes the first field, the filename . . .
+# Then the result is fed into the variable "type."
 correct_type="ASCII C program text"
 
 if [ "$type" != "$correct_type" ]
@@ -41,7 +41,7 @@ sed '
 #+ case where line of code has a comment following it on same line.
 #  This is left as a non-trivial exercise.
 
-#  Also, the above code deletes non-comment lines with a "*/" --
+#  Also, the above code deletes non-comment lines with a "*/" . . .
 #+ not a desirable result.
 
 exit 0
@@ -73,7 +73,7 @@ esac
 #  /*  /* buggy embedded comment */
 #
 #  To handle all special cases (comments in strings, comments in string
-#+ where there is a \", \\" ...) the only way is to write a C parser
-#+ (using lex or yacc perhaps?).
+#+ where there is a \", \\" ...),
+#+ the only way is to write a C parser (using lex or yacc perhaps?).
 
 exit 0

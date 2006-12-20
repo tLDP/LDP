@@ -1,7 +1,8 @@
 #!/bin/bash
 # "and list"
 
-if [ ! -z "$1" ] && echo "Argument #1 = $1" && [ ! -z "$2" ] && echo "Argument #2 = $2"
+if [ ! -z "$1" ] && echo "Argument #1 = $1" && [ ! -z "$2" ] \
+&& echo "Argument #2 = $2"
 then
   echo "At least 2 arguments passed to script."
   # All the chained commands return true.

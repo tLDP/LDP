@@ -9,8 +9,9 @@ done
 echo
 
 for planet in "Mercury Venus Earth Mars Jupiter Saturn Uranus Neptune Pluto"
-# All planets on same line.
-# Entire 'list' enclosed in quotes creates a single variable.
+    # All planets on same line.
+    # Entire 'list' enclosed in quotes creates a single variable.
+    # Why? Whitespace incorporated into the variable.
 do
   echo $planet
 done

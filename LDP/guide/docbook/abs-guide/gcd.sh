@@ -32,22 +32,22 @@ fi
 gcd ()
 {
 
-  dividend=$1                    #  Arbitrary assignment.
-  divisor=$2                     #! It doesn't matter which of the two is larger.
-                                 #  Why not?
+  dividend=$1             #  Arbitrary assignment.
+  divisor=$2              #! It doesn't matter which of the two is larger.
+                          #  Why not?
 
-  remainder=1                    #  If uninitialized variable used in loop,
-                                 #+ it results in an error message
-                                 #+ on the first pass through loop.
+  remainder=1             #  If uninitialized variable used in loop,
+                          #+ it results in an error message
+                          #+ on the first pass through loop.
 
   until [ "$remainder" -eq 0 ]
   do
     let "remainder = $dividend % $divisor"
-    dividend=$divisor            # Now repeat with 2 smallest numbers.
+    dividend=$divisor     # Now repeat with 2 smallest numbers.
     divisor=$remainder
-  done                           # Euclid's algorithm
+  done                    # Euclid's algorithm
 
-}                                # Last $dividend is the gcd.
+}                         # Last $dividend is the gcd.
 
 
 gcd $1 $2

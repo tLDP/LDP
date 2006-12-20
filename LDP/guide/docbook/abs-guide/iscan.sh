@@ -27,7 +27,8 @@ case "${2}" in
 esac
 
 # Ping 'em once and see if they *are* running identd.
-nc -z -w $TIMEOUT0 "$1" $IDPORT || { echo "Oops, $1 isn't running identd." ; exit 0 ; }
+nc -z -w $TIMEOUT0 "$1" $IDPORT || \
+{ echo "Oops, $1 isn't running identd." ; exit 0 ; }
 #  -z scans for listening daemons.
 #     -w $TIMEOUT = How long to try to connect.
 
@@ -45,8 +46,8 @@ while test "$1" ; do
   sleep $TWO_WINKS
 
 # Does this look like a lamer script or what . . . ?
-# ABS Guide author comments: "It ain't really all that bad,
-#+                            rather clever, actually."
+# ABS Guide author comments: "Ain't really all that bad . . .
+#+                            kinda clever, actually."
 
   kill -HUP $PROC
   RP=`expr ${RP} + 1`

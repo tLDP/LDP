@@ -6,11 +6,13 @@ POS=11               # Arbitrary position in magic cookie string.
 LEN=5                # Get $LEN consecutive characters.
 
 prefix=temp          #  This is, after all, a "temp" file.
-                     #  For more "uniqueness," generate the filename prefix
-                     #+ using the same method as the suffix, below.
+                     #  For more "uniqueness," generate the
+                     #+ filename prefix using the same method
+                     #+ as the suffix, below.
 
 suffix=${BASE_STR:POS:LEN}
-                     # Extract a 5-character string, starting at position 11.
+                     #  Extract a 5-character string,
+                     #+ starting at position 11.
 
 temp_filename=$prefix.$suffix
                      # Construct the filename.

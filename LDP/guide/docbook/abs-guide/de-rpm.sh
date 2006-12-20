@@ -5,16 +5,17 @@
 # Must specify 'rpm' archive name as an argument.
 
 
-TEMPFILE=$$.cpio                         # Tempfile with "unique" name.
-                                         # $$ is process ID of script.
+TEMPFILE=$$.cpio                         #  Tempfile with "unique" name.
+                                         #  $$ is process ID of script.
 
-rpm2cpio < $1 > $TEMPFILE                # Converts rpm archive into cpio archive.
-cpio --make-directories -F $TEMPFILE -i  # Unpacks cpio archive.
-rm -f $TEMPFILE                          # Deletes cpio archive.
+rpm2cpio < $1 > $TEMPFILE                #  Converts rpm archive into
+                                         #+ cpio archive.
+cpio --make-directories -F $TEMPFILE -i  #  Unpacks cpio archive.
+rm -f $TEMPFILE                          #  Deletes cpio archive.
 
 exit 0
 
 #  Exercise:
 #  Add check for whether 1) "target-file" exists and
-#+                       2) it is really an rpm archive.
-#  Hint:                    parse output of 'file' command.
+#+                       2) it is an rpm archive.
+#  Hint:                    Parse output of 'file' command.

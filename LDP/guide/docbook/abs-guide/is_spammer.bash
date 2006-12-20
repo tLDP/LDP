@@ -422,8 +422,9 @@ is_address() {
     fi
 }
 
-# This function described in split_ip.bash.
-# split_ip &lt;IP_address&gt; &lt;array_name_norm&gt; [&lt;array_name_rev&gt;]
+#  This function described in split_ip.bash.
+#  split_ip &lt;IP_address&gt;
+#+ &lt;array_name_norm&gt; [&lt;array_name_rev&gt;]
 split_ip() {
     [ $# -eq 3 ] ||              #  Either three
     [ $# -eq 2 ] || return 1     #+ or two arguments
@@ -469,8 +470,9 @@ file_to_array() {
     return 0
 }
 
-# Columnized print of an array of multi-field strings.
-# col_print &lt;array_name&gt; &lt;min_space&gt; &lt;tab_stop [tab_stops]&gt;
+#  Columnized print of an array of multi-field strings.
+#  col_print &lt;array_name&gt; &lt;min_space&gt; &lt;
+#+ tab_stop [tab_stops]&gt;
 col_print() {
     [ $# -gt 2 ] || return 0
     local -a _cp_inp
@@ -669,15 +671,15 @@ dump_dot() {
 
     if [ ${#auth_chain[@]} -gt 0 ]
     then
-        echo >>${_dot_file}
-        echo '# Authority reference edges followed and field source.'  >>${_dot_file}
+      echo >>${_dot_file}
+      echo '# Authority ref. edges followed & field source.' >>${_dot_file}
         dump_to_dot auth_chain AC
     fi
 
     if [ ${#ref_chain[@]} -gt 0 ]
     then
         echo >>${_dot_file}
-        echo '# Name reference edges followed and field source.'  >>${_dot_file}
+        echo '# Name ref. edges followed and field source.' >>${_dot_file}
         dump_to_dot ref_chain RC
     fi
 
@@ -724,10 +726,10 @@ dump_dot() {
     unique_lines address_hits address_hits
     if [ ${#address_hits[@]} -gt 0 ]
     then
-        echo >>${_dot_file}
-        echo '# Known address->Blacklist_hit edges' >>${_dot_file}
-        echo '# CAUTION: dig warnings can trigger false hits.' >>${_dot_file}
-        dump_to_dot address_hits AH
+      echo >>${_dot_file}
+      echo '# Known address->Blacklist_hit edges' >>${_dot_file}
+      echo '# CAUTION: dig warnings can trigger false hits.' >>${_dot_file}
+       dump_to_dot address_hits AH
     fi
     echo          >>${_dot_file}
     echo ' *'     >>${_dot_file}
@@ -797,11 +799,11 @@ short_fwd() {
     IFS=${NO_WSP}
 echo -n '.'
 # echo 'sfwd: '${1}
-    _sf_reply=( $(dig +short ${1} -c in -t a 2>/dev/null) )
-    _sf_rc=$?
-    if [ ${_sf_rc} -ne 0 ]
-    then
-        _trace_log[${#_trace_log[@]}]='# # # Lookup error '${_sf_rc}' on '${1}' # # #'
+  _sf_reply=( $(dig +short ${1} -c in -t a 2>/dev/null) )
+  _sf_rc=$?
+  if [ ${_sf_rc} -ne 0 ]
+  then
+    _trace_log[${#_trace_log[@]}]='## Lookup error '${_sf_rc}' on '${1}' ##'
 # [ ${_sf_rc} -ne 9 ] && pend_drop
         return ${_sf_rc}
     else
@@ -826,11 +828,11 @@ short_rev() {
     IFS=${NO_WSP}
 echo -n '.'
 # echo 'srev: '${1}
-    _sr_reply=( $(dig +short -x ${1} 2>/dev/null) )
-    _sr_rc=$?
-    if [ ${_sr_rc} -ne 0 ]
-    then
-        _trace_log[${#_trace_log[@]}]='# # # Lookup error '${_sr_rc}' on '${1}' # # #'
+  _sr_reply=( $(dig +short -x ${1} 2>/dev/null) )
+  _sr_rc=$?
+  if [ ${_sr_rc} -ne 0 ]
+  then
+    _trace_log[${#_trace_log[@]}]='## Lookup error '${_sr_rc}' on '${1}' ##'
 # [ ${_sr_rc} -ne 9 ] && pend_drop
         return ${_sr_rc}
     else
@@ -854,11 +856,11 @@ short_text() {
     local -i _st_cnt
     IFS=${NO_WSP}
 # echo 'stxt: '${1}
-    _st_reply=( $(dig +short ${1} -c in -t txt 2>/dev/null) )
-    _st_rc=$?
-    if [ ${_st_rc} -ne 0 ]
-    then
-        _trace_log[${#_trace_log[@]}]='# # # Text lookup error '${_st_rc}' on '${1}' # # #'
+  _st_reply=( $(dig +short ${1} -c in -t txt 2>/dev/null) )
+  _st_rc=$?
+  if [ ${_st_rc} -ne 0 ]
+  then
+    _trace_log[${#_trace_log[@]}]='##Text lookup error '${_st_rc}' on '${1}'##'
 # [ ${_st_rc} -ne 9 ] && pend_drop
         return ${_st_rc}
     else
@@ -879,7 +881,7 @@ short_text() {
 # RFC 2782   Service lookups
 # dig +noall +nofail +answer _ldap._tcp.openldap.org -t srv
 # _&lt;service&gt;._&lt;protocol&gt;.&lt;domain_name&gt;
-# _ldap._tcp.openldap.org. 3600   IN      SRV     0 0 389 ldap.openldap.org.
+# _ldap._tcp.openldap.org. 3600   IN     SRV    0 0 389 ldap.openldap.org.
 # domain TTL Class SRV Priority Weight Port Target
 
 # Forward lookup :: Name -> poor man's zone transfer
@@ -891,13 +893,13 @@ long_fwd() {
     IFS=${NO_WSP}
 echo -n ':'
 # echo 'lfwd: '${1}
-    _lf_reply=( $(
-        dig +noall +nofail +answer +authority +additional \
-            ${1} -t soa ${1} -t mx ${1} -t any 2>/dev/null) )
-    _lf_rc=$?
-    if [ ${_lf_rc} -ne 0 ]
-    then
-        _trace_log[${#_trace_log[@]}]='# # # Zone lookup error '${_lf_rc}' on '${1}' # # #'
+  _lf_reply=( $(
+     dig +noall +nofail +answer +authority +additional \
+         ${1} -t soa ${1} -t mx ${1} -t any 2>/dev/null) )
+  _lf_rc=$?
+  if [ ${_lf_rc} -ne 0 ]
+  then
+    _trace_log[${#_trace_log[@]}]='# Zone lookup err '${_lf_rc}' on '${1}' #'
 # [ ${_lf_rc} -ne 9 ] && pend_drop
         return ${_lf_rc}
     else
@@ -912,10 +914,10 @@ echo -n ':'
     fi
     return 0
 }
-#   The reverse lookup domain name corresponding to the IPv6 address:
-#       4321:0:1:2:3:4:567:89ab
-#   would be (nibble, I.E: Hexdigit) reversed:
-#   b.a.9.8.7.6.5.0.4.0.0.0.3.0.0.0.2.0.0.0.1.0.0.0.0.0.0.0.1.2.3.4.IP6.ARPA.
+#  The reverse lookup domain name corresponding to the IPv6 address:
+#      4321:0:1:2:3:4:567:89ab
+#  would be (nibble, I.E: Hexdigit) reversed:
+#  b.a.9.8.7.6.5.0.4.0.0.0.3.0.0.0.2.0.0.0.1.0.0.0.0.0.0.0.1.2.3.4.IP6.ARPA.
 
 # Reverse lookup :: Address -> poor man's delegation chain
 # long_rev &lt;rev_ip_address&gt; &lt;array_name&gt;
@@ -928,13 +930,13 @@ long_rev() {
     IFS=${NO_WSP}
 echo -n ':'
 # echo 'lrev: '${1}
-    _lr_reply=( $(
-         dig +noall +nofail +answer +authority +additional \
-             ${_lr_dns} -t soa ${_lr_dns} -t any 2>/dev/null) )
-    _lr_rc=$?
-    if [ ${_lr_rc} -ne 0 ]
-    then
-        _trace_log[${#_trace_log[@]}]='# # # Delegation lookup error '${_lr_rc}' on '${1}' # # #'
+  _lr_reply=( $(
+       dig +noall +nofail +answer +authority +additional \
+           ${_lr_dns} -t soa ${_lr_dns} -t any 2>/dev/null) )
+  _lr_rc=$?
+  if [ ${_lr_rc} -ne 0 ]
+  then
+    _trace_log[${#_trace_log[@]}]='# Deleg lkp error '${_lr_rc}' on '${1}' #'
 # [ ${_lr_rc} -ne 9 ] && pend_drop
         return ${_lr_rc}
     else
@@ -1017,11 +1019,11 @@ split_input() {
             fi
         fi
     done
-    uc_name=( ${uc_name[@]} )
-    _si_cnt=${#uc_name[@]}
-    _trace_log[${#_trace_log[@]}]='# # # Input '${_si_cnt}' unchecked name input(s). # # #'
-    _si_cnt=${#uc_address[@]}
-    _trace_log[${#_trace_log[@]}]='# # # Input '${_si_cnt}' unchecked address input(s). # # #'
+  uc_name=( ${uc_name[@]} )
+  _si_cnt=${#uc_name[@]}
+  _trace_log[${#_trace_log[@]}]='#Input '${_si_cnt}' unchkd name input(s).#'
+  _si_cnt=${#uc_address[@]}
+  _trace_log[${#_trace_log[@]}]='#Input '${_si_cnt}' unchkd addr input(s).#'
     return 0
 }
 
@@ -1076,24 +1078,24 @@ expand_input_name() {
     do
         if short_fwd ${uc_name[${_ein}]} _ein_new
         then
-            for (( _ein_cnt = 0 ; _ein_cnt < ${#_ein_new[@]}; _ein_cnt++ ))
-            do
-                _ein_tst=${_ein_new[${_ein_cnt}]}
-                if is_address ${_ein_tst}
-                then
-                    _ein_addr[${#_ein_addr[@]}]=${_ein_tst}
-                fi
-           done
+          for (( _ein_cnt = 0 ; _ein_cnt < ${#_ein_new[@]}; _ein_cnt++ ))
+          do
+              _ein_tst=${_ein_new[${_ein_cnt}]}
+              if is_address ${_ein_tst}
+              then
+                  _ein_addr[${#_ein_addr[@]}]=${_ein_tst}
+              fi
+    done
         fi
     done
     unique_lines _ein_addr _ein_addr     # Scrub duplicates.
     edit_exact chk_address _ein_addr     # Scrub pending detail.
     edit_exact known_address _ein_addr   # Scrub already detailed.
-    if [ ${#_ein_addr[@]} -gt 0 ]        # Anything new?
-    then
-        uc_address=( ${uc_address[@]} ${_ein_addr[@]} )
-        pend_func expand_input_address ${1}
-        _trace_log[${#_trace_log[@]}]='# # # Added '${#_ein_addr[@]}' unchecked address input(s). # # #'
+ if [ ${#_ein_addr[@]} -gt 0 ]        # Anything new?
+ then
+   uc_address=( ${uc_address[@]} ${_ein_addr[@]} )
+   pend_func expand_input_address ${1}
+   _trace_log[${#_trace_log[@]}]='#Add '${#_ein_addr[@]}' unchkd addr inp.#'
     fi
     edit_exact chk_name uc_name          # Scrub pending detail.
     edit_exact known_name uc_name        # Scrub already detailed.
@@ -1128,27 +1130,27 @@ expand_input_address() {
         been_there_addr=( ${been_there_addr[@]} ${_eia_addr[@]} )
 
     for (( _eia = 0 ; _eia < _uca_cnt ; _eia++ ))
-    do
-            if short_rev ${_eia_addr[${_eia}]} _eia_new
-            then
-                for (( _eia_cnt = 0 ; _eia_cnt < ${#_eia_new[@]} ; _eia_cnt++ ))
-                do
-                    _eia_tst=${_eia_new[${_eia_cnt}]}
-                    if _eia_tst=$(name_fixup ${_eia_tst})
-                    then
-                        _eia_name[${#_eia_name[@]}]=${_eia_tst}
-                    fi
-                done
-            fi
+     do
+       if short_rev ${_eia_addr[${_eia}]} _eia_new
+       then
+         for (( _eia_cnt = 0 ; _eia_cnt < ${#_eia_new[@]} ; _eia_cnt++ ))
+         do
+           _eia_tst=${_eia_new[${_eia_cnt}]}
+           if _eia_tst=$(name_fixup ${_eia_tst})
+           then
+             _eia_name[${#_eia_name[@]}]=${_eia_tst}
+       fi
+     done
+           fi
     done
     unique_lines _eia_name _eia_name     # Scrub duplicates.
     edit_exact chk_name _eia_name        # Scrub pending detail.
     edit_exact known_name _eia_name      # Scrub already detailed.
-    if [ ${#_eia_name[@]} -gt 0 ]        # Anything new?
-    then
-        uc_name=( ${uc_name[@]} ${_eia_name[@]} )
-        pend_func expand_input_name ${1}
-        _trace_log[${#_trace_log[@]}]='# # # Added '${#_eia_name[@]}' unchecked name input(s). # # #'
+ if [ ${#_eia_name[@]} -gt 0 ]        # Anything new?
+ then
+   uc_name=( ${uc_name[@]} ${_eia_name[@]} )
+   pend_func expand_input_name ${1}
+   _trace_log[${#_trace_log[@]}]='#Add '${#_eia_name[@]}' unchkd name inp.#'
     fi
     edit_exact chk_address _eia_addr     # Scrub pending detail.
     edit_exact known_address _eia_addr   # Scrub already detailed.
@@ -1218,150 +1220,150 @@ detail_each_name() {
                 IFS=${NO_WSP}$'\x09'$'\x20'
                 _den_tmp=( ${_den_new[${_line}]} )
                 IFS=${WSP_IFS}
-                # If usable record and not a warning message . . .
-                if [ ${#_den_tmp[@]} -gt 4 ] && [ 'x'${_den_tmp[0]} != 'x;;' ]
-                then
+              # If usable record and not a warning message . . .
+              if [ ${#_den_tmp[@]} -gt 4 ] && [ 'x'${_den_tmp[0]} != 'x;;' ]
+              then
                     _den_rec=${_den_tmp[3]}
                     _den_nr[${#_den_nr[@]}]=${_den_who}' '${_den_rec}
                     # Begin at RFC1033 (+++)
                     case ${_den_rec} in
 
-                         #&lt;name&gt;  [&lt;ttl&gt;]  [&lt;class&gt;]  SOA  &lt;origin&gt;  &lt;person&gt;
+#&lt;name&gt; [&lt;ttl&gt;]  [&lt;class&gt;] SOA &lt;origin&gt; &lt;person&gt;
                     SOA) # Start Of Authority
-                        if _den_str=$(name_fixup ${_den_tmp[0]})
-                        then
-                            _den_name[${#_den_name[@]}]=${_den_str}
-                            _den_achn[${#_den_achn[@]}]=${_den_who}' '${_den_str}' SOA'
-                            # SOA origin -- domain name of master zone record
-                            if _den_str2=$(name_fixup ${_den_tmp[4]})
-                            then
-                                _den_name[${#_den_name[@]}]=${_den_str2}
-                                _den_achn[${#_den_achn[@]}]=${_den_who}' '${_den_str2}' SOA.O'
-                            fi
-                            # Responsible party e-mail address (possibly bogus).
-                            # Possibility of first.last@domain.name ignored.
-                            set -f
-                            if _den_str2=$(name_fixup ${_den_tmp[5]})
-                            then
-                                IFS=${ADR_IFS}
-                                _den_auth=( ${_den_str2} )
-                                IFS=${WSP_IFS}
-                                if [ ${#_den_auth[@]} -gt 2 ]
-                                then
-                                     _den_cont=${_den_auth[1]}
-                                     for (( _auth = 2 ; _auth < ${#_den_auth[@]} ; _auth++ ))
-                                     do
-                                       _den_cont=${_den_cont}'.'${_den_auth[${_auth}]}
-                                     done
-                                     _den_name[${#_den_name[@]}]=${_den_cont}'.'
-                                     _den_achn[${#_den_achn[@]}]=${_den_who}' '${_den_cont}'. SOA.C'
+    if _den_str=$(name_fixup ${_den_tmp[0]})
+    then
+      _den_name[${#_den_name[@]}]=${_den_str}
+      _den_achn[${#_den_achn[@]}]=${_den_who}' '${_den_str}' SOA'
+      # SOA origin -- domain name of master zone record
+      if _den_str2=$(name_fixup ${_den_tmp[4]})
+      then
+        _den_name[${#_den_name[@]}]=${_den_str2}
+        _den_achn[${#_den_achn[@]}]=${_den_who}' '${_den_str2}' SOA.O'
+      fi
+      # Responsible party e-mail address (possibly bogus).
+      # Possibility of first.last@domain.name ignored.
+      set -f
+      if _den_str2=$(name_fixup ${_den_tmp[5]})
+      then
+        IFS=${ADR_IFS}
+        _den_auth=( ${_den_str2} )
+        IFS=${WSP_IFS}
+        if [ ${#_den_auth[@]} -gt 2 ]
+        then
+          _den_cont=${_den_auth[1]}
+          for (( _auth = 2 ; _auth < ${#_den_auth[@]} ; _auth++ ))
+          do
+            _den_cont=${_den_cont}'.'${_den_auth[${_auth}]}
+          done
+          _den_name[${#_den_name[@]}]=${_den_cont}'.'
+          _den_achn[${#_den_achn[@]}]=${_den_who}' '${_den_cont}'. SOA.C'
                                 fi
-                            fi
-                            set +f
+        fi
+        set +f
                         fi
                     ;;
 
 
-                    A) # IP(v4) Address Record
-                        if _den_str=$(name_fixup ${_den_tmp[0]})
-                        then
-                            _den_name[${#_den_name[@]}]=${_den_str}
-                            _den_pair[${#_den_pair[@]}]=${_den_tmp[4]}' '${_den_str}
-                            _den_na[${#_den_na[@]}]=${_den_str}' '${_den_tmp[4]}
-                            _den_ref[${#_den_ref[@]}]=${_den_who}' '${_den_str}' A'
-                        else
-                            _den_pair[${#_den_pair[@]}]=${_den_tmp[4]}' unknown.domain'
-                            _den_na[${#_den_na[@]}]='unknown.domain '${_den_tmp[4]}
-                            _den_ref[${#_den_ref[@]}]=${_den_who}' unknown.domain A'
-                        fi
-                        _den_address[${#_den_address[@]}]=${_den_tmp[4]}
-                        _den_pc[${#_den_pc[@]}]=${_den_who}' '${_den_tmp[4]}
+      A) # IP(v4) Address Record
+      if _den_str=$(name_fixup ${_den_tmp[0]})
+      then
+        _den_name[${#_den_name[@]}]=${_den_str}
+        _den_pair[${#_den_pair[@]}]=${_den_tmp[4]}' '${_den_str}
+        _den_na[${#_den_na[@]}]=${_den_str}' '${_den_tmp[4]}
+        _den_ref[${#_den_ref[@]}]=${_den_who}' '${_den_str}' A'
+      else
+        _den_pair[${#_den_pair[@]}]=${_den_tmp[4]}' unknown.domain'
+        _den_na[${#_den_na[@]}]='unknown.domain '${_den_tmp[4]}
+        _den_ref[${#_den_ref[@]}]=${_den_who}' unknown.domain A'
+      fi
+      _den_address[${#_den_address[@]}]=${_den_tmp[4]}
+      _den_pc[${#_den_pc[@]}]=${_den_who}' '${_den_tmp[4]}
+             ;;
+
+             NS) # Name Server Record
+             # Domain name being serviced (may be other than current)
+               if _den_str=$(name_fixup ${_den_tmp[0]})
+                 then
+                   _den_name[${#_den_name[@]}]=${_den_str}
+                   _den_ref[${#_den_ref[@]}]=${_den_who}' '${_den_str}' NS'
+
+             # Domain name of service provider
+             if _den_str2=$(name_fixup ${_den_tmp[4]})
+             then
+               _den_name[${#_den_name[@]}]=${_den_str2}
+               _den_ref[${#_den_ref[@]}]=${_den_who}' '${_den_str2}' NSH'
+               _den_ns[${#_den_ns[@]}]=${_den_str2}' NS'
+               _den_pc[${#_den_pc[@]}]=${_den_str}' '${_den_str2}
+              fi
+               fi
                     ;;
 
-                    NS) # Name Server Record
-                        # Domain name being serviced (may be other than current)
-                        if _den_str=$(name_fixup ${_den_tmp[0]})
-                        then
-                            _den_name[${#_den_name[@]}]=${_den_str}
-                            _den_ref[${#_den_ref[@]}]=${_den_who}' '${_den_str}' NS'
-
-                            # Domain name of service provider
-                            if _den_str2=$(name_fixup ${_den_tmp[4]})
-                            then
-                                _den_name[${#_den_name[@]}]=${_den_str2}
-                                _den_ref[${#_den_ref[@]}]=${_den_who}' '${_den_str2}' NSH'
-                                _den_ns[${#_den_ns[@]}]=${_den_str2}' NS'
-                                _den_pc[${#_den_pc[@]}]=${_den_str}' '${_den_str2}
-                            fi
-                        fi
+             MX) # Mail Server Record
+                 # Domain name being serviced (wildcards not handled here)
+             if _den_str=$(name_fixup ${_den_tmp[0]})
+             then
+               _den_name[${#_den_name[@]}]=${_den_str}
+               _den_ref[${#_den_ref[@]}]=${_den_who}' '${_den_str}' MX'
+             fi
+             # Domain name of service provider
+             if _den_str=$(name_fixup ${_den_tmp[5]})
+             then
+               _den_name[${#_den_name[@]}]=${_den_str}
+               _den_ref[${#_den_ref[@]}]=${_den_who}' '${_den_str}' MXH'
+               _den_ns[${#_den_ns[@]}]=${_den_str}' MX'
+               _den_pc[${#_den_pc[@]}]=${_den_who}' '${_den_str}
+             fi
                     ;;
 
-                    MX) # Mail Server Record
-                        # Domain name being serviced (wildcards not handled here)
-                        if _den_str=$(name_fixup ${_den_tmp[0]})
-                        then
-                            _den_name[${#_den_name[@]}]=${_den_str}
-                            _den_ref[${#_den_ref[@]}]=${_den_who}' '${_den_str}' MX'
-                        fi
-                        # Domain name of service provider
-                        if _den_str=$(name_fixup ${_den_tmp[5]})
-                        then
-                            _den_name[${#_den_name[@]}]=${_den_str}
-                            _den_ref[${#_den_ref[@]}]=${_den_who}' '${_den_str}' MXH'
-                            _den_ns[${#_den_ns[@]}]=${_den_str}' MX'
-                            _den_pc[${#_den_pc[@]}]=${_den_who}' '${_den_str}
-                        fi
+             PTR) # Reverse address record
+                  # Special name
+             if _den_str=$(name_fixup ${_den_tmp[0]})
+             then
+               _den_ref[${#_den_ref[@]}]=${_den_who}' '${_den_str}' PTR'
+               # Host name (not a CNAME)
+               if _den_str2=$(name_fixup ${_den_tmp[4]})
+               then
+                 _den_rev[${#_den_rev[@]}]=${_den_str}' '${_den_str2}
+                 _den_ref[${#_den_ref[@]}]=${_den_who}' '${_den_str2}' PTRH'
+                 _den_pc[${#_den_pc[@]}]=${_den_who}' '${_den_str}
+               fi
+             fi
                     ;;
 
-                    PTR) # Reverse address record
-                         # Special name
-                        if _den_str=$(name_fixup ${_den_tmp[0]})
-                        then
-                            _den_ref[${#_den_ref[@]}]=${_den_who}' '${_den_str}' PTR'
-                            # Host name (not a CNAME)
-                            if _den_str2=$(name_fixup ${_den_tmp[4]})
-                            then
-                                _den_rev[${#_den_rev[@]}]=${_den_str}' '${_den_str2}
-                                _den_ref[${#_den_ref[@]}]=${_den_who}' '${_den_str2}' PTRH'
-                                _den_pc[${#_den_pc[@]}]=${_den_who}' '${_den_str}
-                            fi
-                        fi
+             AAAA) # IP(v6) Address Record
+             if _den_str=$(name_fixup ${_den_tmp[0]})
+             then
+               _den_name[${#_den_name[@]}]=${_den_str}
+               _den_pair[${#_den_pair[@]}]=${_den_tmp[4]}' '${_den_str}
+               _den_na[${#_den_na[@]}]=${_den_str}' '${_den_tmp[4]}
+               _den_ref[${#_den_ref[@]}]=${_den_who}' '${_den_str}' AAAA'
+               else
+                 _den_pair[${#_den_pair[@]}]=${_den_tmp[4]}' unknown.domain'
+                 _den_na[${#_den_na[@]}]='unknown.domain '${_den_tmp[4]}
+                 _den_ref[${#_den_ref[@]}]=${_den_who}' unknown.domain'
+               fi
+               # No processing for IPv6 addresses
+               _den_pc[${#_den_pc[@]}]=${_den_who}' '${_den_tmp[4]}
                     ;;
 
-                    AAAA) # IP(v6) Address Record
-                        if _den_str=$(name_fixup ${_den_tmp[0]})
-                        then
-                            _den_name[${#_den_name[@]}]=${_den_str}
-                            _den_pair[${#_den_pair[@]}]=${_den_tmp[4]}' '${_den_str}
-                            _den_na[${#_den_na[@]}]=${_den_str}' '${_den_tmp[4]}
-                            _den_ref[${#_den_ref[@]}]=${_den_who}' '${_den_str}' AAAA'
-                        else
-                            _den_pair[${#_den_pair[@]}]=${_den_tmp[4]}' unknown.domain'
-                            _den_na[${#_den_na[@]}]='unknown.domain '${_den_tmp[4]}
-                            _den_ref[${#_den_ref[@]}]=${_den_who}' unknown.domain'
-                        fi
-                        # No processing for IPv6 addresses
-                            _den_pc[${#_den_pc[@]}]=${_den_who}' '${_den_tmp[4]}
+             CNAME) # Alias name record
+                    # Nickname
+             if _den_str=$(name_fixup ${_den_tmp[0]})
+             then
+               _den_name[${#_den_name[@]}]=${_den_str}
+               _den_ref[${#_den_ref[@]}]=${_den_who}' '${_den_str}' CNAME'
+               _den_pc[${#_den_pc[@]}]=${_den_who}' '${_den_str}
+             fi
+                    # Hostname
+             if _den_str=$(name_fixup ${_den_tmp[4]})
+             then
+               _den_name[${#_den_name[@]}]=${_den_str}
+               _den_ref[${#_den_ref[@]}]=${_den_who}' '${_den_str}' CHOST'
+               _den_pc[${#_den_pc[@]}]=${_den_who}' '${_den_str}
+             fi
                     ;;
-
-                    CNAME) # Alias name record
-                           # Nickname
-                        if _den_str=$(name_fixup ${_den_tmp[0]})
-                        then
-                            _den_name[${#_den_name[@]}]=${_den_str}
-                            _den_ref[${#_den_ref[@]}]=${_den_who}' '${_den_str}' CNAME'
-                            _den_pc[${#_den_pc[@]}]=${_den_who}' '${_den_str}
-                        fi
-                        # Hostname
-                        if _den_str=$(name_fixup ${_den_tmp[4]})
-                        then
-                            _den_name[${#_den_name[@]}]=${_den_str}
-                            _den_ref[${#_den_ref[@]}]=${_den_who}' '${_den_str}' CHOST'
-                            _den_pc[${#_den_pc[@]}]=${_den_who}' '${_den_str}
-                        fi
-                    ;;
-#                   TXT)
-#                   ;;
+#            TXT)
+#            ;;
                     esac
                 fi
             done
@@ -1451,27 +1453,27 @@ detail_each_name() {
         return 0
     fi
 
-    # Execution engine is LIFO. Order of pend operations is important.
-    # Did we define any new addresses?
-    unique_lines _den_address _den_address    # Scrub duplicates.
-    edit_exact known_address _den_address     # Scrub already processed.
-    edit_exact un_address _den_address        # Scrub already waiting.
-    if [ ${#_den_address[@]} -gt 0 ]          # Anything new?
-    then
-        uc_address=( ${uc_address[@]} ${_den_address[@]} )
-        pend_func expand_input_address ${_den_lmt}
-        _trace_log[${#_trace_log[@]}]='# # # Added '${#_den_address[@]}' unchecked address(s). # # #'
+# Execution engine is LIFO. Order of pend operations is important.
+# Did we define any new addresses?
+unique_lines _den_address _den_address    # Scrub duplicates.
+edit_exact known_address _den_address     # Scrub already processed.
+edit_exact un_address _den_address        # Scrub already waiting.
+if [ ${#_den_address[@]} -gt 0 ]          # Anything new?
+then
+  uc_address=( ${uc_address[@]} ${_den_address[@]} )
+  pend_func expand_input_address ${_den_lmt}
+  _trace_log[${#_trace_log[@]}]='# Add '${#_den_address[@]}' unchkd addr. #'
     fi
 
-    # Did we find any new names?
-    unique_lines _den_name _den_name          # Scrub duplicates.
-    edit_exact known_name _den_name           # Scrub already processed.
-    edit_exact uc_name _den_name              # Scrub already waiting.
-    if [ ${#_den_name[@]} -gt 0 ]             # Anything new?
-    then
-        uc_name=( ${uc_name[@]} ${_den_name[@]} )
-        pend_func expand_input_name ${_den_lmt}
-        _trace_log[${#_trace_log[@]}]='# # # Added '${#_den_name[@]}' unchecked name(s). # # #'
+# Did we find any new names?
+unique_lines _den_name _den_name          # Scrub duplicates.
+edit_exact known_name _den_name           # Scrub already processed.
+edit_exact uc_name _den_name              # Scrub already waiting.
+if [ ${#_den_name[@]} -gt 0 ]             # Anything new?
+then
+  uc_name=( ${uc_name[@]} ${_den_name[@]} )
+  pend_func expand_input_name ${_den_lmt}
+  _trace_log[${#_trace_log[@]}]='#Added '${#_den_name[@]}' unchkd name#'
     fi
     return 0
 }
@@ -1534,20 +1536,20 @@ check_lists() {
     echo '    Checking address '${1}
     for (( _cl = 0 ; _cl < _ls_cnt ; _cl++ ))
     do
-        _cl_lkup=${_cl_dns_addr}${list_server[${_cl}]}
-        if short_text ${_cl_lkup} _cl_reply
+      _cl_lkup=${_cl_dns_addr}${list_server[${_cl}]}
+      if short_text ${_cl_lkup} _cl_reply
+      then
+        if [ ${#_cl_reply[@]} -gt 0 ]
         then
-            if [ ${#_cl_reply[@]} -gt 0 ]
-            then
-                echo '        Records from '${list_server[${_cl}]}
-                address_hits[${#address_hits[@]}]=${1}' '${list_server[${_cl}]}
-                _hs_RC=2
-                for (( _clr = 0 ; _clr < ${#_cl_reply[@]} ; _clr++ ))
-                do
-                    echo '            '${_cl_reply[${_clr}]}
-                done
-            fi
+          echo '        Records from '${list_server[${_cl}]}
+          address_hits[${#address_hits[@]}]=${1}' '${list_server[${_cl}]}
+          _hs_RC=2
+          for (( _clr = 0 ; _clr < ${#_cl_reply[@]} ; _clr++ ))
+          do
+            echo '            '${_cl_reply[${_clr}]}
+          done
         fi
+      fi
     done
     return 0
 }
@@ -1840,7 +1842,7 @@ else
         echo 'Checking Blacklist servers.'
         for (( _ip = _ip_cnt ; _ip >= 0 ; _ip-- ))
         do
-            pend_func check_lists $( printf '%q\n' ${known_address[$_ip]} )
+          pend_func check_lists $( printf '%q\n' ${known_address[$_ip]} )
         done
     fi
 fi
@@ -1882,9 +1884,9 @@ Known network pairs.
     216.185.111.52           mail.theplanet.com.
 
 Checking Blacklist servers.
-    Checking address 66.98.208.97
-        Records from dnsbl.sorbs.net
-            "Spam Received See: http://www.dnsbl.sorbs.net/lookup.shtml?66.98.208.97"
+  Checking address 66.98.208.97
+      Records from dnsbl.sorbs.net
+  "Spam Received See: http://www.dnsbl.sorbs.net/lookup.shtml?66.98.208.97"
     Checking address 69.56.202.147
     Checking address 69.56.202.146
     Checking address 66.235.180.113

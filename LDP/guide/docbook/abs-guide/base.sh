@@ -1,20 +1,20 @@
 #!/bin/bash
-##########################################################################
+###########################################################################
 # Shellscript:	base.sh - print number to different bases (Bourne Shell)
 # Author     :	Heiner Steven (heiner.steven@odn.de)
 # Date       :	07-03-95
 # Category   :	Desktop
 # $Id$
 # ==> Above line is RCS ID info.
-##########################################################################
+###########################################################################
 # Description
 #
 # Changes
 # 21-03-95 stv	fixed error occuring with 0xb as input (0.2)
-##########################################################################
+###########################################################################
 
-# ==> Used in this document with the script author's permission.
-# ==> Comments added by document author.
+# ==> Used in ABS Guide with the script author's permission.
+# ==> Comments added by ABS Guide author.
 
 NOARGS=65
 PN=`basename "$0"`			       # Program name
@@ -83,13 +83,13 @@ while [ $# -gt 0 ]
 # ==>  Is a "while loop" really necessary here,
 # ==>+ since all the cases either break out of the loop
 # ==>+ or terminate the script.
-# ==> (Thanks, Paulo Marcel Coelho Aragao.)
+# ==> (Above comment by Paulo Marcel Coelho Aragao.)
 do
     case "$1" in
 	--)     shift; break;;
 	-h)     Usage;;                 # ==> Help message.
 	-*)     Usage;;
-         *)     break;;			# first number
+         *)     break;;                 # first number
     esac   # ==> More error checking for illegal input might be useful.
     shift
 done

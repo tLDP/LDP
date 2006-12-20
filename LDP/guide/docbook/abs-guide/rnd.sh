@@ -43,16 +43,18 @@ head -c4 /dev/urandom | od -N4 -tu4 | sed -ne '1s/.* //p'
 #  The line number is in the range, so it executes the action:
 #+ tries to substitute the longest string ending with a space in the line
 #  ("0000000 ") with nothing (//), and if it succeeds, prints the result
-#  ("p" is a flag to the "s" command here, this is different from the "p" command).
+#  ("p" is a flag to the "s" command here, this is different
+#+ from the "p" command).
 
 #  sed is now ready to continue reading its input. (Note that before
 #+ continuing, if -n option had not been passed, sed would have printed
 #+ the line once again).
 
-# Now, sed reads the remainder of the characters, and finds the end of the file.
-# It is now ready to process its 2nd line (which is also numbered '$' as
-# it's the last one).
-# It sees it is not matched by any &lt;range&gt;, so its job is done.
+#  Now, sed reads the remainder of the characters, and finds the
+#+ end of the file.
+#  It is now ready to process its 2nd line (which is also numbered '$' as
+#+ it's the last one).
+#  It sees it is not matched by any &lt;range&gt;, so its job is done.
 
 #  In few word this sed commmand means:
 #  "On the first line only, remove any character up to the right-most space,
@@ -69,8 +71,8 @@ head -c4 /dev/urandom | od -N4 -tu4 | sed -ne '1s/.* //p'
 #   nothing (matches line)   q (quit)
 
 #  Here, sed only reads its first line of input.
-#  It performs both actions, and prints the line (substituted) before quitting
-#+ (because of the "q" action) since the "-n" option is not passed.
+#  It performs both actions, and prints the line (substituted) before
+#+ quitting (because of the "q" action) since the "-n" option is not passed.
 
 # =================================================================== #
 

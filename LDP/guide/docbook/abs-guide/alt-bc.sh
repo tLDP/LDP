@@ -37,18 +37,19 @@ echo $var3       # .991664810
 
 
 # Now, try it in a function...
-hyp=             # Declare global variable.
 hypotenuse ()    # Calculate hypotenuse of a right triangle.
-{
+{                # c = sqrt( a^2 + b^2 )
 hyp=$(bc -l << EOF
 scale = 9
 sqrt ( $1 * $1 + $2 * $2 )
 EOF
 )
-# Unfortunately, can't return floating point values from a Bash function.
+# Can't directly return floating point values from a Bash function.
+# But, can echo-and-capture:
+echo "$hyp"
 }
 
-hypotenuse 3.68 7.31
+hyp=$(hypotenuse 3.68 7.31)
 echo "hypotenuse = $hyp"    # 8.184039344
 
 

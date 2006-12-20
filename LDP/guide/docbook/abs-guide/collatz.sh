@@ -16,7 +16,7 @@
 #+ eventually settles down to repeating "4,2,1..." cycles,
 #+ even after fluctuating through a wide range of values.
 #
-#  This is an instance of an "iterate",
+#  This is an instance of an "iterate,"
 #+ an operation that feeds its output back into the input.
 #  Sometimes the result is a "chaotic" series.
 
@@ -60,7 +60,7 @@ done
 echo
 
 #  For more information on this mathematical function,
-#+ see "Computers, Pattern, Chaos, and Beauty", by Pickover, p. 185 ff.,
+#+ see _Computers, Pattern, Chaos, and Beauty_, by Pickover, p. 185 ff.,
 #+ as listed in the bibliography.
 
 exit 0

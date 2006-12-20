@@ -2,8 +2,11 @@
 # monthlypmt.sh: Calculates monthly payment on a mortgage.
 
 
-#  This is a modification of code in the "mcalc" (mortgage calculator) package,
-#+ by Jeff Schmidt and Mendel Cooper (yours truly, the author of this document).
+#  This is a modification of code in the
+#+ "mcalc" (mortgage calculator) package,
+#+ by Jeff Schmidt
+#+ and
+#+ Mendel Cooper (yours truly, the author of the ABS Guide).
 #   http://www.ibiblio.org/pub/Linux/apps/financial/mcalc-1.6.tar.gz  [15k]
 
 echo
@@ -22,13 +25,15 @@ read term
 
 
  interest_r=$(echo "scale=9; $interest_r/100.0" | bc) # Convert to decimal.
+                 #           ^^^^^^^^^^^^^^^^^  Divide by 100. 
                  # "scale" determines how many decimal places.
-  
 
  interest_rate=$(echo "scale=9; $interest_r/12 + 1.0" | bc)
  
 
  top=$(echo "scale=9; $principal*$interest_rate^$term" | bc)
+          #           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+          #           Standard formula for figuring interest.
 
  echo; echo "Please be patient. This may take a while."
 
@@ -92,4 +97,4 @@ read term
  #   1) Filter input to permit commas in principal amount.
  #   2) Filter input to permit interest to be entered as percent or decimal.
  #   3) If you are really ambitious,
- #      expand this script to print complete amortization tables.
+ #+     expand this script to print complete amortization tables.

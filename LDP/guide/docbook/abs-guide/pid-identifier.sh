@@ -1,5 +1,6 @@
 #!/bin/bash
-# pid-identifier.sh: Gives complete path name to process associated with pid.
+# pid-identifier.sh:
+# Gives complete path name to process associated with pid.
 
 ARGNO=1  # Number of arguments the script expects.
 E_WRONGARGS=65
@@ -22,8 +23,8 @@ pidno=$( ps ax | grep $1 | awk '{ print $1 }' | grep $1 )
 #    pidno=$( ps ax | awk '{ print $1 }' | grep $1 )
 #    also works, as Teemu Huovila, points out.
 
-if [ -z "$pidno" ]  # If, after all the filtering, the result is a zero-length string,
-then                # no running process corresponds to the pid given.
+if [ -z "$pidno" ]  #  If, after all the filtering, the result is a zero-length string,
+then                #+ no running process corresponds to the pid given.
   echo "No such process running."
   exit $E_NOSUCHPROCESS
 fi  
@@ -58,22 +59,22 @@ fi
 exe_file=$( ls -l /proc/$1 | grep "exe" | awk '{ print $11 }' )
 # Or       exe_file=$( ls -l /proc/$1/exe | awk '{print $11}' )
 #
-# /proc/pid-number/exe is a symbolic link
-# to the complete path name of the invoking process.
+#  /proc/pid-number/exe is a symbolic link
+#+ to the complete path name of the invoking process.
 
-if [ -e "$exe_file" ]  # If /proc/pid-number/exe exists...
-then                 # the corresponding process exists.
+if [ -e "$exe_file" ]  #  If /proc/pid-number/exe exists,
+then                   #+ then the corresponding process exists.
   echo "Process #$1 invoked by $exe_file."
 else
   echo "No such process running."
 fi  
 
 
-# This elaborate script can *almost* be replaced by
-# ps ax | grep $1 | awk '{ print $5 }'
-# However, this will not work...
-# because the fifth field of 'ps' is argv[0] of the process,
-# not the executable file path.
+#  This elaborate script can *almost* be replaced by
+#       ps ax | grep $1 | awk '{ print $5 }'
+#  However, this will not work...
+#+ because the fifth field of 'ps' is argv[0] of the process,
+#+ not the executable file path.
 #
 # However, either of the following would work.
 #       find /proc/$1/exe -printf '%l\n'

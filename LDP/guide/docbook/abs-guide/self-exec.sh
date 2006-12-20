@@ -16,4 +16,5 @@ exec $0   #  Spawns another instance of this same script
 
 echo "This line will never echo!"  # Why not?
 
-exit 0
+exit 99                            # Will not exit here!
+                                   # Exit code will not be 99!

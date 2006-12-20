@@ -1,10 +1,11 @@
 #!/bin/bash
 # rpm-check.sh
 
-# Queries an rpm file for description, listing, and whether it can be installed.
-# Saves output to a file.
+#  Queries an rpm file for description, listing,
+#+ and whether it can be installed.
+#  Saves output to a file.
 # 
-# This script illustrates using a code block.
+#  This script illustrates using a code block.
 
 SUCCESS=0
 E_NOARGS=65
@@ -15,7 +16,7 @@ then
   exit $E_NOARGS
 fi  
 
-{ 
+{ # Begin code block.
   echo
   echo "Archive Description:"
   rpm -qpi $1       # Query description.
@@ -30,7 +31,7 @@ fi
   else
     echo "$1 cannot be installed."
   fi  
-  echo
+  echo              # End code block.
 } > "$1.test"       # Redirects output of everything in block to file.
 
 echo "Results of rpm test in file $1.test"

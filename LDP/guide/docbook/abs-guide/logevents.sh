@@ -1,5 +1,7 @@
 #!/bin/bash
-# logevents.sh, by Stephane Chazelas.
+# logevents.sh
+# Author: Stephane Chazelas.
+# Used in ABS Guide with permission.
 
 # Event logging to a file.
 # Must be run as root (for write access in /var/log).
@@ -19,7 +21,7 @@ FD_DEBUG1=3
 FD_DEBUG2=4
 FD_DEBUG3=5
 
-# Uncomment one of the two lines below to activate script.
+# === Uncomment one of the two lines below to activate script. ===
 # LOG_EVENTS=1
 # LOG_VARS=1
 
@@ -27,7 +29,8 @@ FD_DEBUG3=5
 log()  # Writes time and date to log file.
 {
 echo "$(date)  $*" &gt;&7     # This *appends* the date to the file.
-                              # See below.
+#     ^^^^^^^  command substitution
+                           # See below.
 }
 
 
@@ -42,26 +45,27 @@ esac
 FD_LOGVARS=6
 if [[ $LOG_VARS ]]
 then exec 6&gt;&gt; /var/log/vars.log
-else exec 6&gt; /dev/null               # Bury output.
+else exec 6&gt; /dev/null                     # Bury output.
 fi
 
 FD_LOGEVENTS=7
 if [[ $LOG_EVENTS ]]
 then
-  # then exec 7 &gt;(exec gawk '{print strftime(), $0}' &gt;&gt; /var/log/event.log)
-  # Above line will not work in Bash, version 2.04.
-  exec 7&gt;&gt; /var/log/event.log        # Append to "event.log".
+  # exec 7 &gt;(exec gawk '{print strftime(), $0}' &gt;&gt; /var/log/event.log)
+  # Above line fails in versions of Bash more recent than 2.04. Why?
+  exec 7&gt;&gt; /var/log/event.log              # Append to "event.log".
   log                                      # Write time and date.
-else exec 7&gt; /dev/null                  # Bury output.
+else exec 7&gt; /dev/null                     # Bury output.
 fi
 
 echo "DEBUG3: beginning" &gt;&${FD_DEBUG3}
 
-ls -l &gt;&5 2&gt;&4                       # command1 &gt;&5 2&gt;&4
+ls -l &gt;&5 2&gt;&4                             # command1 &gt;&5 2&gt;&4
 
 echo "Done"                                # command2 
 
-echo "sending mail" &gt;&${FD_LOGEVENTS}   # Writes "sending mail" to fd #7.
+echo "sending mail" &gt;&${FD_LOGEVENTS}
+# Writes "sending mail" to file descriptor #7.
 
 
 exit 0

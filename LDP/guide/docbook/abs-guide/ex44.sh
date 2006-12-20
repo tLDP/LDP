@@ -17,6 +17,11 @@ chmod 666 /dev/ttyS3      # Restore read+write permissions, or else what?
 
 rm /var/lock/LCK..ttyS3   # Remove the serial port lock file. Why?
 
+#  Note:
+#  Depending on the hardware and even the kernel version,
+#+ the modem port on your machine may be different --
+#+ /dev/ttyS1 or /dev/ttyS2.
+
 exit 0
 
 # Exercises:

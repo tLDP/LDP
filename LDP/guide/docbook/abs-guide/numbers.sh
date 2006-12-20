@@ -13,10 +13,16 @@ echo "octal number = $oct"               # 26
 # Expresses result in decimal.
 # --------- ------ -- -------
 
+
 # Hexadecimal: numbers preceded by '0x' or '0X'
 let "hex = 0x32"
 echo "hexadecimal number = $hex"         # 50
+
+echo $((0x9abc))                         # 39612
+#     ^^      ^^   double-parentheses arithmetic expansion/evaluation
 # Expresses result in decimal.
+
+
 
 # Other bases: BASE#NUMBER
 # BASE between 2 and 64.

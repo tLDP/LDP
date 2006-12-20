@@ -6,7 +6,7 @@ file=words.data  # Data file from which to read words to test.
 echo
 
 while [ "$word" != end ]  # Last word in data file.
-do
+do               # ^^^
   read word      # From data file, because of redirection at end of loop.
   look $word > /dev/null  # Don't want to display lines in dictionary file.
   lookup=$?      # Exit status of 'look' command.

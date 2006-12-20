@@ -11,7 +11,7 @@ LINES=5
 
 ( date; uname -a ) >>logfile
 # Time and machine name
-echo --------------------------------------------------------------------- >>logfile
+echo ---------------------------------------------------------- >>logfile
 tail -n $LINES /var/log/messages | xargs | fmt -s >>logfile
 echo >>logfile
 echo >>logfile
@@ -25,7 +25,7 @@ exit 0
 #+ may give xargs indigestion.
 #
 #  He suggests the following substitution for line 15:
-#     tail -n $LINES /var/log/messages | tr -d "\"'" | xargs | fmt -s >>logfile
+#  tail -n $LINES /var/log/messages | tr -d "\"'" | xargs | fmt -s >>logfile
 
 
 

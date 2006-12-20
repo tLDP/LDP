@@ -1,8 +1,9 @@
 #!/bin/bash
 # May need to be invoked with  #!/bin/bash2  on older machines.
 #
-# Random password generator for Bash 2.x by Antek Sawicki &lt;tenox@tenox.tc&gt;,
-# who generously gave permission to the document author to use it here.
+#  Random password generator for Bash 2.x +
+#+ by Antek Sawicki &lt;tenox@tenox.tc&gt;,
+#+ who generously gave usage permission to the ABS Guide author.
 #
 # ==> Comments added by document author ==>
 

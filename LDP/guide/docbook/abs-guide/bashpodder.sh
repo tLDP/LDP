@@ -1,12 +1,13 @@
 #!/bin/bash
 
-# bashpodder.sh:
-# By Linc 10/1/2004
-# Find the latest script at http://linc.homeunix.org:8080/scripts/bashpodder
-# Last revision 12/14/2004 - Many Contributors!
-# If you use this and have made improvements or have comments
-# drop me an email at linc dot fessenden at gmail dot com
-# I'd appreciate it!
+#  bashpodder.sh:
+#  By Linc 10/1/2004
+#  Find the latest script at
+#+ http://linc.homeunix.org:8080/scripts/bashpodder
+#  Last revision 12/14/2004 - Many Contributors!
+#  If you use this and have made improvements or have comments
+#+ drop me an email at linc dot fessenden at gmail dot com
+#  I'd appreciate it!
 
 # ==>  ABS Guide extra comments.
 
@@ -46,9 +47,10 @@ rm -f temp.log
 
 # Read the bp.conf file and wget any url not already in the podcast.log file:
 while read podcast
-        do # ==> Main action follows.
-        file=$(wget -q $podcast -O - | tr '\r' '\n' | tr \' \" | sed -n 's/.*url="\([^"]*\)".*/\1/p')
-        for url in $file
+  do # ==> Main action follows.
+  file=$(wget -q $podcast -O - | tr '\r' '\n' | tr \' \" | \
+sed -n 's/.*url="\([^"]*\)".*/\1/p')
+  for url in $file
                 do
                 echo $url >> temp.log
                 if ! grep "$url" podcast.log > /dev/null
@@ -56,7 +58,7 @@ while read podcast
                         wget -q -P $datadir "$url"
                 fi
                 done
-        done < bp.conf
+    done < bp.conf
 
 # Move dynamically created log file to permanent log file:
 cat podcast.log >> temp.log

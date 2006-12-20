@@ -1,5 +1,5 @@
 #!/bin/bash
-# horserace.sh: very simple horserace simulation.
+# horserace.sh: Very simple horserace simulation.
 # Author: Stefano Palmeri
 # Used with permission.
 
@@ -15,7 +15,7 @@
 #  The script gives each horse a random handicap.
 #  The odds are calculated upon horse handicap
 #+ and are expressed in European(?) style.
-#  E.g.: odds=3.75 means that if you bet $1 and win,
+#  E.g., odds=3.75 means that if you bet $1 and win,
 #+ you receive $3.75.
 # 
 #  The script has been tested with a GNU/Linux OS,
@@ -54,7 +54,8 @@ tput cup 20 0; rm -fr  $HORSE_RACE_TMP_DIR'  TERM EXIT
 #  See the chapter on debugging for an explanation of 'trap.'
 
 # Set a unique (paranoid) name for the temp directory the script needs.
-HORSE_RACE_TMP_DIR=$HOME/.horserace-`date +%s`-`head -c10 /dev/urandom | md5sum | head -c30`
+HORSE_RACE_TMP_DIR=$HOME/.horserace-`date +%s`-`head -c10 /dev/urandom \
+| md5sum | head -c30`
 
 # Create the temp directory and move right in.
 mkdir $HORSE_RACE_TMP_DIR
@@ -71,8 +72,9 @@ move_and_echo() {
 }
 
 # Function to generate a pseudo-random number between 1 and 9. 
-random_1_9 () {
-                head -c10 /dev/urandom | md5sum | tr -d [a-z] | tr -d 0 | cut -c1 
+random_1_9 ()
+{
+    head -c10 /dev/urandom | md5sum | tr -d [a-z] | tr -d 0 | cut -c1 
 }
 
 #  Two functions that simulate "movement," when drawing the horses. 
@@ -111,7 +113,7 @@ tput cup 0 0
 
 # Draw six white lines.
 for n in `seq 5`; do
-      echo $BLANK80        # Use the 80 chars string to colorize the terminal.  
+      echo $BLANK80   # Use the 80 chars string to colorize the terminal.
 done
 
 # Sets foreground color to black. 
@@ -288,7 +290,7 @@ while [ $COL -lt $WINNING_POS ]; do
           
           # Define old type and position of the "randomized horse".
           HORSE_TYPE=`cat  horse_${MOVE_HORSE}_position | tail -n 1`
-          COL=$(expr `cat  horse_${MOVE_HORSE}_position | head -n 1`) 
+          COL=$(expr `cat  horse_${MOVE_HORSE}_position | head -n 1`)
           
           ADD_POS=1
           # Check if the current position is an handicap position. 
@@ -311,19 +313,21 @@ while [ $COL -lt $WINNING_POS ]; do
                 ;;
                 2) HORSE_TYPE=1; DRAW_HORSE=draw_horse_one 
           esac       
-          echo $HORSE_TYPE >>  horse_${MOVE_HORSE}_position # Store current type.
+          echo $HORSE_TYPE >>  horse_${MOVE_HORSE}_position
+          # Store current type.
          
           # Set foreground color to black and background to green.
           echo -ne '\E[30;42m'
           
           # Move the cursor to new horse position.
-          tput cup `expr $MOVE_HORSE + 5`  `cat  horse_${MOVE_HORSE}_position | head -n 1` 
+          tput cup `expr $MOVE_HORSE + 5` \
+	  `cat  horse_${MOVE_HORSE}_position | head -n 1` 
           
           # Draw the horse.
           $DRAW_HORSE
            usleep $USLEEP_ARG
           
-           # When all horses have gone beyond field line 15, reprint odds.          
+           # When all horses have gone beyond field line 15, reprint odds.
            touch fieldline15
            if [ $COL = 15 ]; then
              echo $MOVE_HORSE >> fieldline15  
@@ -339,7 +343,8 @@ while [ $COL -lt $WINNING_POS ]; do
           # Set background color to white.
           echo -ne '\E[47m'
           tput cup 17 0
-          echo -n Current leader: `grep -w $HIGHEST_POS *position | cut -c7`"                              "           
+          echo -n Current leader: `grep -w $HIGHEST_POS *position | cut -c7`\
+	  "                              "
 
 done  
 
@@ -351,7 +356,8 @@ echo -ne '\E[30;42m'
 echo -en '\E[5m'
 
 # Make the winning horse blink.
-tput cup `expr $MOVE_HORSE + 5` `cat  horse_${MOVE_HORSE}_position | head -n 1`
+tput cup `expr $MOVE_HORSE + 5` \
+`cat  horse_${MOVE_HORSE}_position | head -n 1`
 $DRAW_HORSE
 
 # Disable blinking text.

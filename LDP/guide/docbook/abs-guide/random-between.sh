@@ -18,17 +18,22 @@ randomBetween() {
       echo
       echo    "Syntax: randomBetween [min] [max] [multiple]"
       echo
-      echo    "Expects up to 3 passed parameters, but all are completely optional."
+      echo -n "Expects up to 3 passed parameters, "
+      echo    "but all are completely optional."
       echo    "min is the minimum value"
       echo    "max is the maximum value"
-      echo    "multiple specifies that the answer must be a multiple of this value."
+      echo -n "multiple specifies that the answer must be "
+      echo     "a multiple of this value."
       echo    "    i.e. answer must be evenly divisible by this number."
       echo    
       echo    "If any value is missing, defaults area supplied as: 0 32767 1"
-      echo    "Successful completion returns 0, unsuccessful completion returns"
+      echo -n "Successful completion returns 0, "
+      echo     "unsuccessful completion returns"
       echo    "function syntax and 1."
-      echo    "The answer is returned in the global variable randomBetweenAnswer"
-      echo    "Negative values for any passed parameter are handled correctly."
+      echo -n "The answer is returned in the global variable "
+      echo    "randomBetweenAnswer"
+      echo -n "Negative values for any passed parameter are "
+      echo    "handled correctly."
    }
 
    local min=${1:-0}
@@ -147,9 +152,9 @@ maximum=${max}
 #+ so we need a displacement that that will guarantee
 #+ positive results.
 
-displacement=$((0-minimum))
+disp=$((0-minimum))
 for ((i=${minimum}; i<=${maximum}; i+=divisibleBy)); do
-   answer[i+displacement]=0
+   answer[i+disp]=0
 done
 
 
@@ -165,11 +170,13 @@ for ((i=0; i<${loopIt}; ++i)); do
    randomBetween ${max} ${min} ${divisibleBy}
 
    # Report an error if an answer is unexpected.
-   [ ${randomBetweenAnswer} -lt ${min} -o ${randomBetweenAnswer} -gt ${max} ] && echo MIN or MAX error - ${randomBetweenAnswer}!
-   [ $((randomBetweenAnswer%${divisibleBy})) -ne 0 ] && echo DIVISIBLE BY error - ${randomBetweenAnswer}!
+   [ ${randomBetweenAnswer} -lt ${min} -o ${randomBetweenAnswer} -gt ${max} ] \
+   && echo MIN or MAX error - ${randomBetweenAnswer}!
+   [ $((randomBetweenAnswer%${divisibleBy})) -ne 0 ] \
+   && echo DIVISIBLE BY error - ${randomBetweenAnswer}!
 
    # Store the answer away statistically.
-   answer[randomBetweenAnswer+displacement]=$((answer[randomBetweenAnswer+displacement]+1))
+   answer[randomBetweenAnswer+disp]=$((answer[randomBetweenAnswer+disp]+1))
 done
 
 
@@ -177,7 +184,9 @@ done
 # Let's check the results
 
 for ((i=${minimum}; i<=${maximum}; i+=divisibleBy)); do
-   [ ${answer[i+displacement]} -eq 0 ] && echo "We never got an answer of $i." || echo "${i} occurred ${answer[i+displacement]} times."
+   [ ${answer[i+displacement]} -eq 0 ] \
+   && echo "We never got an answer of $i." \
+   || echo "${i} occurred ${answer[i+displacement]} times."
 done
 
 

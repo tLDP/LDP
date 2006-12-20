@@ -3,6 +3,25 @@
 
 echo; echo
 
+# Escaping a newline.
+# ------------------
+
+echo ""
+
+echo "This will print
+as two lines."
+# This will print
+# as two lines.
+
+echo "This will print \
+as one line."
+# This will print as one line.
+
+echo; echo
+
+echo "============="
+
+
 echo "\v\v\v\v"      # Prints \v\v\v\v literally.
 # Use the -e option with 'echo' to print escaped characters.
 echo "============="
@@ -31,6 +50,9 @@ echo $'\t \x22 \t'  # Quote (") framed by tabs.
 # Earlier Bash versions allowed '\x022'.
 echo "==============="
 echo
+
+
+
 
 
 # Assigning ASCII characters to a variable.

@@ -27,7 +27,7 @@
 #      keyshash Lovers         ----> 'Tristan'  'Romeo Montague'
 #
 #
-# convention: instead of perls' foo{bar} = boing' syntax,
+# Convention: instead of perls' foo{bar} = boing' syntax,
 # use
 #       '_foo_bar=boing' (two underscores, no spaces)
 #
@@ -52,9 +52,9 @@ function _inihash () {
 
 function newhash () {
     # usage: newhash NAME
-    #        NAME should not contain spaces or '.';
-    #        actually: it must be a legal name for a bash variable
-    # We rely on bash automatically recognising arrays.
+    #        NAME should not contain spaces or '.'
+    #        Actually: it must be a legal name for a Bash variable.
+    # We rely on Bash automatically recognising arrays.
     local name=$1 
     local _keys _values _ptr
     _inihash ${name}
@@ -77,10 +77,11 @@ function addhash () {
 }
 
 function gethash () {
-    # usage: gethash NAME KEY
-    #        returns boing
-    #        ERR=0 if entry found, 1 otherwise
-    # Thats not a proper hash---we simply linearly search through the keys
+    #  usage: gethash NAME KEY
+    #         returns boing
+    #         ERR=0 if entry found, 1 otherwise
+    #  That's not a proper hash --
+    #+ we simply linearly search through the keys.
     local name=$1 key="$2" 
     local _keys _values _ptr 
     local k v i found h
@@ -119,7 +120,7 @@ function keyshash () {
 }
 
 
-# --------------------------------------------------------------------
+# -----------------------------------------------------------------------
 
 # Now, let's test it.
 # (Per comments at the beginning of the script.)
@@ -137,4 +138,7 @@ echo; echo
 
 exit 0
 
-# Exercise: Add error checks to the functions.
+# Exercise:
+# --------
+
+# Add error checks to the functions.

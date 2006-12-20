@@ -66,8 +66,38 @@ echo " Some other key pressed."
 
 exit $OTHER
 
-#  Exercises:
-#  ---------
-#  1) Simplify this script by rewriting the multiple "if" tests
-#+    as a 'case' construct.
-#  2) Add detection of the "Home," "End," "PgUp," and "PgDn" keys.
+# ========================================= #
+
+#  Mark Alexander came up with a simplified
+#+ version of the above script (Thank you!).
+#  It eliminates the need for grep.
+
+#!/bin/bash
+
+  uparrow=$'\x1b[A'
+  downarrow=$'\x1b[B'
+  leftarrow=$'\x1b[D'
+  rightarrow=$'\x1b[C'
+
+  read -s -n3 -p "Hit an arrow key: " x
+
+  case "$x" in
+  $uparrow)
+     echo "You pressed up-arrow"
+     ;;
+  $downarrow)
+     echo "You pressed down-arrow"
+     ;;
+  $leftarrow)
+     echo "You pressed left-arrow"
+     ;;
+  $rightarrow)
+     echo "You pressed right-arrow"
+     ;;
+  esac
+
+# ========================================= #
+
+#  Exercise:
+#  --------
+#  1) Add detection of the "Home," "End," "PgUp," and "PgDn" keys.

@@ -1,8 +1,8 @@
 #!/bin/bash
 # max.sh: Maximum of two integers.
 
-E_PARAM_ERR=-198    # If less than 2 params passed to function.
-EQUAL=-199          # Return value if both params equal.
+E_PARAM_ERR=250    # If less than 2 params passed to function.
+EQUAL=251          # Return value if both params equal.
 #  Error values out of range of any
 #+ params that might be fed to the function.
 

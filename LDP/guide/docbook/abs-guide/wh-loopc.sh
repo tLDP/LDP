@@ -29,6 +29,6 @@ done
 
 echo
 
-# Now, C programmers can feel right at home in Bash.
+# C programmers can feel right at home in Bash.
 
 exit 0

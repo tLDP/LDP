@@ -71,7 +71,8 @@ do
 # ----------------------------------------------------------------------
 # Paulo Marcel Coelho Aragao suggests for-loops as a simpler altenative.
 #
-# for (( last = $number_of_elements - 1 ; last > 1 ; last-- ))
+# for (( last = $number_of_elements - 1 ; last > 0 ; last-- ))
+##                     Fix by C.Y. Hunt          ^   (Thanks!)
 # do
 #     for (( i = 0 ; i < last ; i++ ))
 #     do

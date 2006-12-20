@@ -3,6 +3,7 @@
 
 EXPECTED_ARGS=2
 E_BADARGS=65
+MODEM_PORT="/dev/ttyS3"   # May be different on your machine.
 
 if [ $# -ne $EXPECTED_ARGS ]
 # Check for proper no. of command line args.
@@ -29,7 +30,7 @@ do
   fil="$fil $file"
 done  
 
-efax -d /dev/ttyS3 -o1 -t "T$1" $fil   # Finally, do the work.
+efax -d "$MODEM_PORT" -o1 -t "T$1" $fil   # Finally, do the work.
 
 
 #  As S.C. points out, the for-loop can be eliminated with

@@ -20,10 +20,10 @@ fi
 # Exercise: Add type checking (to reject non-integer arg).
 
 echo "Factors of $1:"
-# ---------------------------------------------------------------------------------
-echo "$1[p]s2[lip/dli%0=1dvsr]s12sid2%0=13sidvsr[dli%0=1lrli2+dsi!>.]ds.xd1<2" | dc
-# ---------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------
+echo "$1[p]s2[lip/dli%0=1dvsr]s12sid2%0=13sidvsr[dli%0=1lrli2+dsi!>.]ds.xd1<2"|dc
+# -------------------------------------------------------------------------------
 # Above line of code written by Michel Charpentier &lt;charpov@cs.unh.edu&gt;.
-# Used with permission (thanks).
+# Used in ABS Guide with permission (thanks!).
 
  exit 0

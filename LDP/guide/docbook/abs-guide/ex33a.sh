@@ -1,5 +1,5 @@
 #!/bin/bash
-# Using getopt.
+# Using getopt
 
 # Try the following when invoking this script:
 #   sh ex33a.sh -a
@@ -39,8 +39,7 @@ do
   shift
 done
 
-#  It is usually better to use the 'getopts' builtin in a script,
-#+ rather than 'getopt'.
-#  See "ex33.sh".
+#  It is usually better to use the 'getopts' builtin in a script.
+#  See "ex33.sh."
 
 exit 0

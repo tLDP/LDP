@@ -46,11 +46,12 @@ IAM=$0
 # Functions lifted near-verbatim from usb-mount code.
 #
 function allAttachedScsiUsb {
-    find /proc/scsi/ -path '/proc/scsi/usb-storage*' -type f | xargs grep -l 'Attached: Yes'
+  find /proc/scsi/ -path '/proc/scsi/usb-storage*' -type f |
+  xargs grep -l 'Attached: Yes'
 }
 function scsiDevFromScsiUsb {
-    echo $1 | awk -F"[-/]" '{ n=$(NF-1);  print "/dev/sd" substr("abcdefghijklmnopqrstuvwxyz", n+1,
- 1) }'
+  echo $1 | awk -F"[-/]" '{ n=$(NF-1);
+  print "/dev/sd" substr("abcdefghijklmnopqrstuvwxyz", n+1, 1) }'
 }
 
 if [ "${ACTION}" = "add" ] && [ -f "${DEVICE}" ]; then

@@ -6,7 +6,8 @@
 # Used in ABS Guide with permission.
 
 
-#  Download Fedora 4 update from mirror site using rsync. 
+#  Download Fedora Core 4 update from mirror site using rsync. 
+#  Should also work for newer Fedora Cores -- 5, 6, . . .
 #  Only download latest package if multiple versions exist,
 #+ to save space.
 
@@ -63,12 +64,12 @@ EXCLUDE=(
 
 init () {
     # Let pipe command return possible rsync error, e.g., stalled network.
-    set -o pipefail                     # Newly introduced in Bash, version 3.
+    set -o pipefail                  # Newly introduced in Bash, version 3.
 
-    TMP=${TMPDIR:-/tmp}/${0##*/}.$$     # Store refined download list.
+    TMP=${TMPDIR:-/tmp}/${0##*/}.$$  # Store refined download list.
     trap "{
         rm -f $TMP 2>/dev/null
-    }" EXIT                             # Clear temporary file on exit.
+    }" EXIT                          # Clear temporary file on exit.
 }
 
 
@@ -148,13 +149,14 @@ get_list () {
                 previous=$pkg_name                      # Save current.
                 pre_date=$cur_date
                 pre_file=$cur_file
-            elif [ "$cur_date" -gt "$pre_date" ]; then  #  If same pkg, but newer,
-                pre_date=$cur_date                      #+ then update latest pointer.
+            elif [ "$cur_date" -gt "$pre_date" ]; then
+                                                #  If same pkg, but newer,
+                pre_date=$cur_date              #+ then update latest pointer.
                 pre_file=$cur_file
             fi
             done
-            echo $pre_file >> $TMP                      #  TMP contains ALL
-                                                        #+ of refined list now.
+            echo $pre_file >> $TMP              #  TMP contains ALL
+                                                #+ of refined list now.
             # echo "subshell=$BASH_SUBSHELL"
 
     }       # Bracket required here to let final "echo $pre_file >> $TMP" 
@@ -183,10 +185,10 @@ get_file () {
 
     RET=$?
 
-        #  --filter merge,+/ is crucial for the intention. 
-        #  + modifier means include and / means absolute path.
-        #  Then sorted list in $TMP will contain ascending dir name and 
-        #+ prevent the following --exclude '*' from "shortcutting the circuit." 
+   #  --filter merge,+/ is crucial for the intention. 
+   #  + modifier means include and / means absolute path.
+   #  Then sorted list in $TMP will contain ascending dir name and 
+   #+ prevent the following --exclude '*' from "shortcutting the circuit." 
 
     echo "Done"
 
@@ -208,7 +210,8 @@ RET=$?
 if [ "$RET" -eq 0 ]; then
     /usr/bin/logger -t ${0##*/} "Fedora update mirrored successfully."
 else
-    /usr/bin/logger -t ${0##*/} "Fedora update mirrored with failure code: $RET"
+    /usr/bin/logger -t ${0##*/} \
+    "Fedora update mirrored with failure code: $RET"
 fi
 
 exit $RET

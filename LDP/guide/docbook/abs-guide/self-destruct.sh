@@ -7,7 +7,7 @@ kill $$  # Script kills its own process here.
 echo "This line will not echo."
 # Instead, the shell sends a "Terminated" message to stdout.
 
-exit 0
+exit 0   # Normal exit? No!
 
 #  After this script terminates prematurely,
 #+ what exit status does it return?

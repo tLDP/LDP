@@ -26,7 +26,7 @@ fi
 FILTER='.......'         # Must have at least 7 letters.
 #       1234567
 Anagrams=( $(echo $(anagram $1 | grep $FILTER) ) )
-#           |     |    nested command sub.   | |
+#          $(     $(  nested command sub.    ) )
 #        (              array assignment         )
 
 echo
