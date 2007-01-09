@@ -1,7 +1,7 @@
 HOMES=/export/sunsite/users
 LDPWNROOT=/public/vhost/t/tldp/html/ldpwn
 LDPWNWEBROOT=http://tldp.org/ldpwn
-LDPWNTO=news@en.tldp.org, lwn@lwn.net, editors@newsforge.com
+LDPWNTO=news@en.tldp.org, lwn@lwn.net, editors@ostg.com
 LDPWNCC=gferg@ibiblio.org, tille@xalasys.com, hans.bol@stork.com
 
 all: cvsupdate render webupdate email echoedit
