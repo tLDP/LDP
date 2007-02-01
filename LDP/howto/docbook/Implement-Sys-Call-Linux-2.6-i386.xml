@@ -1,0 +1,702 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE article PUBLIC "-//OASIS//DTD DocBook XML V4.1.2//EN" "http://www.oasis-open.org/docbook/xml/4.1.2/docbookx.dtd">
+<article lang="en-US"><sect1><title>Implementing a System Call on Linux 2.6 for i386</title>
+<para>Amit Choudhary</para>
+<para>http://amit-choudhary.blogspot.com</para>
+<para>amit2030 AT gmail DOT com</para>
+<para/>
+<para>Version 1.0, 27 October 2006</para>
+<para/>
+<para>This HOWTO describes information about implementing system calls in Linux operating system for i386 architecture with 2.6 kernels. General information about the used and modified files is available as well as description of the source and makefiles and test user space C program too.</para></sect1><sect1><title>Table of contents</title>
+<orderedlist>
+<listitem>
+<para>Introduction</para>
+</listitem>
+<listitem>
+<para>System call</para>
+</listitem>
+<listitem>
+<para>List of files to be modified/created</para>
+</listitem>
+<listitem>
+<para>Kernel files to be modified</para>
+</listitem>
+</orderedlist>
+<orderedlist>
+<listitem>
+<orderedlist>
+<listitem>
+<para>syscall_table.S</para>
+</listitem>
+<listitem>
+<para>unistd.h</para>
+</listitem>
+<listitem>
+<para>syscalls.h</para>
+</listitem>
+<listitem>
+<para>Makefile</para>
+</listitem>
+</orderedlist>
+</listitem>
+<listitem>
+<para>New kernel files/directories to be created</para>
+</listitem>
+</orderedlist>
+<orderedlist>
+<listitem>
+<orderedlist>
+<listitem>
+<para>mycall</para>
+</listitem>
+<listitem>
+<para>mycall.c</para>
+</listitem>
+<listitem>
+<para>Makefile</para>
+</listitem>
+</orderedlist>
+</listitem>
+<listitem>
+<para>New user space files, to be created, to test our system call</para>
+</listitem>
+</orderedlist>
+<orderedlist>
+<listitem>
+<orderedlist>
+<listitem>
+<para>testmycall.h</para>
+</listitem>
+<listitem>
+<para>testmycall.c</para>
+</listitem>
+</orderedlist>
+</listitem>
+<listitem>
+<para>_syscallN macro</para>
+</listitem>
+<listitem>
+<para>Testing our new system call</para>
+</listitem>
+<listitem>
+<para>Questions And Suggestions</para>
+</listitem>
+<listitem>
+<para>Copyright</para>
+</listitem>
+<listitem>
+<para>License</para>
+</listitem>
+</orderedlist></sect1><sect1><title>1. Introduction</title>
+<para>This document explains how to implement a new system call on linux 2.6. A system call is used by application (user) programs to request service from the operating system.</para></sect1><sect1><title>2. System call</title>
+<para>A system call is used by application (user) programs to request service from the operating system. The following statements illustrate why system calls are needed. An operating system can access a system's hardware directly, but a user program is not given direct access to the hardware. This is done so that the kernel can keep the system safe and secure from malicious user programs. But often, a user program requires some information from the hardware (e.g., from a web camera to show you the picture), but it cannot get the information directly. So, it requests the operating system to supply it the information. This request is made by using an appropriate system call.</para>
+<para/>
+<para>A system call executes in the kernel mode. Every system call has a number associated with it. This number is passed to the kernel and that's how the kernel knows which system call was made. When a user program issues a system call, it is actually calling a library routine. The library routine issues a trap to the Linux operating system by executing INT 0x80 assembly instruction. It also passes the system call number to the kernel using the EAX register. The arguments of the system call are also passed to the kernel using other registers (EBX, ECX, etc.). The kernel executes the system call and returns the result to the user program using a register. If the system call needs to supply the user program with large amounts of data, it will use another mechanism (e.g., copy_to_user call).</para></sect1><sect1><title>3. List of files to be modified/created</title>
+<para>Assume that your linux source base directory is /usr/src/linux.</para>
+<para/>
+<para>Kernel files to be modified are listed below:</para>
+<para/>
+<para>1. /usr/src/linux/arch/i386/kernel/syscall_table.S</para>
+<para>2. /usr/src/linux/include/asm-i386/unistd.h</para>
+<para>3. /usr/src/linux/include/linux/syscalls.h</para>
+<para>4. /usr/src/linux/Makefile</para>
+<para/>
+<para>New kernel files/directories to be created are listed below:</para>
+<para/>
+<para>1. /usr/src/linux/mycall - Directory that will contain the source file, header file and the Makefile for our system call (You can also implement your system call in an existing file).</para>
+<para>2. /usr/src/linux/mycall/mycall.c - Source file containing our system call code.</para>
+<para>3. /usr/src/linux/mycall/Makefile - Makefile</para>
+<para/>
+<para>New user space files, to be created, to test our system call are listed below:</para>
+<para/>
+<para>1. testmycall.c – Source file that will call our system call.</para>
+<para>2. testmycall.h - Header file.</para></sect1><sect1><title>4. Kernel files to be modified</title></sect1><sect1><title>4.1 syscall_table.S</title>
+<para>Full path of the file - /usr/src/linux/arch/i386/kernel/syscall_table.S</para>
+<para>This file contains system call names.</para>
+<orderedlist>
+<listitem>
+<para>Add a line to the end of this file (Let's assume that the name of our system call is mycall).</para>
+</listitem>
+<listitem>
+<para>Add ".long sys_mycall" at the end of the list.</para>
+</listitem>
+</orderedlist></sect1><sect1><title>4.2 unistd.h</title>
+<para>Full path of the file - /usr/src/linux/include/asm-i386/unistd.h</para>
+<para>This file contains the system call number that is passed to the kernel through the register (EAX) when a system call is invoked. </para>
+<orderedlist>
+<listitem>
+<para>Add "#define __NR_mycall &lt;Last_System_Call_Num + 1&gt;" at the end of the list.</para>
+</listitem>
+</orderedlist>
+<para>If the last system call defined here is:</para>
+<para>"#define __NR_vmsplice316", then add:</para>
+<para>"#define __NR_mycall317" at the end of the list.</para>
+<orderedlist>
+<listitem>
+<para>Increment the "NR_syscalls" by 1. So, if NR_syscalls is defined as:</para>
+</listitem>
+</orderedlist>
+<para>"#define NR_syscalls 317", then change it to:</para>
+<para>"#define NR_syscalls 318"</para></sect1><sect1><title>4.3 syscalls.h</title>
+<para>Full path of the file - /usr/src/linux/include/linux/syscalls.h</para>
+<para>This file contain the declarations for system calls.</para>
+<orderedlist>
+<listitem>
+<para>Add the following line at the end of the file:</para>
+</listitem>
+</orderedlist>
+<para>"asmlinkage long sys_mycall(int i);"</para></sect1><sect1><title>4.4 Makefile</title>
+<para>Full path of the file - /usr/src/linux/Makefile</para>
+<para/>
+<orderedlist>
+<listitem>
+<para>Add mycall/ to core-y (Search for regex: core-y.*+=). You will be creating this directory. This directory will contain the source file, header file and the Makefile for our system call.</para>
+</listitem>
+</orderedlist></sect1><sect1><title>5. New kernel files/directories to be created</title></sect1><sect1><title>5.1 mycall</title>
+<para>Full path of the file - /usr/src/linux/mycall</para>
+<para/>
+<orderedlist>
+<listitem>
+<para>Create a new directory in /usr/src/linux and name it "mycall".</para>
+</listitem>
+</orderedlist></sect1><sect1><title>5.2 mycall.c</title>
+<para>Full path of the file - /usr/src/linux/mycall/mycall.c</para>
+<para/>
+<orderedlist>
+<listitem>
+<para>Create a source file named "mycall.c" in dir "mycall". mycall.c will have the code for our system call. The definition of the system call in the source file would be asmlinkage long sys_mycall(...){...} . It should include the file linux/linkage.h So, the file "mycall.c" will look like:</para>
+</listitem>
+</orderedlist>
+<para/>
+<para>/*---Start of mycall.c----*/</para>
+<para>#include&lt;linux/linkage.h&gt;</para>
+<para/>
+<para>asmlinkage long sys_mycall(int i)</para>
+<para>{</para>
+<para>return i+10;</para>
+<para>}</para>
+<para>/*---End of mycall.c------*/</para>
+<para/>
+<para>What is asmlinkage?</para>
+<para>Asmlinkage is used to look for the arguments on the kernel stack.</para></sect1><sect1><title>5.3 Makefile</title>
+<para>Full path of the file - /usr/src/linux/mycall/Makefile</para>
+<para>The Makefile in dir "mycall" will have only one line:</para>
+<para/>
+<para>#####Makefile Start#####</para>
+<para>obj-y := mycall.o</para>
+<para>#####Makefile End#######</para></sect1><sect1><title>6. New user space files, to be created, to test our system call</title></sect1><sect1><title>6.1 testmycall.h (new user space header file to be created)</title>
+<para>testmycall.h</para>
+<para/>
+<orderedlist>
+<listitem>
+<para>Create a header file called testmycall.h. This header file should be included by any program calling our system call.</para>
+</listitem>
+<listitem>
+<para>Add three lines to it</para>
+</listitem>
+</orderedlist>
+<orderedlist>
+<listitem>
+<para>Line 1: This is needed because we need the definition of _syscall1.</para>
+</listitem>
+</orderedlist>
+<para>#include&lt;linux/unistd.h&gt;</para>
+<orderedlist>
+<listitem>
+<para>Line 2: This is needed because we need the number of our system call.</para>
+</listitem>
+</orderedlist>
+<para>#define __NR_mycall 317</para>
+<orderedlist>
+<listitem>
+<para>Line 3: This is needed for system calls with 1 argument. It is explained in detail below.</para>
+</listitem>
+</orderedlist>
+<para>_syscall1(long, mycall, int, i)</para>
+<para/>
+<para>So, our user header file looks like:</para>
+<para/>
+<para>/*---Start of header file------*/</para>
+<para>#include&lt;linux/unistd.h&gt;</para>
+<para>#define __NR_mycall 317</para>
+<para>_syscall1(long, mycall, int, i)</para>
+<para>/*---End of header file--------*/</para></sect1><sect1><title>6.2 testmycall.c (new user space source file to be created)</title>
+<para>testmycall.c</para>
+<para/>
+<orderedlist>
+<listitem>
+<para>Create a C file called testmycall.c in the same directory as testmycall.h. The C file will look like:</para>
+</listitem>
+</orderedlist>
+<para/>
+<para>/*---Start of C file------*/</para>
+<para>#include&lt;stdio.h&gt;</para>
+<para>#include "testmycall.h"</para>
+<para/>
+<para>int main(void)</para>
+<para>{</para>
+<para>printf("%d\n", mycall(15));</para>
+<para>}</para>
+<para>/*---End of C file------*/</para></sect1><sect1><title>7. _syscallN macro</title>
+<orderedlist>
+<listitem>
+<para>_syscall0(int,mycall) indicates that:</para>
+</listitem>
+<listitem>
+<para>The name of the system call is mycall.</para>
+</listitem>
+<listitem>
+<para>It takes zero arguments.</para>
+</listitem>
+<listitem>
+<para>It returns an int.</para>
+</listitem>
+</orderedlist>
+<para/>
+<orderedlist>
+<listitem>
+<para>_syscall1(int,mycall,int,number) indicates that:</para>
+</listitem>
+<listitem>
+<para>The name of the system call is mycall.</para>
+</listitem>
+<listitem>
+<para>It takes one argument.</para>
+</listitem>
+<listitem>
+<para>The argument is an int named number.</para>
+</listitem>
+<listitem>
+<para>It returns an int.</para>
+</listitem>
+</orderedlist>
+<para/>
+<para>When you expand _syscall1(long,mycall,int,i), you get the following code:</para>
+<para>long mycall(int i)</para>
+<para>{</para>
+<para>return syscall(__NR_mycall, i);</para>
+<para>}</para>
+<para/>
+<para>But the definition of _syscallN macros are different in the kernel. You can look at /usr/src/linux/include/asm-i386/unistd.h for the definition.</para></sect1><sect1><title>8. Testing our new system call</title>
+<orderedlist>
+<listitem>
+<para>Step 1: Recompile and install the new kernel so that our system call becomes available to the operating system.</para>
+</listitem>
+<listitem>
+<para>Step 2: Compile and execute the user space C file (testmycall.c) that we created above.</para>
+</listitem>
+<listitem>
+<para>RESULT: You should see the output as 25. This has been tested on kernel 2.6.17.13.</para>
+</listitem>
+</orderedlist></sect1><sect1><title>9. Questions And Suggestions</title>
+<orderedlist>
+<listitem>
+<para>Please send a mail to Amit Choudhary (amit2030 AT gmail DOT com).</para>
+</listitem>
+</orderedlist>
+<para/></sect1><sect1><title>10. Copyright.</title>
+<para>Copyright (c) 2006 by Amit Choudhary.</para>
+<para>Permission is granted to copy, distribute and/or modify this document</para>
+<para>under the terms of the GNU Free Documentation License, Version 1.2</para>
+<para>or any later version published by the Free Software Foundation;</para>
+<para>with no Invariant Sections, no Front-Cover Texts, and no Back-Cover</para>
+<para>Texts. A copy of the license is included in the section entitled "GNU</para>
+<para>Free Documentation License".</para></sect1><sect1><title>11. License</title>
+<para>GNU Free Documentation License</para>
+<para>Version 1.2, November 2002</para>
+<para/>
+<para/>
+<para>Copyright (C) 2000,2001,2002 Free Software Foundation, Inc.</para>
+<para>51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA</para>
+<para>Everyone is permitted to copy and distribute verbatim copies</para>
+<para>of this license document, but changing it is not allowed.</para>
+<para/>
+<para/>
+<para>0. PREAMBLE</para>
+<para/>
+<para>The purpose of this License is to make a manual, textbook, or other</para>
+<para>functional and useful document "free" in the sense of freedom: to</para>
+<para>assure everyone the effective freedom to copy and redistribute it,</para>
+<para>with or without modifying it, either commercially or noncommercially.</para>
+<para>Secondarily, this License preserves for the author and publisher a way</para>
+<para>to get credit for their work, while not being considered responsible</para>
+<para>for modifications made by others.</para>
+<para/>
+<para>This License is a kind of "copyleft", which means that derivative</para>
+<para>works of the document must themselves be free in the same sense. It</para>
+<para>complements the GNU General Public License, which is a copyleft</para>
+<para>license designed for free software.</para>
+<para/>
+<para>We have designed this License in order to use it for manuals for free</para>
+<para>software, because free software needs free documentation: a free</para>
+<para>program should come with manuals providing the same freedoms that the</para>
+<para>software does. But this License is not limited to software manuals;</para>
+<para>it can be used for any textual work, regardless of subject matter or</para>
+<para>whether it is published as a printed book. We recommend this License</para>
+<para>principally for works whose purpose is instruction or reference.</para>
+<para/>
+<para/>
+<para>1. APPLICABILITY AND DEFINITIONS</para>
+<para/>
+<para>This License applies to any manual or other work, in any medium, that</para>
+<para>contains a notice placed by the copyright holder saying it can be</para>
+<para>distributed under the terms of this License. Such a notice grants a</para>
+<para>world-wide, royalty-free license, unlimited in duration, to use that</para>
+<para>work under the conditions stated herein. The "Document", below,</para>
+<para>refers to any such manual or work. Any member of the public is a</para>
+<para>licensee, and is addressed as "you". You accept the license if you</para>
+<para>copy, modify or distribute the work in a way requiring permission</para>
+<para>under copyright law.</para>
+<para/>
+<para>A "Modified Version" of the Document means any work containing the</para>
+<para>Document or a portion of it, either copied verbatim, or with</para>
+<para>modifications and/or translated into another language.</para>
+<para/>
+<para>A "Secondary Section" is a named appendix or a front-matter section of</para>
+<para>the Document that deals exclusively with the relationship of the</para>
+<para>publishers or authors of the Document to the Document's overall subject</para>
+<para>(or to related matters) and contains nothing that could fall directly</para>
+<para>within that overall subject. (Thus, if the Document is in part a</para>
+<para>textbook of mathematics, a Secondary Section may not explain any</para>
+<para>mathematics.) The relationship could be a matter of historical</para>
+<para>connection with the subject or with related matters, or of legal,</para>
+<para>commercial, philosophical, ethical or political position regarding</para>
+<para>them.</para>
+<para/>
+<para>The "Invariant Sections" are certain Secondary Sections whose titles</para>
+<para>are designated, as being those of Invariant Sections, in the notice</para>
+<para>that says that the Document is released under this License. If a</para>
+<para>section does not fit the above definition of Secondary then it is not</para>
+<para>allowed to be designated as Invariant. The Document may contain zero</para>
+<para>Invariant Sections. If the Document does not identify any Invariant</para>
+<para>Sections then there are none.</para>
+<para/>
+<para>The "Cover Texts" are certain short passages of text that are listed,</para>
+<para>as Front-Cover Texts or Back-Cover Texts, in the notice that says that</para>
+<para>the Document is released under this License. A Front-Cover Text may</para>
+<para>be at most 5 words, and a Back-Cover Text may be at most 25 words.</para>
+<para/>
+<para>A "Transparent" copy of the Document means a machine-readable copy,</para>
+<para>represented in a format whose specification is available to the</para>
+<para>general public, that is suitable for revising the document</para>
+<para>straightforwardly with generic text editors or (for images composed of</para>
+<para>pixels) generic paint programs or (for drawings) some widely available</para>
+<para>drawing editor, and that is suitable for input to text formatters or</para>
+<para>for automatic translation to a variety of formats suitable for input</para>
+<para>to text formatters. A copy made in an otherwise Transparent file</para>
+<para>format whose markup, or absence of markup, has been arranged to thwart</para>
+<para>or discourage subsequent modification by readers is not Transparent.</para>
+<para>An image format is not Transparent if used for any substantial amount</para>
+<para>of text. A copy that is not "Transparent" is called "Opaque".</para>
+<para/>
+<para>Examples of suitable formats for Transparent copies include plain</para>
+<para>ASCII without markup, Texinfo input format, LaTeX input format, SGML</para>
+<para>or XML using a publicly available DTD, and standard-conforming simple</para>
+<para>HTML, PostScript or PDF designed for human modification. Examples of</para>
+<para>transparent image formats include PNG, XCF and JPG. Opaque formats</para>
+<para>include proprietary formats that can be read and edited only by</para>
+<para>proprietary word processors, SGML or XML for which the DTD and/or</para>
+<para>processing tools are not generally available, and the</para>
+<para>machine-generated HTML, PostScript or PDF produced by some word</para>
+<para>processors for output purposes only.</para>
+<para/>
+<para>The "Title Page" means, for a printed book, the title page itself,</para>
+<para>plus such following pages as are needed to hold, legibly, the material</para>
+<para>this License requires to appear in the title page. For works in</para>
+<para>formats which do not have any title page as such, "Title Page" means</para>
+<para>the text near the most prominent appearance of the work's title,</para>
+<para>preceding the beginning of the body of the text.</para>
+<para/>
+<para>A section "Entitled XYZ" means a named subunit of the Document whose</para>
+<para>title either is precisely XYZ or contains XYZ in parentheses following</para>
+<para>text that translates XYZ in another language. (Here XYZ stands for a</para>
+<para>specific section name mentioned below, such as "Acknowledgements",</para>
+<para>"Dedications", "Endorsements", or "History".) To "Preserve the Title"</para>
+<para>of such a section when you modify the Document means that it remains a</para>
+<para>section "Entitled XYZ" according to this definition.</para>
+<para/>
+<para>The Document may include Warranty Disclaimers next to the notice which</para>
+<para>states that this License applies to the Document. These Warranty</para>
+<para>Disclaimers are considered to be included by reference in this</para>
+<para>License, but only as regards disclaiming warranties: any other</para>
+<para>implication that these Warranty Disclaimers may have is void and has</para>
+<para>no effect on the meaning of this License.</para>
+<para/>
+<para/>
+<para>2. VERBATIM COPYING</para>
+<para/>
+<para>You may copy and distribute the Document in any medium, either</para>
+<para>commercially or noncommercially, provided that this License, the</para>
+<para>copyright notices, and the license notice saying this License applies</para>
+<para>to the Document are reproduced in all copies, and that you add no other</para>
+<para>conditions whatsoever to those of this License. You may not use</para>
+<para>technical measures to obstruct or control the reading or further</para>
+<para>copying of the copies you make or distribute. However, you may accept</para>
+<para>compensation in exchange for copies. If you distribute a large enough</para>
+<para>number of copies you must also follow the conditions in section 3.</para>
+<para/>
+<para>You may also lend copies, under the same conditions stated above, and</para>
+<para>you may publicly display copies.</para>
+<para/>
+<para/>
+<para>3. COPYING IN QUANTITY</para>
+<para/>
+<para>If you publish printed copies (or copies in media that commonly have</para>
+<para>printed covers) of the Document, numbering more than 100, and the</para>
+<para>Document's license notice requires Cover Texts, you must enclose the</para>
+<para>copies in covers that carry, clearly and legibly, all these Cover</para>
+<para>Texts: Front-Cover Texts on the front cover, and Back-Cover Texts on</para>
+<para>the back cover. Both covers must also clearly and legibly identify</para>
+<para>you as the publisher of these copies. The front cover must present</para>
+<para>the full title with all words of the title equally prominent and</para>
+<para>visible. You may add other material on the covers in addition.</para>
+<para>Copying with changes limited to the covers, as long as they preserve</para>
+<para>the title of the Document and satisfy these conditions, can be treated</para>
+<para>as verbatim copying in other respects.</para>
+<para/>
+<para>If the required texts for either cover are too voluminous to fit</para>
+<para>legibly, you should put the first ones listed (as many as fit</para>
+<para>reasonably) on the actual cover, and continue the rest onto adjacent</para>
+<para>pages.</para>
+<para/>
+<para>If you publish or distribute Opaque copies of the Document numbering</para>
+<para>more than 100, you must either include a machine-readable Transparent</para>
+<para>copy along with each Opaque copy, or state in or with each Opaque copy</para>
+<para>a computer-network location from which the general network-using</para>
+<para>public has access to download using public-standard network protocols</para>
+<para>a complete Transparent copy of the Document, free of added material.</para>
+<para>If you use the latter option, you must take reasonably prudent steps,</para>
+<para>when you begin distribution of Opaque copies in quantity, to ensure</para>
+<para>that this Transparent copy will remain thus accessible at the stated</para>
+<para>location until at least one year after the last time you distribute an</para>
+<para>Opaque copy (directly or through your agents or retailers) of that</para>
+<para>edition to the public.</para>
+<para/>
+<para>It is requested, but not required, that you contact the authors of the</para>
+<para>Document well before redistributing any large number of copies, to give</para>
+<para>them a chance to provide you with an updated version of the Document.</para>
+<para/>
+<para/>
+<para>4. MODIFICATIONS</para>
+<para/>
+<para>You may copy and distribute a Modified Version of the Document under</para>
+<para>the conditions of sections 2 and 3 above, provided that you release</para>
+<para>the Modified Version under precisely this License, with the Modified</para>
+<para>Version filling the role of the Document, thus licensing distribution</para>
+<para>and modification of the Modified Version to whoever possesses a copy</para>
+<para>of it. In addition, you must do these things in the Modified Version:</para>
+<para/>
+<para>A. Use in the Title Page (and on the covers, if any) a title distinct</para>
+<para>from that of the Document, and from those of previous versions</para>
+<para>(which should, if there were any, be listed in the History section</para>
+<para>of the Document). You may use the same title as a previous version</para>
+<para>if the original publisher of that version gives permission.</para>
+<para>B. List on the Title Page, as authors, one or more persons or entities</para>
+<para>responsible for authorship of the modifications in the Modified</para>
+<para>Version, together with at least five of the principal authors of the</para>
+<para>Document (all of its principal authors, if it has fewer than five),</para>
+<para>unless they release you from this requirement.</para>
+<para>C. State on the Title page the name of the publisher of the</para>
+<para>Modified Version, as the publisher.</para>
+<para>D. Preserve all the copyright notices of the Document.</para>
+<para>E. Add an appropriate copyright notice for your modifications</para>
+<para>adjacent to the other copyright notices.</para>
+<para>F. Include, immediately after the copyright notices, a license notice</para>
+<para>giving the public permission to use the Modified Version under the</para>
+<para>terms of this License, in the form shown in the Addendum below.</para>
+<para>G. Preserve in that license notice the full lists of Invariant Sections</para>
+<para>and required Cover Texts given in the Document's license notice.</para>
+<para>H. Include an unaltered copy of this License.</para>
+<para>I. Preserve the section Entitled "History", Preserve its Title, and add</para>
+<para>to it an item stating at least the title, year, new authors, and</para>
+<para>publisher of the Modified Version as given on the Title Page. If</para>
+<para>there is no section Entitled "History" in the Document, create one</para>
+<para>stating the title, year, authors, and publisher of the Document as</para>
+<para>given on its Title Page, then add an item describing the Modified</para>
+<para>Version as stated in the previous sentence.</para>
+<para>J. Preserve the network location, if any, given in the Document for</para>
+<para>public access to a Transparent copy of the Document, and likewise</para>
+<para>the network locations given in the Document for previous versions</para>
+<para>it was based on. These may be placed in the "History" section.</para>
+<para>You may omit a network location for a work that was published at</para>
+<para>least four years before the Document itself, or if the original</para>
+<para>publisher of the version it refers to gives permission.</para>
+<para>K. For any section Entitled "Acknowledgements" or "Dedications",</para>
+<para>Preserve the Title of the section, and preserve in the section all</para>
+<para>the substance and tone of each of the contributor acknowledgements</para>
+<para>and/or dedications given therein.</para>
+<para>L. Preserve all the Invariant Sections of the Document,</para>
+<para>unaltered in their text and in their titles. Section numbers</para>
+<para>or the equivalent are not considered part of the section titles.</para>
+<para>M. Delete any section Entitled "Endorsements". Such a section</para>
+<para>may not be included in the Modified Version.</para>
+<para>N. Do not retitle any existing section to be Entitled "Endorsements"</para>
+<para>or to conflict in title with any Invariant Section.</para>
+<para>O. Preserve any Warranty Disclaimers.</para>
+<para/>
+<para>If the Modified Version includes new front-matter sections or</para>
+<para>appendices that qualify as Secondary Sections and contain no material</para>
+<para>copied from the Document, you may at your option designate some or all</para>
+<para>of these sections as invariant. To do this, add their titles to the</para>
+<para>list of Invariant Sections in the Modified Version's license notice.</para>
+<para>These titles must be distinct from any other section titles.</para>
+<para/>
+<para>You may add a section Entitled "Endorsements", provided it contains</para>
+<para>nothing but endorsements of your Modified Version by various</para>
+<para>parties--for example, statements of peer review or that the text has</para>
+<para>been approved by an organization as the authoritative definition of a</para>
+<para>standard.</para>
+<para/>
+<para>You may add a passage of up to five words as a Front-Cover Text, and a</para>
+<para>passage of up to 25 words as a Back-Cover Text, to the end of the list</para>
+<para>of Cover Texts in the Modified Version. Only one passage of</para>
+<para>Front-Cover Text and one of Back-Cover Text may be added by (or</para>
+<para>through arrangements made by) any one entity. If the Document already</para>
+<para>includes a cover text for the same cover, previously added by you or</para>
+<para>by arrangement made by the same entity you are acting on behalf of,</para>
+<para>you may not add another; but you may replace the old one, on explicit</para>
+<para>permission from the previous publisher that added the old one.</para>
+<para/>
+<para>The author(s) and publisher(s) of the Document do not by this License</para>
+<para>give permission to use their names for publicity for or to assert or</para>
+<para>imply endorsement of any Modified Version.</para>
+<para/>
+<para/>
+<para>5. COMBINING DOCUMENTS</para>
+<para/>
+<para>You may combine the Document with other documents released under this</para>
+<para>License, under the terms defined in section 4 above for modified</para>
+<para>versions, provided that you include in the combination all of the</para>
+<para>Invariant Sections of all of the original documents, unmodified, and</para>
+<para>list them all as Invariant Sections of your combined work in its</para>
+<para>license notice, and that you preserve all their Warranty Disclaimers.</para>
+<para/>
+<para>The combined work need only contain one copy of this License, and</para>
+<para>multiple identical Invariant Sections may be replaced with a single</para>
+<para>copy. If there are multiple Invariant Sections with the same name but</para>
+<para>different contents, make the title of each such section unique by</para>
+<para>adding at the end of it, in parentheses, the name of the original</para>
+<para>author or publisher of that section if known, or else a unique number.</para>
+<para>Make the same adjustment to the section titles in the list of</para>
+<para>Invariant Sections in the license notice of the combined work.</para>
+<para/>
+<para>In the combination, you must combine any sections Entitled "History"</para>
+<para>in the various original documents, forming one section Entitled</para>
+<para>"History"; likewise combine any sections Entitled "Acknowledgements",</para>
+<para>and any sections Entitled "Dedications". You must delete all sections</para>
+<para>Entitled "Endorsements".</para>
+<para/>
+<para/>
+<para>6. COLLECTIONS OF DOCUMENTS</para>
+<para/>
+<para>You may make a collection consisting of the Document and other documents</para>
+<para>released under this License, and replace the individual copies of this</para>
+<para>License in the various documents with a single copy that is included in</para>
+<para>the collection, provided that you follow the rules of this License for</para>
+<para>verbatim copying of each of the documents in all other respects.</para>
+<para/>
+<para>You may extract a single document from such a collection, and distribute</para>
+<para>it individually under this License, provided you insert a copy of this</para>
+<para>License into the extracted document, and follow this License in all</para>
+<para>other respects regarding verbatim copying of that document.</para>
+<para/>
+<para/>
+<para>7. AGGREGATION WITH INDEPENDENT WORKS</para>
+<para/>
+<para>A compilation of the Document or its derivatives with other separate</para>
+<para>and independent documents or works, in or on a volume of a storage or</para>
+<para>distribution medium, is called an "aggregate" if the copyright</para>
+<para>resulting from the compilation is not used to limit the legal rights</para>
+<para>of the compilation's users beyond what the individual works permit.</para>
+<para>When the Document is included in an aggregate, this License does not</para>
+<para>apply to the other works in the aggregate which are not themselves</para>
+<para>derivative works of the Document.</para>
+<para/>
+<para>If the Cover Text requirement of section 3 is applicable to these</para>
+<para>copies of the Document, then if the Document is less than one half of</para>
+<para>the entire aggregate, the Document's Cover Texts may be placed on</para>
+<para>covers that bracket the Document within the aggregate, or the</para>
+<para>electronic equivalent of covers if the Document is in electronic form.</para>
+<para>Otherwise they must appear on printed covers that bracket the whole</para>
+<para>aggregate.</para>
+<para/>
+<para/>
+<para>8. TRANSLATION</para>
+<para/>
+<para>Translation is considered a kind of modification, so you may</para>
+<para>distribute translations of the Document under the terms of section 4.</para>
+<para>Replacing Invariant Sections with translations requires special</para>
+<para>permission from their copyright holders, but you may include</para>
+<para>translations of some or all Invariant Sections in addition to the</para>
+<para>original versions of these Invariant Sections. You may include a</para>
+<para>translation of this License, and all the license notices in the</para>
+<para>Document, and any Warranty Disclaimers, provided that you also include</para>
+<para>the original English version of this License and the original versions</para>
+<para>of those notices and disclaimers. In case of a disagreement between</para>
+<para>the translation and the original version of this License or a notice</para>
+<para>or disclaimer, the original version will prevail.</para>
+<para/>
+<para>If a section in the Document is Entitled "Acknowledgements",</para>
+<para>"Dedications", or "History", the requirement (section 4) to Preserve</para>
+<para>its Title (section 1) will typically require changing the actual</para>
+<para>title.</para>
+<para/>
+<para/>
+<para>9. TERMINATION</para>
+<para/>
+<para>You may not copy, modify, sublicense, or distribute the Document except</para>
+<para>as expressly provided for under this License. Any other attempt to</para>
+<para>copy, modify, sublicense or distribute the Document is void, and will</para>
+<para>automatically terminate your rights under this License. However,</para>
+<para>parties who have received copies, or rights, from you under this</para>
+<para>License will not have their licenses terminated so long as such</para>
+<para>parties remain in full compliance.</para>
+<para/>
+<para/>
+<para>10. FUTURE REVISIONS OF THIS LICENSE</para>
+<para/>
+<para>The Free Software Foundation may publish new, revised versions</para>
+<para>of the GNU Free Documentation License from time to time. Such new</para>
+<para>versions will be similar in spirit to the present version, but may</para>
+<para>differ in detail to address new problems or concerns. See</para>
+<para>http://www.gnu.org/copyleft/.</para>
+<para/>
+<para>Each version of the License is given a distinguishing version number.</para>
+<para>If the Document specifies that a particular numbered version of this</para>
+<para>License "or any later version" applies to it, you have the option of</para>
+<para>following the terms and conditions either of that specified version or</para>
+<para>of any later version that has been published (not as a draft) by the</para>
+<para>Free Software Foundation. If the Document does not specify a version</para>
+<para>number of this License, you may choose any version ever published (not</para>
+<para>as a draft) by the Free Software Foundation.</para>
+<para/>
+<para/>
+<para>ADDENDUM: How to use this License for your documents</para>
+<para/>
+<para>To use this License in a document you have written, include a copy of</para>
+<para>the License in the document and put the following copyright and</para>
+<para>license notices just after the title page:</para>
+<para/>
+<para>Copyright (c) YEAR YOUR NAME.</para>
+<para>Permission is granted to copy, distribute and/or modify this document</para>
+<para>under the terms of the GNU Free Documentation License, Version 1.2</para>
+<para>or any later version published by the Free Software Foundation;</para>
+<para>with no Invariant Sections, no Front-Cover Texts, and no Back-Cover Texts.</para>
+<para>A copy of the license is included in the section entitled "GNU</para>
+<para>Free Documentation License".</para>
+<para/>
+<para>If you have Invariant Sections, Front-Cover Texts and Back-Cover Texts,</para>
+<para>replace the "with...Texts." line with this:</para>
+<para/>
+<para>with the Invariant Sections being LIST THEIR TITLES, with the</para>
+<para>Front-Cover Texts being LIST, and with the Back-Cover Texts being LIST.</para>
+<para/>
+<para>If you have Invariant Sections without Cover Texts, or some other</para>
+<para>combination of the three, merge those two alternatives to suit the</para>
+<para>situation.</para>
+<para/>
+<para>If your document contains nontrivial examples of program code, we</para>
+<para>recommend releasing these examples in parallel under your choice of</para>
+<para>free software license, such as the GNU General Public License,</para>
+<para>to permit their use in free software.</para></sect1></article>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                
