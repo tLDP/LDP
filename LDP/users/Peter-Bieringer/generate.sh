@@ -2,59 +2,77 @@
 
 # 20020117/PB: review
 # 20020128/PB: change PDF generation to LDP conform one, PS is still not LDP conform
+# 20070401/PB: disable sgmlfixer (no longer needed)
+#              add support for XML file, replace nsgmls by onsgmls
 
 # $Id$
 
-
 if [ -z "$1" ]; then
-	file_sgml="Linux+IPv6-HOWTO.sgml"
+	#file_input="Linux+IPv6-HOWTO.sgml"
+	file_input="Linux+IPv6-HOWTO.xml"
 else
-	file_sgml="$1"
+	file_input="$1"
 fi
 
-if ! echo "$file_sgml" | grep -q ".sgml$"; then
-	echo "ERR: file is not a SGML file: $file_sgml"
+if echo "$file_input" | grep -q ".sgml$"; then
+	# ok, SGML
+	true
+elif echo "$file_input" | grep -q ".xml$"; then
+	# ok, XML
+	true
+else
+	echo "ERR: file is not a SGML/XML file: $file_input"
 	exit 1
 fi
 
-if ! head -1 "$file_sgml" |grep -q DOCTYPE ; then
-	echo "ERR: file is not a SGML file: $file_sgml"
+if head -1 "$file_input" |grep -q DOCTYPE ; then
+	doctype="SGML"
+elif head -1 "$file_input" |grep -q "xml version" ; then
+	doctype="XML"
+else
+	echo "ERR: file is not a SGML file: $file_input"
 	exit 1
 fi
 
-echo "Used SGML file: $file_sgml"
+echo "Used SGML file: $file_input"
 
-file_base="`basename $file_sgml .sgml`"
+file_base="`basename $file_input .sgml`"
+
+ONSGMLS="/usr/bin/onsgmls"
+JADE="/usr/bin/jade"
 
 file_ps="$file_base.ps"
 file_pdf="$file_base.pdf"
 file_txt="$file_base.txt"
 file_html="$file_base.html"
 
-file_dsl="/usr/local/share/sgml/ldp.dsl"
+file_ldpdsl="/usr/local/share/sgml/dsssl/ldp.dsl"
+file_xmldcl="/usr/share/sgml/xml.dcl"
+dir_dssslstylesheets="/usr/share/sgml/docbook/dsssl-stylesheets"
 
-if [ ! -f "$file_dsl" ]; then
-	echo "ERR: Missing DSL file: $file_dsl"
+if [ ! -f "$file_ldpdsl" ]; then
+	echo "ERR: Missing DSL file: $file_ldpdsl"
 	exit 1
 fi
 
 
-if [ ! -f $file_sgml ]; then
+if [ ! -f $file_input ]; then
 	echo "ERR: Missing SGML file, perhaps export DocBook of LyX won't work"
 	exit 1
 fi
 
 LDP_PDFPS="yes"
 
-# run sgmlfix
-if [ -e ./runsgmlfix.sh ]; then
-	./runsgmlfix.sh "$file_sgml"
-else
-	echo "WARN: cannot execute 'runsgmlfix.sh'"
-fi
+# look for required files
+for f in $file_ldpdsl $file_xmldcl; do
+	if [ ! -e $f ]; then
+		echo "Missing file: $f"
+		exit 1
+	fi
+done
 
 # look for required binaries
-for f in /usr/bin/htmldoc /usr/local/bin/ldp_print /usr/bin/nsgmls /usr/bin/jade /usr/bin/db2ps; do
+for f in /usr/bin/htmldoc /usr/local/bin/ldp_print $ONSGMLS $JADE /usr/bin/db2ps; do
 	if [ ! -e $f ]; then
 		echo "Missing file: $f"
 		exit 1
@@ -65,19 +83,31 @@ for f in /usr/bin/htmldoc /usr/local/bin/ldp_print /usr/bin/nsgmls /usr/bin/jade
 	fi
 done
 
+# run sgmlfix
+#if [ -e ./runsgmlfix.sh ]; then
+#	./runsgmlfix.sh "$file_input"
+#else
+#	echo "WARN: cannot execute 'runsgmlfix.sh'"
+#fi
+
+
+## Functions
 validate_sgml() {
-	echo "INF: Validate SGML code '$file_sgml'"
+	echo "INF: Validate SGML/XML code '$file_input'"
+	if [ "$doctype" = "XML" ]; then
+		local options="$file_xmldcl"
+	fi
 	set -x
-	/usr/bin/nsgmls -s $file_sgml
+	LANG=C $ONSGMLS -s $options $file_input
+	local retval=$?
 	set +x
-	if [ $? -gt 0 ]; then
+	if [ $retval -gt 0 ]; then
 		echo "ERR: Validation results in errors!"
 		return 1
 	else
 		echo "INF: Validation was successfully"
 	fi
 }
-
 
 create_html_multipage() {
 	echo "INF: Create HTML multipages"
@@ -87,19 +117,19 @@ create_html_multipage() {
 	pushd "$file_base" || exit 1
 	rm -f *
 	set -x
-	nice -n 10 /usr/bin/jade -t sgml -i html -d "/usr/local/share/sgml/ldp.dsl#html" ../$file_sgml
+	LANG=C nice -n 10 $JADE -t sgml -i html -D $dir_dssslstylesheets -d "${file_ldpdsl}#html" ../$file_input
 	local retval=$?
 	set +x
 	popd
 	# Force
-	local retval=0
+	#local retval=0
 	return $retval
 }
 
 create_html_singlepage() {
 	echo "INF: Create HTML singlepage '$file_html'"
 	set -x
-	nice -n 10 /usr/bin/jade -t sgml -i html -V nochunks -d "/usr/local/share/sgml/ldp.dsl#html" $file_sgml >$file_html
+	LANG=C nice -n 10 $JADE -t sgml -i html -V nochunks -d "/usr/local/share/sgml/ldp.dsl#html" $file_input >$file_html
 	set +x
 	local retval=$?
 	if [ $retval -eq 0 ]; then
@@ -113,7 +143,7 @@ create_html_singlepage() {
 create_rtf() {
 	echo "INF: Create RTF file '$file_rtf'"
 	set -x
-	nice -n 10 /usr/bin/jade -t rtf -d /usr/local/share/sgml/ldp.dsl $file_sgml
+	nice -n 10 /usr/bin/jade -t rtf -d /usr/local/share/sgml/ldp.dsl $file_input
 	set +x
 	local retval=$?
 	if [ $retval -eq 0 ]; then
@@ -127,7 +157,7 @@ create_rtf() {
 create_ps() {
 	echo "INF: Create PS file '$file_ps'"
 	set -x
-	nice -n 10 /usr/bin/db2ps --dsl /usr/local/share/sgml/ldp.dsl $file_sgml
+	nice -n 10 /usr/bin/db2ps --dsl /usr/local/share/sgml/ldp.dsl $file_input
 	set +x
 	local retval=$?
 	if [ $retval -eq 0 ]; then
@@ -143,8 +173,8 @@ create_pdf() {
 		# Use LDP conform mechanism
 		echo "INF: Create PDF file (LDP conform) '$file_pdf' from HTML file '$file_html'"
 
-		if [ $file_html -ot $file_sgml ]; then
-			echo "ERR: Create PDF file - needed single page HTML file '$file_html' is older than original '$file_sgml'"
+		if [ $file_html -ot $file_input ]; then
+			echo "ERR: Create PDF file - needed single page HTML file '$file_html' is older than original '$file_input'"
 			return 1
 		fi
 		set -x
@@ -154,7 +184,7 @@ create_pdf() {
 	else
 		echo "INF: Create PDF file (NOT LDP conform) '$file_pdf'"
 		set -x
-		nice -n 10 db2pdf --dsl /usr/local/share/sgml/ldp.dsl $file_sgml
+		nice -n 10 db2pdf --dsl /usr/local/share/sgml/ldp.dsl $file_input
 		set +x
 		local retval=$?
 	fi
