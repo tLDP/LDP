@@ -35,6 +35,7 @@ done | sort                                  # Otherwise file list is unsorted.
 exit 0
 
 
+# --------------------------------------------------------
 # Jean Helou proposes the following alternative:
 
 echo "symbolic links in directory \"$directory\""
@@ -46,3 +47,18 @@ for file in $(find $directory -type l -printf "%p$IFS")
 do     #                              ^^^^^^^^^^^^^^^^
        echo "$file"
        done|sort
+
+# And, James "Mike" Conley suggests modifying Helou's code thusly:
+
+OLDIFS=$IFS
+IFS='' # Null IFS means no word breaks
+for file in $( find $directory -type l )
+do
+  echo $file
+  done | sort
+
+#  This works in the "pathological" case of a directory name having
+#+ an embedded colon.
+#  "This also fixes the pathological case of the directory name having
+#+  a colon (or space in earlier example) as well."
+

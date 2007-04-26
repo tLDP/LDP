@@ -12,7 +12,7 @@ PROGNAME=$0
 E_NOARGS=70   #  No arguments error.
 
 if [ $# -lt $MINARGS ]; then
-      echo "Usage: "$PROGNAME" data"
+      echo "Usage: "$PROGNAME" data-to-look-up"
       exit $E_NOARGS
 fi      
 
@@ -27,7 +27,7 @@ fi
 
 exit 0        #  Script exits here.
               #  Therefore, it's o.k. to put
-	      #+ non-hashmarked comments and data after this point.
+              #+ un-hashmarked comments and data after this point.
 
 # ------------------------------------------------------------------------
 Sample "phonebook" datafile:

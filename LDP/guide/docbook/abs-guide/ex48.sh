@@ -16,13 +16,16 @@ then
   exit $E_BADARGS
 fi  
 
-source=$1
-destination=$2
+source="$1"
+destination="$2"
 
-
+###################################################################
 find "$source" -depth | cpio -admvp "$destination"
 #               ^^^^^         ^^^^^
-# Read the 'find' and 'cpio' man pages to decipher these options.
+#  Read the 'find' and 'cpio' info pages to decipher these options.
+#  The above works only relative to $PWD (current directory) . . .
+#+ full pathnames are specified.
+###################################################################
 
 
 # Exercise:
@@ -31,4 +34,4 @@ find "$source" -depth | cpio -admvp "$destination"
 #  Add code to check the exit status ($?) of the 'find | cpio' pipe
 #+ and output appropriate error messages if anything went wrong.
 
-exit 0
+exit $?

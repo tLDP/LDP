@@ -12,8 +12,8 @@ then
 fi
 
 case "$1" in
-[a-zA-Z]*) return $SUCCESS;;  # Begins with a letter?
-*        ) return $FAILURE;;
+  [a-zA-Z]*) return $SUCCESS;;  # Begins with a letter?
+  *        ) return $FAILURE;;
 esac
 }             # Compare this with "isalpha ()" function in C.
 
@@ -33,8 +33,8 @@ isdigit ()    # Tests whether *entire string* is numerical.
   [ $# -eq 1 ] || return $FAILURE
 
   case $1 in
-  *[!0-9]*|"") return $FAILURE;;
-            *) return $SUCCESS;;
+    *[!0-9]*|"") return $FAILURE;;
+              *) return $SUCCESS;;
   esac
 }
 

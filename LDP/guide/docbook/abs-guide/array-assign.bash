@@ -1,7 +1,7 @@
 #! /bin/bash
 # array-assign.bash
 
-#  Array operations are Bash specific,
+#  Array operations are Bash-specific,
 #+ hence the ".bash" in the script name.
 
 # Copyright (c) Michael S. Zick, 2003, All rights reserved.
@@ -28,7 +28,7 @@
 #+ but anything creating an array of several thousand elements
 #+ will do just fine.
 
-declare -a bigOne=( /dev/* )
+declare -a bigOne=( /dev/* )  # All the files in /dev . . .
 echo
 echo 'Conditions: Unquoted, default IFS, All-Elements-Of'
 echo "Number of elements in array is ${#bigOne[@]}"
@@ -41,8 +41,9 @@ echo
 echo '- - testing: =( ${array[@]} ) - -'
 times
 declare -a bigTwo=( ${bigOne[@]} )
-#                 ^              ^
+# Note parens:    ^              ^
 times
+
 
 echo
 echo '- - testing: =${array[@]} - -'
@@ -54,12 +55,15 @@ times
 #  Comparing the numbers shows that the second form, pointed out
 #+ by Stephane Chazelas, is from three to four times faster.
 #
-#  William Park explains:
-#+ The bigTwo array assigned as single string, whereas
-#+ bigThree assigned element by element.
+#  As William Park explains:
+#+ The bigTwo array assigned element by element (because of parentheses),
+#+ whereas bigThree assigned as a single string.
 #  So, in essence, you have:
-#                   bigTwo=( [0]="... ... ..." )
-#                   bigThree=( [0]="..." [1]="..." [2]="..." ... )
+#                   bigTwo=( [0]="..." [1]="..." [2]="..." ... )
+#                   bigThree=( [0]="... ... ..." )
+#
+#  Verify this by:  echo ${bigTwo[0]}
+#                   echo ${bigThree[0]}
 
 
 #  I will continue to use the first form in my example descriptions
@@ -78,6 +82,6 @@ times
 #+ in the  Array=( ... )  assignment form.
 #  However, eliminating these declarations slows down
 #+ the execution of the following sections of the script.
-#  Try it, and see what happens.
+#  Try it, and see.
 
 exit 0

@@ -3,10 +3,11 @@
 
 EXPECTED_ARGS=2
 E_BADARGS=65
-MODEM_PORT="/dev/ttyS3"   # May be different on your machine.
+MODEM_PORT="/dev/ttyS2"   # May be different on your machine.
+#                ^^^^^      PCMCIA modem card default port.
 
 if [ $# -ne $EXPECTED_ARGS ]
-# Check for proper no. of command line args.
+# Check for proper number of command line args.
 then
    echo "Usage: `basename $0` phone# text-file"
    exit $E_BADARGS
@@ -21,7 +22,7 @@ then
 fi
   
 
-fax make $2              #  Create fax formatted files from text files.
+fax make $2              #  Create fax-formatted files from text files.
 
 for file in $(ls $2.0*)  #  Concatenate the converted files.
                          #  Uses wild card (filename "globbing")
@@ -30,11 +31,12 @@ do
   fil="$fil $file"
 done  
 
-efax -d "$MODEM_PORT" -o1 -t "T$1" $fil   # Finally, do the work.
+efax -d "$MODEM_PORT"  -t "T$1" $fil   # Finally, do the work.
+# Trying adding  -o1  if above line fails.
 
 
 #  As S.C. points out, the for-loop can be eliminated with
-#     efax -d /dev/ttyS3 -o1 -t "T$1" $2.0*
+#     efax -d /dev/ttyS2 -o1 -t "T$1" $2.0*
 #+ but it's not quite as instructive [grin].
 
-exit 0
+exit $?   # Also, efax sends diagnostic messages to stdout.

@@ -13,7 +13,7 @@ Endofmessage
 
 #   No parameter substitution when the "limit string" is quoted or escaped.
 #   Either of the following at the head of the here document would have
-#+ the same effect.
+#+  the same effect.
 #   cat &lt;&lt;"Endofmessage"
 #   cat &lt;&lt;\Endofmessage
 

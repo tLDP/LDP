@@ -19,8 +19,8 @@
 # For example, 
 # 	ftpget -h expo.lcs.mit.edu -d contrib -f xplaces.shar:xplaces.sh \
 #		-d ../pub/R3/fixes -c ~/fixes -m 'fix*' 
-# will get xplaces.shar from ~ftp/contrib on expo.lcs.mit.edu, and put it in
-# xplaces.sh in the current working directory, and get all fixes from
+# will get xplaces.shar from ~ftp/contrib on expo.lcs.mit.edu, and put it
+# in xplaces.sh in the current working directory, and get all fixes from
 # ~ftp/pub/R3/fixes and put them in the ~/fixes directory. 
 # Obviously, the sequence of the options is important, since the equivalent
 # commands are executed by ftp in corresponding order
@@ -45,8 +45,8 @@ SITE=`domainname`.toronto.edu
 # ==> 'domainname' similar to 'hostname'
 # ==> May rewrite this to parameterize this for general use.
 
-usage="Usage: $0 [-h remotehost] [-d remotedirectory]... [-f remfile:localfile]... \
-		[-c localdirectory] [-m filepattern] [-v]"
+usage="Usage: $0 [-h remotehost] [-d remotedirectory]... \ 
+[-f remfile:localfile]...  [-c localdirectory] [-m filepattern] [-v]"
 ftpflags="-i -n"
 verbflag=
 set -f 		# So we can use globbing in -m

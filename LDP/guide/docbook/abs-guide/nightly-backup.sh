@@ -204,7 +204,8 @@ if ! /bin/chmod 700 $BACKUP_DEST_DIR ; then
 
   if  [ "$UNMOUNT_LATER" == "TRUE" ]; then
   # Before we exit, unmount the mount point if necessary.
-     cd ; sudo umount $MOUNT_POINT && echo "Unmounted $MOUNT_POINT again. Giving up."
+     cd ; sudo umount $MOUNT_POINT \
+     && echo "Unmounted $MOUNT_POINT again. Giving up."
   fi
 
   exit $E_UNMOUNTED
@@ -239,7 +240,8 @@ echo -e "Backup destination dir: $BACKUP_DEST_DIR\n"
 if [ $? != 0 ]; then
   BACKUP_JUSTINCASE=backup.`date +%F_%T`.justincase
   echo "WARNING: the rsync process did not entirely succeed."
-  echo "Something might be wrong. Saving an extra copy at: $BACKUP_JUSTINCASE"
+  echo "Something might be wrong."
+  echo "Saving an extra copy at: $BACKUP_JUSTINCASE"
   echo "WARNING: if this occurs regularly, a LOT of space will be consumed,"
   echo "even though these are just hard-links!"
 fi
@@ -280,7 +282,8 @@ echo "This backup of $SOURCE_DIR on `hostname` was created on \
  # Create an extra backup.
  # If this copy fails, give up.
  if [ -n "$BACKUP_JUSTINCASE" ]; then
-   if ! /bin/cp -al $BACKUP_DEST_DIR/backup.0 $BACKUP_DEST_DIR/$BACKUP_JUSTINCASE
+   if ! /bin/cp -al $BACKUP_DEST_DIR/backup.0 \
+      $BACKUP_DEST_DIR/$BACKUP_JUSTINCASE
    then
      echo "ERROR: Failed to create extra copy \
      $BACKUP_DEST_DIR/$BACKUP_JUSTINCASE"
