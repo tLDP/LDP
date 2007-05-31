@@ -8,8 +8,8 @@
 # $Id$
 
 if [ -z "$1" ]; then
-	#file_input="Linux+IPv6-HOWTO.sgml"
-	file_input="Linux+IPv6-HOWTO.xml"
+	file_input="Linux+IPv6-HOWTO.sgml"
+	#file_input="Linux+IPv6-HOWTO.xml"
 else
 	file_input="$1"
 fi
@@ -36,7 +36,7 @@ fi
 
 echo "Used SGML file: $file_input"
 
-file_base="`basename $file_input .sgml`"
+file_base="${file_input/.*/}"
 
 ONSGMLS="/usr/bin/onsgmls"
 JADE="/usr/bin/jade"
@@ -112,7 +112,7 @@ validate_sgml() {
 create_html_multipage() {
 	echo "INF: Create HTML multipages"
 	if [ ! -d "$file_base" ]; then
-		mkdir "$file_base"
+		mkdir "$file_base" || exit 1
 	fi
 	pushd "$file_base" || exit 1
 	rm -f *
@@ -129,7 +129,7 @@ create_html_multipage() {
 create_html_singlepage() {
 	echo "INF: Create HTML singlepage '$file_html'"
 	set -x
-	LANG=C nice -n 10 $JADE -t sgml -i html -V nochunks -d "/usr/local/share/sgml/ldp.dsl#html" $file_input >$file_html
+	LANG=C nice -n 10 $JADE -t sgml -i html -V nochunks -d "${file_ldpdsl}#html" $file_input >$file_html
 	set +x
 	local retval=$?
 	if [ $retval -eq 0 ]; then
