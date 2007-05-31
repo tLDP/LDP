@@ -36,10 +36,14 @@ fi
 
 echo "Used SGML file: $file_input"
 
-file_base="${file_input/.*/}"
+file_base="${file_input%.*}"
 
 ONSGMLS="/usr/bin/onsgmls"
 JADE="/usr/bin/jade"
+DB2PS="/usr/bin/db2ps"
+DB2PDF="/usr/bin/db2pdf"
+LDP_PRINT="/usr/local/bin/ldp_print"
+PS2ASCII="/usr/bin/ps2ascii"
 
 file_ps="$file_base.ps"
 file_pdf="$file_base.pdf"
@@ -72,7 +76,7 @@ for f in $file_ldpdsl $file_xmldcl; do
 done
 
 # look for required binaries
-for f in /usr/bin/htmldoc /usr/local/bin/ldp_print $ONSGMLS $JADE /usr/bin/db2ps; do
+for f in $LDP_PRINT $ONSGMLS $JADE $DB2PS $PS2ASCII $DB2PDF; do
 	if [ ! -e $f ]; then
 		echo "Missing file: $f"
 		exit 1
@@ -143,7 +147,7 @@ create_html_singlepage() {
 create_rtf() {
 	echo "INF: Create RTF file '$file_rtf'"
 	set -x
-	nice -n 10 /usr/bin/jade -t rtf -d /usr/local/share/sgml/ldp.dsl $file_input
+	nice -n 10 $JADE -t rtf -d ${file_ldpdsl} $file_input
 	set +x
 	local retval=$?
 	if [ $retval -eq 0 ]; then
@@ -157,7 +161,7 @@ create_rtf() {
 create_ps() {
 	echo "INF: Create PS file '$file_ps'"
 	set -x
-	nice -n 10 /usr/bin/db2ps --dsl /usr/local/share/sgml/ldp.dsl $file_input
+	nice -n 10 $DB2PS --dsl ${file_ldpdsl} $file_input
 	set +x
 	local retval=$?
 	if [ $retval -eq 0 ]; then
@@ -178,13 +182,13 @@ create_pdf() {
 			return 1
 		fi
 		set -x
-		nice -n 10 ldp_print $file_html
+		nice -n 10 $LDP_PRINT $file_html
 		set +x
 		local retval=$?
 	else
 		echo "INF: Create PDF file (NOT LDP conform) '$file_pdf'"
 		set -x
-		nice -n 10 db2pdf --dsl /usr/local/share/sgml/ldp.dsl $file_input
+		nice -n 10 $DB2PDF --dsl ${file_ldpdsl} $file_input
 		set +x
 		local retval=$?
 	fi
@@ -202,7 +206,7 @@ create_txt() {
 	if [ -f $file_ps ]; then
 		echo "INF: Create TXT file '$file_txt'"
 		set -x
-		nice -n 10 ps2ascii $file_ps > $file_txt
+		nice -n 10 $PS2ASCII $file_ps > $file_txt
 		set +x
 		local retval=$?
 	else
