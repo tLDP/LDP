@@ -92,7 +92,7 @@ $CVS = '/usr/bin/cvs';
 $diffstat = '/usr/bin/diffstat -p0 -w 72';
 
 # URL of cvsweb. Just comment out if you don't have any.
-$cvsweb_url = 'http://cvsview.tldp.org/index.cgi';
+$cvsweb_url = 'http://cvs.tldp.org/go.to';
 
 # The leading message of the mail:
 $help_msg = "This is an automated notification of a change to the $project CVS tree.";
@@ -335,7 +335,7 @@ for (my $i = 0; $i < @dirs; $i++) {
       $files_affected_part .= " (?! contact devils)" if ($op eq '?');
       $files_affected_part .= ", " if $j < @$commits-1;
 #      $files_affected_part .= "\n";
-      $cvsweb_part .= "    $cvsweb_url/$dir/$name?r1=$oldrev&r2=$newrev&f=u\n"
+      $cvsweb_part .= "    $cvsweb_url/$dir/$name?r1=$oldrev&r2=$newrev\n"
         if defined $cvsweb_url and $op ne 'add' and $op ne 'remove';
       $ref=$dir."_".$name.".".$newrev;
       $ref =~ s/[^a-zA-Z0-9.]/_/g;
