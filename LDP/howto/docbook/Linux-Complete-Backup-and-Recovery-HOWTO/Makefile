@@ -1,6 +1,6 @@
 # a makefile for generating the Bare Metal Recovery HOW-TO
 
-# Time-stamp: <2005-10-13 09:54:10 ccurley Makefile>
+# Time-stamp: <2007-07-02 16:06:26 ccurley Makefile>
 
 # All the scripts we incorporate into the HOWTO. We filter out CVS,
 # which is the CVS directory, and files with ~ in them, as these are
@@ -29,7 +29,7 @@ cooked:
 
 clean:
 	-rm -r $(DOCUMENT) $(DOCUMENT).[a-b]* $(DOCUMENT).[d-r]* $(DOCUMENT).[t-z]* $(DOCUMENT).smooth.html cooked ../images
-	mkdir cooked $(DOCUMENT) $(DOCUMENT).junk
+	mkdir $(DOCUMENT) $(DOCUMENT).junk
 
 # scripts: $(SCRIPTS)
 scripts: cooked
@@ -105,8 +105,9 @@ all: html rtf tex dvi ps pdf text
 
 ship: all
 	# The chunky version for on-line viewing
-	-rm -r $(INSTALL) $(INSTALL)/../images
-	cp -rp $(DOCUMENT) $(INSTALL)/
+	-rm -r $(INSTALL)
+	mkdir $(INSTALL)
+	cp -rp $(DOCUMENT)/* $(INSTALL)/
 	cp -rp images $(INSTALL)/..
 	rm -r $(INSTALL)/../images/CVS # Don't give out the CVS data
 
@@ -130,8 +131,8 @@ ship: all
 	cd .. ; tar -cvf $(DOCUMENT).tar $(DOCUMENT)/README `find $(DOCUMENT)/scripts -name "[a-z]*" ! -name "*~" ! -type d ` $(DOCUMENT)/$(DOCUMENT).sgml $(DOCUMENT)/buildscript $(DOCUMENT)/Makefile $(DOCUMENT)/images/*.gif
 	cd .. ; bzip2 -9 $(DOCUMENT).tar
 	cd .. ; mv $(DOCUMENT).tar.bz2  $(INSTALL)/
-	cd $(INSTALL) ; md5sum *.bz2 > md5sums.txt
-	cd $(INSTALL) ; sha1sum *.bz2 > sha1sums.txt
+	cd $(INSTALL) ; md5sum *.bz2 > md5sums
+	cd $(INSTALL) ; sha1sum *.bz2 > sha1sums
 	ls -l $(INSTALL)
 
 install: ship
