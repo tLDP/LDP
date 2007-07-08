@@ -3,7 +3,7 @@
 # A script to save certain meta-data off to the boot partition. Useful for
 # restoration.
 
-# Time-stamp: <2006-04-05 20:37:09 ccurley save.metadata>
+# Time-stamp: <2007-07-06 13:38:29 ccurley save.metadata>
 
 # Copyright 2000 through the last date of modification, Charles Curley.
 
@@ -17,12 +17,19 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 # General Public License for more details.
 
-# You should have received a copy of the GNU General Public License along
-# with this program; if not, write to the Free Software Foundation, Inc.,
-# 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+# 02110-1301, USA
 
 # You can also contact the Free Software Foundation at
 # http://www.fsf.org/
+
+# 2007-05-22: Changes for FHS compliance. Removed commented out
+# references to ZIP drives. Added a line to deal with the fact that
+# libata (in newer kernels) maps IDE drives to SCSI device names, but
+# not all rescue distributions use libata. So we have to change the
+# device names from SCSI to IDE, e.g. /dev/sda to /dev/hda.
 
 # 2006-03-26: had a deprecated option in the sort options; fixed that.
 
@@ -52,13 +59,36 @@
 # results. This is important in a 100MB ZIP disk. Also some general
 # code cleanup.
 
-# 2002 07 01: The function crunch will tar and BZIP2 the
+# 2002 07 01: The function crunch will tar and bzip2 the
 # archives. This is cleaner than the old code, and has better safety
 # checking.
 
 
 # For more information contact the author, Charles Curley, at
 # http://www.charlescurley.com/.
+
+# Exclude: given a fully qualified path to an ambiguous file name,
+# expand it to the base name plus, e.g. any version numbering in the
+# base name. E.g. "/usr/lib/python*" becomes "python2.5" if that's
+# what's in the directory. We then prepend "--exclude" and return
+# it. Use it to prepare ambiguous excludes for crunch's benefit. If
+# the file doesn't exist, we return nothing.
+
+function exclude {
+
+if [ -z "$1" ]; then            # 0 length parameter check.
+   echo "-Parameter #1 is missing.-" # Also if no parameter is passed.
+   exit 1
+else
+   if [ ! -e $1 ]; then
+      return
+   else
+      local file=$1
+      local target=$(ls -d $file)
+      echo "--exclude ${target##/*/}"
+   fi
+fi
+}
 
 
 # Crunch: A function to compress the contents of a directory and put
@@ -83,7 +113,7 @@ else
    local dirs=$@		# The director[y|ies] to archive
    local tarcmd="tar --numeric-owner -cjf"	# The tar command.
 
-   local tarit="$tarcmd  $zip/$file.tar.bz2 $dirs"
+   local tarit="$tarcmd  ${zip}/$data/$file.tar.bz2 $dirs"
    echo $tarit
    $tarit			# do it!!
 
@@ -92,7 +122,7 @@ else
    if [ $error != 0 ]		# Did we fail?
    then				# Yes
       echo "Tar failed with error $error"
-      echo $tarcmd $zip/$file.tar.bz2 $dirs
+      echo $tarcmd ${zip}/$data/$file.tar.bz2 $dirs
       exit $error		# return tar's exit code as ours
    fi
 
@@ -101,30 +131,16 @@ fi
 }
 
 # Begin the main line code
-export zip="/var/bare.metal";	# Where we will put archives. Not the ZIP drive here.
-#  export save="/mnt/save";
+export data="data";             # Name of the data directory in the archive
+export today=$(date +%Y%m%d);   # Today's archive
+export zip="/var/lib/bare.metal.recovery/${today}";
 
-RPMVABACKS=/etc			# where we keep our backups
-RPMVAROOT=rpmVa			# The root name of the pg backups
-ANC=${RPMVABACKS}/${RPMVAROOT}.anc	# name for the oldest (ancient) backup
-OLD=${RPMVABACKS}/${RPMVAROOT}.old	# name for the middling oldest backup
-NEW=${RPMVABACKS}/${RPMVAROOT}.txt	# name for the newest backup
-
-if [ -f ${ANC} ]; then
-echo "Deleting ${ANC}"
-rm ${ANC}
+if [ -d ${zip} ] ; then
+  rm -r ${zip}
 fi
+mkdir -p ${zip}/metadata ${zip}/bin ${zip}/data
 
-if [ -f ${OLD} ]; then
-echo "Aging ${OLD}"
-mv ${OLD} ${ANC}
-fi
-
-if [ -f ${NEW} ]; then
-echo "Aging ${NEW}"
-mv ${NEW} ${OLD}
-fi
-
+NEW=${zip}/metadata/rpmVa.txt       # name for the rpm -Va output file.
 
 # Now we save hard drive information. Run make.fdisk on each hard
 # drive in the order in which it mounted from the root partition. That
@@ -145,7 +161,14 @@ fi
 # If necessary, put a line, "sleep 1" between calls to make.fdisk.
 
 echo "Saving hard drive info"
-make.fdisk /dev/hda
+
+# List all your hard drives here. Put them in the order you want
+# things done at restore time.
+
+for drive in sda ; do
+  make.fdisk /dev/${drive}
+  fdisk -l /dev/${drive} > ${zip}/fdisk.${drive}
+done
 
 # back up RPM metadata
 
@@ -153,24 +176,10 @@ echo "Verifying RPMs."
 
 rpm -Va | sort -t ' ' -k 3 | uniq > ${NEW}
 
-echo "Finished verifying RPMs; now mounting the ZIP drive."
+echo "Finished verifying RPMs."
 
-# Make sure we have the ZIP drive mounted.
-# umount $zip
-# modprobe ppa			# Driver for 100MB parallel port ZIP disk
-# mount $zip			# It should have ext2fs on partition 1.
-
-# clean it all out
-# rm -r $zip/*
-# mkdir -p $zip/lost+found
-
-# Since we aren't saving to ZIP disk, we age the local copy.
-rm -r $zip.old
-mv $zip $zip.old
-mkdir $zip
-
-echo -e "$(hostname) bare metal ZIP disk, created $(date)" > $zip/README.txt
-uname -a >> $zip/README.txt
+echo -e "$(hostname) bare metal archive, created $(date)" > ${zip}/README.txt
+uname -a >> ${zip}/README.txt
 
 # Preserve the release information. Tested with Red Hat/Fedora, should
 # work with SuSE, Mandrake and other RPM based systems. Debian
@@ -179,7 +188,7 @@ uname -a >> $zip/README.txt
 for releasefile in $(ls /etc/*release*) ; do
   # echo $releasefile
   if [ -e $releasefile ] && [ ! -L $releasefile ] ; then
-    cat $releasefile >> $zip/README.txt
+    cat $releasefile >> ${zip}/README.txt
   fi
 done
 
@@ -189,15 +198,31 @@ echo "Building the ZIP drive backups."
 # rebuilding process should be mostly automated, but you never
 # know....
 
-fdisk -l /dev/hda > $zip/fdisk.hda
-
-ls -al /mnt > $zip/ls.mnt.txt
-ls -al / > $zip/ls.root.txt
+ls -al /mnt > ${zip}/ls.mnt.txt
+ls -al / > ${zip}/ls.root.txt
+ls -al /var > ${zip}/ls.var.txt
 
 cd /
 
 # Build our minimal archives on the ZIP disk. These appear to be
 # required so we can restore later on.
+
+crunch usr.lib $(exclude /usr/lib/perl*)\
+  $(exclude /usr/lib/firefox*) $(exclude /usr/lib/gimp*) --exclude dri\
+  --exclude xorg --exclude gconv usr/lib
+
+# crunch usr.share --exclude icons --exclude selinux\
+#  --exclude man --exclude doc --exclude locale --exclude X11\
+#  --exclude fonts --exclude gnome --exclude foomatic\
+#  --exclude gnome-applets --exclude man --exclude pixmaps usr/share
+# crunch usr.share.locale /usr/share/locale/en_US/
+
+# if [ -e /usr/share/fonts/default ]\
+#   && [ -e /usr/share/fonts/ISO8859-2 ]\
+#   && [ -e /usr/share/fonts/bitmap-fonts ]; then
+#     crunch usr.share.fonts /usr/share/fonts/default /usr/share/fonts/ISO8859-2 \
+#     /usr/share/fonts/bitmap-fonts
+# fi
 
 crunch root --exclude root/.cpan --exclude root/.mozilla --exclude root/down root
 crunch boot boot
@@ -205,9 +230,12 @@ crunch etc --exclude etc/samba --exclude etc/X11 --exclude etc/gconf etc
 crunch lib lib
 
 crunch usr.sbin usr/sbin
-crunch usr.bin --exclude usr/bin/emacs-x --exclude usr/bin/emacs-21.4-x\
+# crunch usr.local usr/local
+# crunch usr.libexec usr/libexec
+crunch usr.kerberos usr/kerberos
+crunch usr.bin --exclude usr/bin/emacs-x\
  --exclude usr/bin/emacsclient --exclude usr/bin/emacs-nox --exclude\
-  usr/bin/gs --exclude usr/bin/pine --exclude usr/bin/gimp-1.2\
+  usr/bin/gs --exclude usr/bin/pine $(exclude usr/bin/gimp-*)\
    --exclude usr/bin/doxygen --exclude usr/bin/postgres --exclude\
     usr/bin/gdb --exclude usr/bin/kmail --exclude usr/bin/splint\
 	 --exclude usr/bin/odbctest --exclude usr/bin/php --exclude \
@@ -235,37 +263,39 @@ crunch dev dev
 # crunch usr.lib usr/lib/*crack* usr/lib/libz* usr/lib/libwrap*\
 #  usr/lib/libk* usr/lib/*krb5* /usr/lib/libgss*
 # Fedora 3
-crunch usr.lib usr/lib/*crack* usr/lib/libz* usr/lib/libwrap*\
- usr/lib/libk* usr/lib/*krb5* usr/lib/libgss*
+# crunch usr.lib usr/lib/*crack* usr/lib/libz* usr/lib/libwrap*\
+#  usr/lib/libk* usr/lib/*krb5* usr/lib/libgss*
+# Fedora 7
+# crunch usr.lib usr/lib/*crack*\
+#  usr/lib/libk* usr/lib/*krb5* usr/lib/libgss*
 
 # Grub requires these at installation time.
 crunch usr.share.grub usr/share/grub
 
-# save the scripts we used to create the ZIP disk and the ones we will
-# use to restore it.
-mkdir $zip/root.bin
-cp -p /root/bin/* $zip/root.bin
-rm $zip/root.bin/*~ $zip/root.bin/#*#
+# save the scripts we will use to restore.
+cp -p /etc/bare.metal.recovery/* ${zip}/bin
 
 echo "Testing our results."
-find $zip -iname "*.bz2" | xargs bunzip2 -t
-
-# Not a normal part of the process: we duplicate the ZIP disk onto an
-# NFS mount elsewhere.
-
-#  echo "Backing the ZIP drive to the NFS mount."
-
-#  umount $save
-#  mount $save
-
-#  rm -r $save/zip
-#  mkdir -p $save/zip
-#  cp -pr $zip $save
+find ${zip} -iname "*.bz2" | xargs bunzip2 -t
 
 # Since we're doing system stuff anyway, make a boot disk ISO image
 # suitable for burning. It uses the current kernel.
 
-mkbootdisk --iso --device $zip/bootdisk.$(uname -r).iso $(uname -r)
+mkbootdisk --iso --device ${zip}/bootdisk.$(uname -r).iso $(uname -r)
 
-du -hs ${zip}*
+# Recent kernels have incorporated a new ATA (IDE) hard drive
+# driver. Because of this, parallel ATA drives now show up as SCSI
+# drives, as serial ATA have always done. However, not all rescue
+# distributions (e.g. finix) use this new driver. So the following
+# line very carefully replaces "/dev/sda" with "/dev/hda". Use this as
+# a template if you have multiple IDE hard drives.
+
+# Note that there is no guaranteed mapping! Systems with multiple hard
+# drives may have confusing mappings. Be sure to edit this line
+# carefully. Check it if you add or remove a hard drive of any
+# interface type to or from your system!
+
+find ${zip} -type f | grep -v bz2$ | xargs sed -i 's|/dev/sda|/dev/hda|g'
+
+du -hs ${zip}
 df -m
