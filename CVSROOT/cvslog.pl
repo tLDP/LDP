@@ -92,7 +92,7 @@ $CVS = '/usr/bin/cvs';
 $diffstat = '/usr/bin/diffstat -p0 -w 72';
 
 # URL of cvsweb. Just comment out if you don't have any.
-$cvsweb_url = 'http://cvs.tldp.org/go.to';
+$cvsweb_url = 'http://cvs.tldp.org/go.to/LDP';
 
 # The leading message of the mail:
 $help_msg = "This is an automated notification of a change to the $project CVS tree.";
