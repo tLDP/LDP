@@ -8,7 +8,7 @@
 # intended to be used on a firewall. You don't want the firewall to be
 # authenticated to the backup system in case the firewall is cracked.
 
-# Time-stamp: <2006-04-05 20:36:00 ccurley get.tester>
+# Time-stamp: <2007-07-06 13:31:40 ccurley get.tester>
 
 # Copyright 2000 through the last date of modification Charles Curley.
 
@@ -22,14 +22,25 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 # General Public License for more details.
 
-# You should have received a copy of the GNU General Public License along
-# with this program; if not, write to the Free Software Foundation, Inc.,
-# 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+# 02110-1301, USA
 
 # You can also contact the Free Software Foundation at http://www.fsf.org/
 
 # For more information contact the author, Charles Curley, at
 # http://www.charlescurley.com/.
+
+# 2007-05-22: Changes for FHS compliance. Removed commented out
+# references to ZIP drives. Now, if the archive does not exist on the
+# client, we run save.metadata there.
+
+# 2006-04-14: Use the script ../scripts/get.target to determine the
+# host name. This makes the script more general, and maybe we can run
+# it from one place & determine the host name from the directory
+# name. Also, we now test to see if old backups exist before deleting
+# them.
 
 # 2004 04 03: added /sys to the list of excludes. It is a read-only
 # pseudo-file system like /proc.
@@ -40,52 +51,25 @@
 # 2002 07 01: The zip disk archives are now in bzip2 format, so this
 # script has been changed to reflect that.
 
-
-# The host name of the computer to be backed up.
-target=tester
-#zip=/mnt/zip
-export zip="/var/bare.metal";	# Where we will put archives. Not the ZIP drive here.
-
-echo Backing up $target
-
-echo Aging the ZIP disk backups.
-
-rm -r $target.old.zip
-
-mv $target.zip $target.old.zip
-
-# ssh $target "modprobe ppa ; mount -r $zip"
-
-echo Copying the ZIP disk.
-
-# -r for recursive copy, -p to preserve times and permissions, -q for
-# quiet: no progress meter.
-
-scp -qpr $target:$zip $target.zip
-
-du -hs $target.*zip
-
-
-echo Aging the archives
-
-rm $target.tar.old.bz2
-
-mv $target.tar.bz2 $target.tar.old.bz2
-
-echo Cleaning out old yum packages
-ssh $target "yum clean packages"
-
-echo Backing up $target to the backup server.
+# Get the host name of the computer to be backed up and other info.
+. ../scripts/get.target
 
 # The "--anchored" option is there to prevent --exclude from excluding
 # all files with that name. E.g. we only want to exclude /sys, not
 # some other sys elsewhere in the file system.
 
-ssh $target "cd / ; tar -cf - --anchored --exclude sys --exclude $zip\
- --exclude $zip.old --exclude mnt --exclude proc --exclude var/spool/squid\
- *" | bzip2 -9 | cat > $target.tar.bz2
+ssh $host "cd / ; tar -cf - --anchored --exclude media --exclude mnt\
+ --exclude selinux --exclude sys --exclude proc --exclude var/spool/squid\
+ --exclude var/cache/yum --exclude var/named/chroot/proc\
+ --exclude var/lib/bare.metal.recovery * " | bzip2 -9 | cat > $host.$DATE.tar.bz2
 
-# ssh $target "eject $zip"
+# if [ -e $host.dos.$DATE.old.tar.bz2 ] ; then
+#     rm $host.dos.$DATE.old.tar.bz2
+# fi
+
+# echo Backing up $host dos to the backup server.
+# ssh $host "cd / ; mount mnt/dosc ; tar -cf - mnt/dosc "\
+# | bzip2 -9 | cat > $host.dos.$DATE.tar.bz2
 
 echo Testing the results.
-find . -iname "*.bz2" | xargs bunzip2 -t
+find $host.$DATE* -iname "*.bz2" | xargs bunzip2 -t
