@@ -9,7 +9,10 @@
 # run at restore time to rebuild hard drive x, prior to running
 # restore.metadata. dev.x is the input file for fdisk.
 
-# Time-stamp: <2006-04-08 15:23:55 ccurley make.fdisk>
+# The directory tree where everything is put must already exist and be
+# specified in the environment variable $zip.
+
+# Time-stamp: <2007-07-08 10:26:04 ccurley make.fdisk>
 
 # Copyright 2001 through the last date of modification Charles Curley
 # except for the subroutine cut2fmt.
@@ -30,9 +33,10 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 # General Public License for more details.
 
-# You should have received a copy of the GNU General Public License along
-# with this program; if not, write to the Free Software Foundation, Inc.,
-# 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+# 02110-1301, USA
 
 # In addition, as a special exception, Tom Christiansen, Nathan
 # Torkington and O'Reilly & Associates, Inc.  give permission to use
@@ -50,6 +54,19 @@
 # http://www.fsf.org/
 
 # Changes:
+
+# 2007-06-10: In addition to scanning /etc/fstab for LVM partitions
+# (logical volumes), we also check the device files in /dev. This is
+# because some logical volumes may be mounted by label, and scanning
+# fstab won't pick those up.
+
+# 2007-05-22: Changes for FHS compliance. Removed commented out
+# references to ZIP drives. N.B.: we now take the location of where to
+# put things as an environment variable, $zip.
+
+# 2006-04-15: Added support for partition type 0x12, "Compaq
+# diagnostic". This type is used for so-called "hidden diagnostics"
+# partitions, e.g. on Lenovo/IBM computers.
 
 # 2006-04-08: Primitive LVM support. It is kludgy in that it uses
 # first stage restoration distribution (finnix) specific code to turn
@@ -226,9 +243,10 @@ sub gpl {
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 # General Public License for more details.
 
-# You should have received a copy of the GNU General Public License along
-# with this program; if not, write to the Free Software Foundation, Inc.,
-# 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+# 02110-1301, USA
 
 # You can also contact the Free Software Foundation at http://www.fsf.org/
 
@@ -256,7 +274,7 @@ sub getBootSector {
 sub getswaplabel {
     my $dev = $_[0];
 
-    $fstabpid = open (FSTAB, "< /etc/fstab")
+    open (FSTAB, "< /etc/fstab")
         or die "Couldn't fork: $!\n";
     while (defined (my $line = <FSTAB>)) {
         chop ($line);
@@ -290,11 +308,11 @@ sub getswaplabel {
 # dolvm is a subroutine to handle LVM partitions. This is
 # experimental....
 
-$lvms = 0;			# true if we've been here before
+$lvms = 0;          # true if we've been here before
 
 sub dolvm {
 
-    print ("In dolvm ()...\n");
+#     print ("In dolvm ()...\n");
 
     if ($lvms == 0) {
         $lvms = 1;
@@ -302,7 +320,7 @@ sub dolvm {
         # Scan /etc/fstab for the logical volumes and write a script to
         # make file systems on them and another to mount 'em later on.
 
-        $mklvs = open (MKLVS, "> make.lvs")
+        $mklvs = open (MKLVS, "> ${outputfilepath}bin/make.lvs")
             or die "Couldn't fork: $!\n";
 
         print MKLVS <<FINIS;
@@ -326,11 +344,9 @@ then
     exit 1;
 fi
 
-export LVM_SYSTEM_DIR=\$(pwd)/lvm
-
 FINIS
 
-        $mtlvs = open (MTLVS, "> mount.lvs")
+        $mtlvs = open (MTLVS, "> ${outputfilepath}bin/mount.lvs")
             or die "Couldn't fork: $!\n";
 
         print MTLVS <<FINIS;
@@ -340,7 +356,7 @@ FINIS
 # metal backup time by the Perl script make.fdisk.
 FINIS
 
-        &gpl (*MTLVS, "2006");
+        &gpl (*MTLVS, "2007");
 
 
         # Now cycle through all the known logical volumes & set them
@@ -351,28 +367,35 @@ FINIS
             or die ("Can't open LVM display.\n");
         while (defined (my $pv = <PVDISP>)) {
             chop ($pv);
-            print ("$pv\n");
+#             print ("$pv\n");
             @pv = split (":", $pv);
             $uid = @pv[11];
             $pvname = @pv[1];
             $phv = @pv[0];
-            print ("pv $pvname has uid $uid.\n");
+#             print ("pv $pvname has uid $uid.\n");
 
             # back up the LVM's lvm details. Get the config files.
-            system ("vgcfgbackup -f LVM.backs.$pvname $pvname");
+            system ("vgcfgbackup -f ${outputfilepath}metadata/LVM.backs.$pvname $pvname");
 
             print (MKLVS "echo \"y\\n\" | pvcreate -ff --uuid \"$uid\"\\\n");
-            print (MKLVS "    --restorefile lvm/archive/${pvname}_*.vg $phv\n");
-            print (MKLVS "vgcfgrestore --file LVM.backs.$pvname $pvname\n\n");
+            print (MKLVS "    --restorefile ../metadata/lvm/backup/${pvname} $phv\n");
+            print (MKLVS "vgcfgrestore --file ../metadata/LVM.backs.$pvname $pvname\n\n");
         }
 
-        print (MKLVS "# Hideously disty dependent!\nif [ -e /etc/init.d/lvm ] ; then\n");
+        print (MKLVS "# Hideously disty dependent! turn on LVM.\n");
+        print (MKLVS "if [ -e /etc/init.d/lvm ] ; then\n");
         print (MKLVS "    /etc/init.d/lvm start\nfi\n\n");
 
-        $fstabpid = open (FSTAB, "< /etc/fstab")
+        # Now walk fstab in search of logical volumes. This is
+        # necessary to pick up swap partitions, and it may pick up
+        # others. We need fstab below to match the partitions up with
+        # their mount points, so we keep the array around.
+
+        %volsfound = ();
+        open (FSTAB, "< /etc/fstab")
             or die "Couldn't fork: $!\n";
-        while (defined (my $line = <FSTAB>)) {
-            chop ($line);
+        @fstab = <FSTAB>;
+        foreach $line (@fstab) {
             @fstabs = split (" ", $line);
             if (@fstabs[0] =~ /VolGroup/ ) {
                 #           print ("$line\n");
@@ -381,39 +404,138 @@ FINIS
                     print (MKLVS "mkswap \$blockcheck @fstabs[0]\n\n");
                 } elsif (@fstabs[2] == "ext3") {
                     print (MKLVS "echo\necho making LV @fstabs[0], @fstabs[1],");
-					print (MKLVS " an ext3 partition.\n");
+                    print (MKLVS " an ext3 partition.\n");
                     print (MKLVS "mke2fs -j \$blockcheck @fstabs[0]\n\n");
 
                     print (MTLVS "mkdir -p /target$fstabs[1]\n");
                     print (MTLVS "mount @fstabs[0] /target$fstabs[1]\n\n");
+                    $volsfound{@fstabs[0]} = 3;
                 } elsif (@fstabs[2] == "ext2") {
                     print (MKLVS "echo\necho making LV @fstabs[0], @fstabs[1],");
-					print (MKLVS " an ext2 partition.\n");
+                    print (MKLVS " an ext2 partition.\n");
                     print (MKLVS "mke2fs \$blockcheck @fstabs[0]\n\n");
 
                     print (MTLVS "mkdir -p /target$fstabs[1]\n");
                     print (MTLVS "mount @fstabs[0] /target$fstabs[1]\n\n");
+                    $volsfound{@fstabs[0]} = 2;
                 } else {
                     print ("Opps, unknown type of logical volume, @fstabs[0]\n");
                 }
             }
         }
+
+#         print ("Volumes already found are: ");
+#         while ( ($k, $v) = each %volsfound ) {
+#             print ("$k ==> $v ");
+#         }
+#         print ("\n");
+
+        # Now walk the logical volume devices and pick up any
+        # partitions formated ext3/ext2. This may result in duplicates
+        # if the partitions have labels but are mounted by device name
+        # rather than by label.
+
+        opendir (DEVHANDLE, "/dev") or die ("Can't open /dev!!\n");
+        while ( defined ($fname = readdir (DEVHANDLE))) {
+            @fnames = (@fnames, $fname);
+        }
+        @sorted = sort (@fnames);
+        foreach $fname (@sorted) {
+            if ($fname =~ /^VolGroup/ && -d "/dev/$fname") {
+#                 print ("Inside /dev is $fname.\n");
+                opendir (VOLHANDLE, "/dev/$fname")
+                    or die ("Can't open /dev/$fname!!\n");
+                while ( defined ($vname = readdir (VOLHANDLE))) {
+                    @vnames = (@vnames, $vname);
+                }
+                @vsorted = sort (@vnames);
+                foreach $vname (@vsorted) {
+#                     print "/dev/$fname/$vname: " . $volsfound{"/dev/$fname/$vname"} . "\n";
+                    if($vname ne "." && $vname ne ".."
+                       && $volsfound{"/dev/$fname/$vname"} < 1) {
+#                         print ("Inside /dev/$fname is $vname.\n");
+                        my $journal = 0;
+
+                        # FIX ME: add tests to be sure it's a symlink
+                        # to a block device.
+
+                        # Is it extX?
+                        open (DUMP, "dumpe2fs /dev/$fname/$vname 2> /dev/null|");
+
+                        @lines = <DUMP>;
+
+                        if (scalar (@lines) > 1) {
+
+                            # If we've gotten here we have a valid
+                            # ext[2|3] file system. Now prepare to
+                            # spit out the commands to recreate
+                            # it. Get the label, if any, and whether
+                            # there is a journal or not.
+
+                            foreach $_ (@lines) {
+                                if (/Filesystem volume name:/) {
+                                    $label = substr ($_, 26);
+                                    chop ($label);
+#                                     print ("\$label is \"$label\".\n");
+                                }
+                                if (/has_journal/) {
+                                    $journal = 1;
+                                }
+
+                            }
+
+                            # get the mount point from fstab so we can mount it.
+                            foreach $fstab (@fstab) {
+                                @fstabs = split (" ", $line);
+                                if (@fstabs[0] eq "LABEL=$label" ) {
+                                    $mountpoint = @fstabs[1];
+#                                     print ("mount point is \"$mountpoint\".\n");
+                                    last;
+                                }
+                            }
+                            if (length ($label) ) {
+                                $label = "-L \"" . $label . "\"";
+                            }
+
+                            if ($journal > 0) {
+                                print (MKLVS "echo\necho making LV /dev/$fname/$vname");
+                                print (MKLVS " an ext3 partition.\n");
+                                print (MKLVS "mke2fs -j $label \$blockcheck /dev/$fname/$vname\n\n");
+
+                                print (MTLVS "mkdir -p /target$mountpoint\n");
+                                print (MTLVS "mount /dev/$fname/$vname /target$mountpoint\n\n");
+                            } else {
+                                print (MKLVS "echo\necho making LV /dev/$fname/$vname");
+                                print (MKLVS " an ext2 partition.\n");
+                                print (MKLVS "mke2fs $label \$blockcheck /dev/$fname/$vname\n\n");
+
+                                print (MTLVS "mkdir -p /target$mountpoint\n");
+                                print (MTLVS "mount /dev/$fname/$vname /target$mountpoint\n\n");
+                            }
+                        }
+                    }
+
+                }
+                closedir (VOLHANDLE);
+            }
+        }
         print (MTLVS "mount | grep -i \"/target\"\n");
+
+        closedir (DEVHANDLE);
 
         close (FSTAB);
         close (MKLVS);
         close (MTLVS);
 
-        chmod 0700, "${outputfilepath}make.lvs";
-        chmod 0700, "${outputfilepath}mount.lvs";
+        chmod 0700, "${outputfilepath}bin/make.lvs";
+        chmod 0700, "${outputfilepath}bin/mount.lvs";
 
         # Copy the LVM configuration to where we can get at it...
-
-        system ("cp -rp /etc/lvm .");
+        system ("cp -rp /etc/lvm ${outputfilepath}metadata/");
 
     }
 
-    print ("Leaving dolvm ()...\n");
+#     print ("Leaving dolvm ()...\n");
 
     return ($ret);
 }
@@ -484,8 +606,9 @@ $outputfilename = $device;
 $outputfilename =~ s/\//./g;
 $outputfilename = substr ($outputfilename, 1, 100);
 
-$outputfilepath = "/root/bin/";
-
+# $outputfilepath = "/root/bin/";
+$outputfilepath = $ENV{"zip"} . "/";
+# print "\$outputfilepath is ${outputfilepath}\n";
 
 # Make a hash of the labels.
 $mpid = open (MOUNT, "mount -l |") or die "Couldn't fork: $!\n";
@@ -534,15 +657,15 @@ close (MOUNT);
 # Get sfdisk output. If we have sfdisk at restore time (e.g. Knoppix),
 # we'll use it.
 
-system "sfdisk -d $device > $outputfilepath${outputfilename}.sfd";
+system "sfdisk -d $device > ${outputfilepath}metadata/${outputfilename}.sfd";
 
 # Otherwise we'll use the output from fdisk, which may or may not be
 # any more accurate.
 
 $fpid = open (FDISK, "fdisk -l $device |") or die "Couldn't fork: $!\n";
 
-open (OUTPUT, "> $outputfilepath${outputfilename}")
-    or die "Couldn't open output file $outputfilepath${outputfilename}.\n";
+open (OUTPUT, "> ${outputfilepath}metadata/${outputfilename}")
+    or die "Couldn't open output file ${outputfilepath}metadata/${outputfilename}.\n";
 
 while (<FDISK>) {
     if ($_ =~ /^$device/i) {    # is this a line with a partition in it?
@@ -640,10 +763,10 @@ while (<FDISK>) {
 
             } elsif ( @_[$parttype] == 1 || @_[$parttype] == 4 || @_[$parttype] == 6
                       || @_[$parttype] eq "b" || @_[$parttype] eq "c"
-                      || @_[$parttype] eq "e" ) {
+                      || @_[$parttype] eq "e" || @_[$parttype] eq "12" ) {
                 # print ("Making DOS primary partition.\n");
 
-                getBootSector (@_[$dev], "$outputfilepath$outputfilename$partnumber");
+                getBootSector (@_[$dev], "${outputfilepath}metadata/$outputfilename$partnumber");
 
                 print OUTPUT "p\n$partnumber\n@_[$firstcyl]\n";
                 # in case it's all on one cylinder
@@ -654,7 +777,8 @@ while (<FDISK>) {
                 $typechanges .= "t\n$partnumber\n@_[$parttype]\n";
                 $format .= "echo\necho formatting $checking@_[$dev]\n";
                 $format .= "mkdosfs \$blockcheck";
-                if ( @_[$parttype] == b || @_[$parttype] == c) {
+                if ( @_[$parttype] == b || @_[$parttype] == c
+                     || @_[$parttype] eq "12" ) {
                     # We have a W9x FAT32 partition. Add a command line switch.
                     $format .= " -F 32";
                 }
@@ -731,10 +855,10 @@ while (<FDISK>) {
 
             } elsif ( @_[$parttype] == 1 || @_[$parttype] == 4 || @_[$parttype] == 6
                       || @_[$parttype] eq "b" || @_[$parttype] eq "c"
-                      || @_[$parttype] eq "e" ) {
+                      || @_[$parttype] eq "e" || @_[$parttype] eq "12" ) {
 #               print ("Making DOS logical partition.\n");
 
-                getBootSector (@_[$dev], "$outputfilepath$outputfilename$partnumber");
+                getBootSector (@_[$dev], "${outputfilepath}metadata/$outputfilename$partnumber");
 
                 print OUTPUT "l\n$partnumber\n@_[$firstcyl]\n";
                 # in case it's all on one cylinder
@@ -744,7 +868,8 @@ while (<FDISK>) {
                 $typechanges .= "t\n$partnumber\n@_[$parttype]\n";
                 $format .= "echo\necho formatting $checking@_[$dev]\n";
                 $format .= "mkdosfs \$blockcheck";
-                if ( @_[$parttype] == b || @_[$parttype] == c) {
+                if ( @_[$parttype] == b || @_[$parttype] == c
+                     || @_[$parttype] eq "12" ) {
                     # We have a W9x FAT32 partition. Add a command line switch.
                     $format .= " -F 32";
                 }
@@ -795,8 +920,8 @@ close (OUTPUT);
 close (FDISK);
 
 
-open (OUTPUT, "> ${outputfilepath}make.$outputfilename")
-    or die "Couldn't open output file ${outputfilepath}make.$outputfilename.\n";
+open (OUTPUT, "> ${outputfilepath}bin/make.$outputfilename")
+    or die "Couldn't open output file ${outputfilepath}bin/make.$outputfilename.\n";
 
 print OUTPUT <<FINIS;
 #! /bin/sh
@@ -811,7 +936,7 @@ FINIS
 print OUTPUT <<FINIS;
 
 swapoff -a
-# Hideously disty dependent!
+# Hideously disty dependent! Turn off LVM.
 if [ -e /etc/init.d/lvm ] ; then
     /etc/init.d/lvm stop
 fi
@@ -830,7 +955,8 @@ FINIS
 # Clean the old partition table out. Turn off swap in case we're using
 # it.
 
-print OUTPUT "dd if=/dev/zero of=$device bs=512 count=2\n\nsync\n\n";
+# print OUTPUT "dd if=/dev/zero of=$device bs=512 count=2\n\nsync\n\n";
+print OUTPUT "dd if=/dev/zero of=$device bs=1024 count=2000\n\nsync\n\n";
 
 
 # command for fdisk
@@ -838,10 +964,10 @@ print OUTPUT "dd if=/dev/zero of=$device bs=512 count=2\n\nsync\n\n";
 $fdiskcmd .= "# see if we have sfdisk & if so use it.\n";
 $fdiskcmd .= "if which sfdisk ; then\n";
 $fdiskcmd .= "  echo \"Using sfdisk.\"\n";
-$fdiskcmd .= "  sfdisk --force $geometry $device < ${outputfilename}.sfd\n";
+$fdiskcmd .= "  sfdisk $geometry $device < ../metadata/${outputfilename}.sfd\n";
 $fdiskcmd .= "else\n";
 $fdiskcmd .= "  echo \"using fdisk.\"\n";
-$fdiskcmd .= "  fdisk $geometry $device \< $outputfilename\n";
+$fdiskcmd .= "  fdisk $geometry $device \< ../metadata/$outputfilename\n";
 $fdiskcmd .= "fi\n\nsync\n\n";
 
 
@@ -855,8 +981,8 @@ close (OUTPUT);
 # Now build the script that will build the mount points on the root
 # and other partitions.
 
-open (OUTPUT, "> ${outputfilepath}mount.$outputfilename")
-    or die "Couldn't open output file ${outputfilepath}make.$outputfilename.\n";
+open (OUTPUT, "> ${outputfilepath}bin/mount.$outputfilename")
+    or die "Couldn't open output file ${outputfilepath}bin/make.$outputfilename.\n";
 
 print OUTPUT <<FINIS;
 #! /bin/sh
@@ -903,6 +1029,6 @@ close (OUTPUT);
 
 # These scripts are dangerous & should only be visible to root.
 
-chmod 0700, "${outputfilepath}make.$outputfilename";
-chmod 0700, "${outputfilepath}mount.$outputfilename";
-chmod 0600, "${outputfilepath}${outputfilename}*";
+chmod 0700, "${outputfilepath}bin/make.$outputfilename";
+chmod 0700, "${outputfilepath}bin/mount.$outputfilename";
+chmod 0600, "${outputfilepath}metadata/${outputfilename}*";
