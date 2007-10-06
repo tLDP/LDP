@@ -97,6 +97,14 @@ done
 
 ## Functions
 validate_sgml() {
+	if [ "$doctype" = "SGML" ]; then
+		if [ ! -f "$file_input.recoded" -o "$file_input" -nt "$file_input.recoded" ]; then
+			echo "INF: Recode SGML from UTF-8 to ISO8859-1 '$file_input'"
+			recode UTF-8..ISO8859-1 "$file_input"
+			touch "$file_input.recoded"
+		fi
+	fi
+
 	echo "INF: Validate SGML/XML code '$file_input'"
 	if [ "$doctype" = "XML" ]; then
 		local options="$file_xmldcl"
