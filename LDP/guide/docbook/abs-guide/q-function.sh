@@ -42,7 +42,7 @@ Q[n]=`expr $T0 + $T1`      # Q[n - Q[n-1]] + Q[n - Q[n-2]]
 echo -n "${Q[n]} "
 
 if [ `expr $n % $LINEWIDTH` -eq 0 ]    # Format output.
-then   #      ^ Modula operator
+then   #      ^ Modulo operator
   echo # Break lines into neat chunks.
 fi
 

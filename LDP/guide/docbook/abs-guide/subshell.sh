@@ -43,8 +43,22 @@ echo "From main body of shell, \"inner_variable\" = $inner_variable"
 #  Is there a remedy for this?
 echo "global_variable = "$global_variable""  # Why doesn't this work?
 
-
 echo
+
+# =======================================================================
+
+# Additionally ...
+
+echo "-----------------"; echo
+
+var=41                                                 # Global variable.
+
+( let "var+=1"; echo "\$var INSIDE subshell = $var" )  # 42
+
+echo "\$var OUTSIDE subshell = $var"                   # 41
+#  Variable operations inside a subshell, even to a GLOBAL variable
+#+ do not affect the value of the variable outside the subshell!
+
 
 exit 0
 

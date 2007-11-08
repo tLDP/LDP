@@ -131,4 +131,4 @@ do
 done  
 echo ${Primes[*]}
 
-exit 0
+exit $?

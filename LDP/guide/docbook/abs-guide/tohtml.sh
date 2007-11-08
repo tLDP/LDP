@@ -7,11 +7,13 @@
 # Usage: sh tohtml.sh < textfile > htmlfile
 # Script can easily be modified to accept source and target filenames.
 
-#     Assumptions:
+#    Assumptions:
 # 1) Paragraphs in (target) text file are separated by a blank line.
 # 2) Jpeg images (*.jpg) are located in "images" subdirectory.
+#    In the target file, the image names are enclosed in square brackets,
+#    for example, [image01.jpg].
 # 3) Emphasized (italic) phrases begin with a space+underscore
-#+   or are the first character on the line,
+#+   or the first character on the line is an underscore,
 #+   and end with an underscore+space or underscore+end-of-line.
 
 
@@ -114,10 +116,10 @@ process_text ()
   }   # End process_text ()
 
 
-write_footers ()  # Proper termination tags.
+write_footers ()  # Termination tags.
   {
-echo "$FTR10"
-echo "$FTR11"
+  echo "$FTR10"
+  echo "$FTR11"
   }
 
 
@@ -130,3 +132,9 @@ write_footers
 #         }
 
 exit $?
+
+#  Exercises:
+#  ---------
+#  1) Fixup: Check for closing underscore before a comma or period.
+#  2) Add a test for the presence of a closing underscore
+#+    in phrases to be italicized.

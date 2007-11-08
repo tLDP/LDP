@@ -28,7 +28,7 @@ echo
 echo 
 
 Pi12=$(printf "%1.12f" $PI)
-echo "Pi to 12 decimal places = $Pi12"
+echo "Pi to 12 decimal places = $Pi12"      # Roundoff error!
 
 Msg=`printf "%s %s \n" $Message1 $Message2`
 echo $Msg; echo $Msg
