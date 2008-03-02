@@ -75,7 +75,7 @@ Operations described here correspond to most cases where a read-only compressed 
 system can be used, whether you want it to be on a block device or in a file. This 
 could be anything from large FTP/HTTP-served archives that don't change often, to 
 having a squashed <filename>/usr</filename> partition and anything alike
-with these.
+with these. 
 </para>
 
 <sect3 id="squashing-ex1">
@@ -285,7 +285,8 @@ transfer the <filename>usr</filename> file system:
 
 <para>
 With SquashFS, you can compress large file systems that
-will be used in live CDs (just as an example).
+will be used in live CDs (just as an example). For this purpose SquashFS is also used with UnionFS.
+
 </para>
 
 <orderedlist>
@@ -318,7 +319,113 @@ for these exclusions).
 </para>
 
 </sect3>
+<sect2 id="sqwrite">
+<title>Making it writeble</title>
+<para>
+As mentioned, another interesting use for <command>SquashFS</command> is with <command>Unionfs</command> filesystem, which 
+provides <emphasis>copy-on-write</emphasis> semantics for the read-only file systems, enahancing the possibilities. (For unionfs you can 
+look at <ulink url="http://www.filesystems.org/project-unionfs.html">http://www.filesystems.org/project-unionfs.html</ulink> the Project site)
+</para>
 
+<para>
+Just to make an example, you may want to make your /home/user squashed, to compress and backup your files without losing the possibility to apply changes or writing new files.
+</para>
+
+<para>
+Create the <filename>ro.fs</filename> squashed file system and the <filename>rw.fs</filename> dir.
+</para>
+
+<programlisting>
+bash# mksquashfs /home/user1 ro.fs
+bash# mkdir /home/rw.fs
+</programlisting>
+
+<para>
+Mount the squashed ro.fs file system using the loopback device 
+</para>
+
+<programlisting>
+bash# mount -t squashfs ro.fs /mnt -o loop
+</programlisting>
+
+<para>
+mount the unionfs file system, that makes <filename>/mnt</filename> and <filename>/home/rw.fs</filename> apparently merged under <filename>/home/user1</filename> location.
+</para>
+
+<programlisting>
+bash# cd /home
+bash# mount -t unionfs -o dirs=rw.fs=rw:/mnt=ro unionfs user1
+</programlisting>
+
+<para>
+As you can see now you can apparently create new files in /home/user1.
+</para>
+
+<programlisting>
+bash# cd /home/user1
+bash# touch file1
+bash# ls
+</programlisting>
+
+<para>
+umount the unionfs and the squashfs file systems and list the content of /home/user1 and /home/rw.fs dir
+</para>
+
+<programlisting>
+bash# cd ..
+bash# umount /home/user1
+bash# umount /mnt
+
+bash# ls /home/user1
+bash# ls /home/rw.fs 
+
+</programlisting>
+
+<para>
+You can see that the new <filename>file1</filename> was created in <filename>/home/rw.fs</filename> that's the phisical location of the real writeble <filename>branch</filename> of the "merged" file system.
+</para>
+
+<para>
+When you want to add the new created files to the <emphasis>stable</emphasis> and <emphasis>compressed</emphasis> squashed file system, you have to add them to the exsisting one. 
+</para>
+
+<programlisting>
+bash# mksquashfs /home/rw.fs /home/ro.fs
+</programlisting>
+
+<para>
+Now, to mount your squashed user home directory at system startup, you
+can do as follow:
+</para> 
+
+<para>
+Make squashfs and unionfs modules loaded at boot time.
+</para>
+
+<programlisting>
+bash# echo squashfs >> /etc/modules
+bash# echo unionfs >> /etc/modules
+</programlisting>
+
+<para>
+Change the owner of the writeble branch to match user1.
+</para>
+
+<programlisting>
+chown user1 /home/rw.fs
+</programlisting>
+
+<para>
+Add these lines to /etc/fstab file to mount squashfs and unionfs 
+at boot time.
+</para>
+
+<programlisting>...
+/home/ro.fs  /mnt squashfs loop 0 0
+unionfs /home/user1 unionfs dirs=/home/rw.fs=rw:/mnt=ro 0 0
+</programlisting>
+
+</sect2>
 </sect2>
 
 </sect1>
