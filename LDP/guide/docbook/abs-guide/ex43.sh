@@ -1,4 +1,5 @@
 #!/bin/bash
+# Exercising "eval" ...
 
 y=`eval ls -l`  #  Similar to y=`ls -l`
 echo $y         #+ but linefeeds removed because "echoed" variable is unquoted.
@@ -17,29 +18,14 @@ echo
 echo "==========================================================="
 echo
 
-# Now, showing how to "expand" a variable using "eval" . . .
 
-for i in 1 2 3 4 5; do
-  eval value=$i
-  #  value=$i has same effect. The "eval" is not necessary here.
-  #  A variable lacking a meta-meaning evaluates to itself --
-  #+ it can't expand to anything other than its literal self.
-  echo $value
-done
+# Now, showing how to do something useful with "eval" . . .
+# (Thank you, E. Choroba!)
 
-echo
-echo "---"
-echo
-
-for i in ls df; do
-  value=eval $i
-  #  value=$i has an entirely different effect here.
-  #  The "eval" evaluates the commands "ls" and "df" . . .
-  #  The terms "ls" and "df" have a meta-meaning,
-  #+ since they are interpreted as commands,
-  #+ rather than just character strings.
-  echo $value
-done
-
-
-exit 0
+version=3.4     #  Can we split the version into major and minor
+                #+ part in one command?
+echo "version = $version"
+eval major=${version/./;minor=}     #  Replaces '.' in version by ';minor='
+                                    #  The substitution yields '3; minor=4'
+                                    #+ so eval does minor=4, major=3
+echo Major: $major, minor: $minor   #  Major: 3, minor: 4

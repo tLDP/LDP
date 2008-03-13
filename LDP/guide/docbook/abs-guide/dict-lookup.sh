@@ -77,7 +77,7 @@ exit 0
 #   + to an acceptable format for processing.
 #
 # 2)  Convert the script to a GUI application,
-#   + using something like "gdialog" . . .
+#   + using something like 'gdialog' or 'zenity' . . .
 #     The script will then no longer take its argument(s)
 #   + from the command line.
 #

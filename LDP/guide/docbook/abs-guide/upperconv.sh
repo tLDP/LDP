@@ -33,6 +33,7 @@ exec > $2            # Will write to output file.
 #   ^^^^^                # Reads from stdin.
 #           ^^^^^^^^^^   # Writes to stdout.
 # However, both stdin and stdout were redirected.
+# Note that the 'cat' can be omitted.
 # -----------------------------------------------
 
 exec 1>&7 7>&-       # Restore stout.

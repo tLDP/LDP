@@ -3,11 +3,11 @@
 # Script contributed by Stephane Chazelas.
 
 #  This does *not* use the classic "Sieve of Eratosthenes" algorithm,
-#+ but instead uses the more intuitive method of testing each candidate number
+#+ but instead the more intuitive method of testing each candidate number
 #+ for factors (divisors), using the "%" modulo operator.
 
 
-LIMIT=1000                    # Primes 2 - 1000
+LIMIT=1000                    # Primes, 2 ... 1000.
 
 Primes()
 {
@@ -20,7 +20,7 @@ Primes()
  return
  fi
 
- for i; do                    # "i" gets set to "@", previous values of $n.
+ for i; do                    # "i" set to "@", previous values of $n.
 #   echo "-n=$n i=$i-"
    (( i * i > n )) && break   # Optimization.
    (( n % i )) && continue    # Sift out non-primes using modulo operator.
@@ -35,11 +35,12 @@ Primes()
 
 Primes 1
 
-exit 0
+exit $?  # Pipe output of the script to 'fmt' for prettier printing.
 
 #  Uncomment lines 16 and 24 to help figure out what is going on.
 
 #  Compare the speed of this algorithm for generating primes
 #+ with the Sieve of Eratosthenes (ex68.sh).
+
 
 #  Exercise: Rewrite this script without recursion, for faster execution.

@@ -27,7 +27,7 @@ fi
 
 exit 0        #  Script exits here.
               #  Therefore, it's o.k. to put
-              #+ un-hashmarked comments and data after this point.
+              #+ non-hashmarked comments and data after this point.
 
 # ------------------------------------------------------------------------
 Sample "phonebook" datafile:

@@ -80,5 +80,5 @@ exit $?
 
 
 $ mailbox_grep.sh scam_mail
---> MESSAGE of Thu, 5 Jan 2006 08:00:56 -0500 (EST) 
---> IP address of sender: 196.3.62.4
+  MESSAGE of Thu, 5 Jan 2006 08:00:56 -0500 (EST) 
+  IP address of sender: 196.3.62.4

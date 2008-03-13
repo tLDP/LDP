@@ -1,6 +1,8 @@
 #!/bin/bash
 # dialog.sh: Using 'gdialog' widgets.
+
 # Must have 'gdialog' installed on your system to run this script.
+# Or, you can replace all instance of 'gdialog' below with 'kdialog' ...
 # Version 1.1 (corrected 04/05/05)
 
 # This script was inspired by the following article.
@@ -51,3 +53,5 @@ rm $OUTFILE  # Clean up by removing the temp file.
              # Some applications may need to retain this file.
 
 exit $?
+
+# Exercise: Rewrite this script using the 'zenity' widget set.
