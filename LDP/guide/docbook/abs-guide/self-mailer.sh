@@ -26,3 +26,6 @@ adr=${1:-`whoami`}     # Default to current user, if not specified.
 echo "At `date`, script \"`basename $0`\" mailed to "$adr"."
 
 exit 0
+
+#  Note that the "mailx" command (in "send" mode) may be substituted
+#+ for "mail" ... but with somewhat different options.

@@ -23,19 +23,21 @@
 #+ disregards such parameters as
 #+ board tilt-angle, rolling friction of the marbles,
 #+ angles of impact, and elasticity of the pegs.
-#  How does this affect the accuracy of the simulation?
+#  To what extent does this affect the accuracy of the simulation?
 #  ----------------------------------------------------------------
 
-PASSES=500            # Number of particle interactions / marbles.
-ROWS=10               # Number of "collisions" (or horiz. peg rows).
-RANGE=3               # 0 - 2 output range from $RANDOM.
-POS=0                 # Left/right position.
+PASSES=500            #  Number of particle interactions / marbles.
+ROWS=10               #  Number of "collisions" (or horiz. peg rows).
+RANGE=3               #  0 - 2 output range from $RANDOM.
+POS=0                 #  Left/right position.
+RANDOM=$$             #  Seeds the random number generator from PID
+                      #+ of script.
 
 declare -a Slots      # Array holding cumulative results of passes.
 NUMSLOTS=21           # Number of slots at bottom of board.
 
 
-Initialize_Slots () { # Zero out all elements of array.
+Initialize_Slots () { # Zero out all elements of the array.
 for i in $( seq $NUMSLOTS )
 do
   Slots[$i]=0
@@ -49,7 +51,7 @@ Show_Slots () {
 echo -n " "
 for i in $( seq $NUMSLOTS )   # Pretty-print array elements.
 do
-  printf "%3d" ${Slots[$i]}   # Three spaces per result.
+  printf "%3d" ${Slots[$i]}   # Allot three spaces per result.
 done
 
 echo # Row of slots:

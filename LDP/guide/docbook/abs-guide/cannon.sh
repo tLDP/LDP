@@ -32,7 +32,7 @@
 #  Theoretically, the more shots taken, the better the fit.
 #  However, a shell script, as opposed to a compiled language
 #+ with floating-point math built in, requires a few compromises.
-#  This tends to lower the accuracy of the simulation, of course.
+#  This tends to lower the accuracy of the simulation.
 
 
 DIMENSION=10000  # Length of each side of the plot.
@@ -41,6 +41,8 @@ DIMENSION=10000  # Length of each side of the plot.
 MAXSHOTS=1000    # Fire this many shots.
                  # 10000 or more would be better, but would take too long.
 PMULTIPLIER=4.0  # Scaling factor to approximate PI.
+
+M_PI=3.141592654 # Actual value of PI, for comparison purposes.
 
 get_random ()
 {
@@ -61,7 +63,7 @@ EOF
 )
 #  Setting "scale" to zero rounds down result to integer value,
 #+ a necessary compromise in this script.
-#  This diminshes the accuracy of the simulation, unfortunately.
+#  This diminshes the accuracy of the simulation.
 }
 
 
@@ -72,6 +74,7 @@ shots=0
 splashes=0
 thuds=0
 Pi=0
+error=0
 
 while [ "$shots" -lt  "$MAXSHOTS" ]           # Main loop.
 do
@@ -107,9 +110,11 @@ do
 done
 
 echo
-echo "After $shots shots, PI looks like approximately $Pi."
+echo "After $shots shots, PI looks like approximately $Pi"
 # Tends to run a bit high . . . 
 # Probably due to round-off error and imperfect randomness of $RANDOM.
+error=$(echo "scale=9; $Pi - $M_PI" | bc)
+echo "Deviation from mathematical value of PI =      $error"
 echo
 
 # }

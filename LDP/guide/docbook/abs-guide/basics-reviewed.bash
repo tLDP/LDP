@@ -9,15 +9,16 @@
 #
 #              Edited for layout by M.C.
 #   (author of the "Advanced Bash Scripting Guide")
+#   Fixes and updates (04/08) by Cliff Bamford.
 
 
 #  This script tested under Bash versions 2.04, 2.05a and 2.05b.
 #  It may not work with earlier versions.
 #  This demonstration script generates one --intentional--
-#+ "command not found" error message. See line 394.
+#+ "command not found" error message. See line 436.
 
 #  The current Bash maintainer, Chet Ramey, has fixed the items noted
-#+ for an upcoming version of Bash.
+#+ for later versions of Bash.
 
 
 
@@ -51,7 +52,7 @@ unset VarNull
 # A variable name may be defined but empty (null contents).
 VarEmpty=''                         # Two, adjacent, single quotes.
 
-# A variable name my be defined and non-empty
+# A variable name may be defined and non-empty.
 VarSomething='Literal'
 
 # A variable may contain:
@@ -174,7 +175,7 @@ echo ${@}                       # Same as above
 #   Elements of a Bash-Array need not all be of the same type.
 ###
 #   Elements of a Bash-Array may be undefined (null reference).
-#       That is, a Bash-Array my be "subscript sparse."
+#       That is, a Bash-Array may be "subscript sparse."
 ###
 #   Elements of a Bash-Array may be defined and empty (null contents).
 ###
@@ -196,102 +197,143 @@ echo ${@}                       # Same as above
 #     -- msz
 
 
+echo "========================================================="
+
+#  Lines 202 - 334 supplied by Cliff Bamford. (Thanks!)
+#  Demo --- Interaction with Arrays, quoting, IFS, echo, * and @   ---  
+#+ all affect how things work
+
+ArrayVar[0]='zero'                    # 0 normal
+ArrayVar[1]=one                       # 1 unquoted literal
+ArrayVar[2]='two'                     # 2 normal
+ArrayVar[3]='three'                   # 3 normal
+ArrayVar[4]='I am four'               # 4 normal with spaces
+ArrayVar[5]='five'                    # 5 normal
+unset ArrayVar[6]                     # 6 undefined
+ArrayValue[7]='seven'                 # 7 normal
+ArrayValue[8]=''                      # 8 defined but empty
+ArrayValue[9]='nine'                  # 9 normal
 
 
-#  Demo time -- initialize the previously declared ArrayVar as a
-#+ sparse array.
-#  (The 'unset ... ' is just documentation here.)
-
-unset ArrayVar[0]                   # Just for the record
-ArrayVar[1]=one                     # Unquoted literal
-ArrayVar[2]=''                      # Defined, and empty
-unset ArrayVar[3]                   # Just for the record
-ArrayVar[4]='four'                  # Quoted literal
-
-
-
-# Translate the %q format as: Quoted-Respecting-IFS-Rules.
+echo '--- Here is the array we are using for this test'
 echo
-echo '- - Outside of double-quotes - -'
-###
-printf %q ${ArrayVar[*]}            # Glob-Pattern All-Elements-Of
+echo "ArrayVar[0]='zero'             # 0 normal"
+echo "ArrayVar[1]=one                # 1 unquoted literal"
+echo "ArrayVar[2]='two'              # 2 normal"
+echo "ArrayVar[3]='three'            # 3 normal"
+echo "ArrayVar[4]='I am four'        # 4 normal with spaces"
+echo "ArrayVar[5]='five'             # 5 normal"
+echo "unset ArrayVar[6]              # 6 undefined"
+echo "ArrayValue[7]='seven'          # 7 normal"
+echo "ArrayValue[8]=''               # 8 defined but empty"
+echo "ArrayValue[9]='nine'           # 9 normal"
 echo
-echo 'echo command:'${ArrayVar[*]}
-###
-printf %q ${ArrayVar[@]}            # All-Elements-Of
-echo
-echo 'echo command:'${ArrayVar[@]}
-
-# The use of double-quotes may be translated as: Enable-Substitution.
-
-# There are five cases recognized for the IFS setting.
-
-echo
-echo '- - Within double-quotes - Default IFS of space-tab-newline - -'
-IFS=$'\x20'$'\x09'$'\x0A'           #  These three bytes,
-                                    #+ in exactly this order.
-
-
-printf %q "${ArrayVar[*]}"          # Glob-Pattern All-Elements-Of
-echo
-echo 'echo command:'"${ArrayVar[*]}"
-###
-printf %q "${ArrayVar[@]}"          # All-Elements-Of
-echo
-echo 'echo command:'"${ArrayVar[@]}"
 
 
 echo
-echo '- - Within double-quotes - First character of IFS is ^ - -'
-# Any printing, non-whitespace character should do the same.
-IFS='^'$IFS                         # ^ + space tab newline
-###
-printf %q "${ArrayVar[*]}"          # Glob-Pattern All-Elements-Of
+echo '---Case0: No double-quotes, Default IFS of space,tab,newline ---'
+IFS=$'\x20'$'\x09'$'\x0A'            # In exactly this order.
+echo 'Here is: printf %q {${ArrayVar[*]}'
+printf %q ${ArrayVar[*]}
 echo
-echo 'echo command:'"${ArrayVar[*]}"
-###
-printf %q "${ArrayVar[@]}"          # All-Elements-Of
+echo 'Here is: printf %q {${ArrayVar[@]}'
+printf %q ${ArrayVar[@]}
 echo
-echo 'echo command:'"${ArrayVar[@]}"
-
-
-echo
-echo '- - Within double-quotes - Without whitespace in IFS - -'
-IFS='^:%!'
-###
-printf %q "${ArrayVar[*]}"          # Glob-Pattern All-Elements-Of
-echo
-echo 'echo command:'"${ArrayVar[*]}"
-###
-printf %q "${ArrayVar[@]}"          # All-Elements-Of
-echo
-echo 'echo command:'"${ArrayVar[@]}"
-
+echo 'Here is: echo ${ArrayVar[*]}'
+echo  ${ArrayVar[@]}
+echo 'Here is: echo {${ArrayVar[@]}'
+echo ${ArrayVar[@]}
 
 echo
-echo '- - Within double-quotes - IFS set and empty - -'
+echo '---Case1: Within double-quotes - Default IFS of space-tab- 
+newline ---'
+IFS=$'\x20'$'\x09'$'\x0A'	    #  These three bytes,
+echo 'Here is: printf %q "{${ArrayVar[*]}"'
+printf %q "${ArrayVar[*]}"
+echo
+echo 'Here is: printf %q "{${ArrayVar[@]}"'
+printf %q "${ArrayVar[@]}"
+echo
+echo 'Here is: echo "${ArrayVar[*]}"'
+echo  "${ArrayVar[@]}"
+echo 'Here is: echo "{${ArrayVar[@]}"'
+echo "${ArrayVar[@]}"
+
+echo
+echo '---Case2: Within double-quotes - IFS is q'
+IFS='q'
+echo 'Here is: printf %q "{${ArrayVar[*]}"'
+printf %q "${ArrayVar[*]}"
+echo
+echo 'Here is: printf %q "{${ArrayVar[@]}"'
+printf %q "${ArrayVar[@]}"
+echo
+echo 'Here is: echo "${ArrayVar[*]}"'
+echo  "${ArrayVar[@]}"
+echo 'Here is: echo "{${ArrayVar[@]}"'
+echo "${ArrayVar[@]}"
+
+echo
+echo '---Case3: Within double-quotes - IFS is ^'
+IFS='^'
+echo 'Here is: printf %q "{${ArrayVar[*]}"'
+printf %q "${ArrayVar[*]}"
+echo
+echo 'Here is: printf %q "{${ArrayVar[@]}"'
+printf %q "${ArrayVar[@]}"
+echo
+echo 'Here is: echo "${ArrayVar[*]}"'
+echo  "${ArrayVar[@]}"
+echo 'Here is: echo "{${ArrayVar[@]}"'
+echo "${ArrayVar[@]}"
+
+echo
+echo '---Case4: Within double-quotes - IFS is ^ followed by  
+space,tab,newline'
+IFS=$'^'$'\x20'$'\x09'$'\x0A'       # ^ + space tab newline
+echo 'Here is: printf %q "{${ArrayVar[*]}"'
+printf %q "${ArrayVar[*]}"
+echo
+echo 'Here is: printf %q "{${ArrayVar[@]}"'
+printf %q "${ArrayVar[@]}"
+echo
+echo 'Here is: echo "${ArrayVar[*]}"'
+echo  "${ArrayVar[@]}"
+echo 'Here is: echo "{${ArrayVar[@]}"'
+echo "${ArrayVar[@]}"
+
+echo
+echo '---Case6: Within double-quotes - IFS set and empty '
 IFS=''
-###
-printf %q "${ArrayVar[*]}"          # Glob-Pattern All-Elements-Of
+echo 'Here is: printf %q "{${ArrayVar[*]}"'
+printf %q "${ArrayVar[*]}"
 echo
-echo 'echo command:'"${ArrayVar[*]}"
-###
-printf %q "${ArrayVar[@]}"          # All-Elements-Of
+echo 'Here is: printf %q "{${ArrayVar[@]}"'
+printf %q "${ArrayVar[@]}"
 echo
-echo 'echo command:'"${ArrayVar[@]}"
+echo 'Here is: echo "${ArrayVar[*]}"'
+echo  "${ArrayVar[@]}"
+echo 'Here is: echo "{${ArrayVar[@]}"'
+echo "${ArrayVar[@]}"
 
-
 echo
-echo '- - Within double-quotes - IFS undefined - -'
+echo '---Case7: Within double-quotes - IFS is unset'
 unset IFS
-###
-printf %q "${ArrayVar[*]}"          # Glob-Pattern All-Elements-Of
+echo 'Here is: printf %q "{${ArrayVar[*]}"'
+printf %q "${ArrayVar[*]}"
 echo
-echo 'echo command:'"${ArrayVar[*]}"
-###
-printf %q "${ArrayVar[@]}"          # All-Elements-Of
+echo 'Here is: printf %q "{${ArrayVar[@]}"'
+printf %q "${ArrayVar[@]}"
 echo
-echo 'echo command:'"${ArrayVar[@]}"
+echo 'Here is: echo "${ArrayVar[*]}"'
+echo  "${ArrayVar[@]}"
+echo 'Here is: echo "{${ArrayVar[@]}"'
+echo "${ArrayVar[@]}"
+
+echo
+echo '---End of Cases---'
+echo "========================================================="; echo
+
 
 
 # Put IFS back to the default.
@@ -392,7 +434,7 @@ echo $_simple not defined           # No variable by that name.
 
 ###
 $(_simple)                          # Gives an error message:
-#                          line 394: SimpleFunc: command not found
+#                          line 436: SimpleFunc: command not found
 #                          ---------------------------------------
 
 echo
@@ -784,8 +826,7 @@ echo ${ArrayVar[@]:1:2}     #  four - The only element with content.
 #  In versions 2.04, 2.05a and 2.05b,
 #+ Bash does not handle sparse arrays as expected using this notation.
 #
-#  The current Bash maintainer, Chet Ramey, has corrected this
-#+ for an upcoming version of Bash.
+#  The current Bash maintainer, Chet Ramey, has corrected this.
 
 
 echo '- Non-sparse array -'
@@ -821,8 +862,8 @@ echo ${stringZ#123}                 # Unchanged (not a prefix).
 echo ${stringZ#$(_abc)}             # ABC123ABCabc
 echo ${arrayZ[@]#abc}               # Applied to each element.
 
-# Fixed by Chet Ramey for an upcoming version of Bash.
 # echo ${sparseZ[@]#abc}            # Version-2.05b core dumps.
+# Has since been fixed by Chet Ramey.
 
 # The -it would be nice- First-Subscript-Of
 # echo ${#sparseZ[@]#*}             # This is NOT valid Bash.
@@ -833,8 +874,8 @@ echo ${stringZ##1*3}                # Unchanged (not a prefix)
 echo ${stringZ##a*C}                # abc
 echo ${arrayZ[@]##a*c}              # ABCABC 123123 ABCABC
 
-# Fixed by Chet Ramey for an upcoming version of Bash
 # echo ${sparseZ[@]##a*c}           # Version-2.05b core dumps.
+# Has since been fixed by Chet Ramey.
 
 echo
 echo '- - Suffix sub-element removal - -'
@@ -846,8 +887,8 @@ echo ${stringZ%1*3}                 # Unchanged (not a suffix).
 echo ${stringZ%$(_abc)}             # abcABC123ABC
 echo ${arrayZ[@]%abc}               # Applied to each element.
 
-# Fixed by Chet Ramey for an upcoming version of Bash.
 # echo ${sparseZ[@]%abc}            # Version-2.05b core dumps.
+# Has since been fixed by Chet Ramey.
 
 # The -it would be nice- Last-Subscript-Of
 # echo ${#sparseZ[@]%*}             # This is NOT valid Bash.
@@ -858,8 +899,8 @@ echo ${stringZ%%1*3}                # Unchanged (not a suffix)
 echo ${stringZ%%b*c}                # a
 echo ${arrayZ[@]%%b*c}              # a ABCABC 123123 ABCABC a
 
-# Fixed by Chet Ramey for an upcoming version of Bash.
 # echo ${sparseZ[@]%%b*c}           # Version-2.05b core dumps.
+# Has since been fixed by Chet Ramey.
 
 echo
 echo '- - Sub-element replacement - -'

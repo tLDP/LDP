@@ -1,5 +1,8 @@
 #!/bin/bash
-# Creating a swapfile.
+# Creating a swap file.
+
+#  A swap file provides a temporary storage cache
+#+ which helps speed up certain filesystem operations.
 
 ROOT_UID=0         # Root has $UID 0.
 E_WRONG_USER=65    # Not root?

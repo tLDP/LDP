@@ -10,23 +10,24 @@
 # On a rectangular grid, let each "cell" be either "living" or "dead".  #
 # Designate a living cell with a dot, and a dead one with a blank space.#
 #  Begin with an arbitrarily drawn dot-and-blank grid,                  #
-#+ and let this be the starting generation, "generation 0".             #
+#+ and let this be the starting generation, "generation 0."             #
 # Determine each successive generation by the following rules:          #
 # 1) Each cell has 8 neighbors, the adjoining cells                     #
 #+   left, right, top, bottom, and the 4 diagonals.                     #
+#                                                                       #
 #                       123                                             #
-#                       4*5                                             #
+#                       4*5        The * is the cell in question.       #
 #                       678                                             #
 #                                                                       #
 # 2) A living cell with either 2 or 3 living neighbors remains alive.   #
-# 3) A dead cell with 3 living neighbors becomes alive (a "birth").     #
 SURVIVE=2                                                               #
+# 3) A dead cell with 3 living neighbors becomes alive (a "birth").     #
 BIRTH=3                                                                 #
 # 4) All other cases result in a dead cell for the next generation.     #
 # ##################################################################### #
 
 
-startfile=gen0   # Read the starting generation from the file "gen0".
+startfile=gen0   # Read the starting generation from the file "gen0" ...
                  # Default, if no other file specified when invoking script.
                  #
 if [ -n "$1" ]   # Specify another "generation 0" file.
@@ -36,7 +37,7 @@ fi
 
 ############################################
 #  Abort script if "startfile" not specified
-#+ AND
+#+ and
 #+ "gen0" not present.
 
 E_NOSTARTFILE=68
@@ -58,7 +59,7 @@ DEAD1=_
 #+ but a large grid will will cause very slow execution).
 ROWS=10
 COLS=10
-#  Change above two variables to match grid size, if necessary.
+#  Change above two variables to match grid size, as desired.
 #  ---------------------------------------------------------- #
 
 GENERATIONS=10          #  How many generations to cycle through.
@@ -81,7 +82,7 @@ generation=0            # Initialize generation count.
 let "cells = $ROWS * $COLS"
                         # How many cells.
 
-declare -a initial      # Arrays containing "cells".
+declare -a initial      # Arrays containing "cells."
 declare -a current
 
 display ()
@@ -229,8 +230,8 @@ GetCount ()             # Count live cells in passed cell's neighborhood.
     IsValid $t_top $row
     if [ $? -eq "$TRUE" ]
     then
-      if [ ${array[$t_top]} = "$ALIVE1" ] 
-      then
+      if [ ${array[$t_top]} = "$ALIVE1" ] # Redundancy here.
+      then                                # Can be optimized?
         let "count += 1"
       fi	
     fi  
@@ -274,7 +275,7 @@ do
     array[$i]=.                  #+ represent the cell as a period.
   else  
     array[$i]="_"                #  Otherwise underscore
-   fi                            #+ (which will later be converted to space).  
+   fi                            #+ (will later be converted to space).
   let "i += 1" 
 done   
 
@@ -368,3 +369,7 @@ exit 0   # END
 #+          for the script to run.
 #           This would make unnecessary any changes to variables
 #+          in the script for an altered grid size.
+#
+# Exercise: Optimize this script.
+#           It has some repetitive and redundant code,
+#+          for example, lines 335-336.
