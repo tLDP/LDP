@@ -57,4 +57,8 @@ let "bad_oct = 081"
 #  bad_oct = 081: value too great for base (error token is "081")
 #              Octal numbers use only digits in the range 0 - 7.
 
-exit 0       # Thanks, Rich Bartell and Stephane Chazelas, for clarification.
+exit $?      # Thanks, Rich Bartell and Stephane Chazelas, for clarification.
+
+$ sh numbers.sh
+$ echo $?
+$ 1

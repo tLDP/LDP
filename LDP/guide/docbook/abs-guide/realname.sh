@@ -16,12 +16,13 @@ then
   exit $E_WRONGARGS
 fi  
 
-file_excerpt ()  # Scan file for pattern, then print relevant portion of line.
-{
-while read line  # "while" does not necessarily need "[ condition ]"
-do
-  echo "$line" | grep $1 | awk -F":" '{ print $5 }'  # Have awk use ":" delimiter.
-done
+file_excerpt ()    #  Scan file for pattern,
+{                  #+ then print relevant portion of line.
+  while read line  # "while" does not necessarily need [ condition ]
+  do
+    echo "$line" | grep $1 | awk -F":" '{ print $5 }'
+    # Have awk use ":" delimiter.
+  done
 } &lt;$file  # Redirect into function's stdin.
 
 file_excerpt $pattern

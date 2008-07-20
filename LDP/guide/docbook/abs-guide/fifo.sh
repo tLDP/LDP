@@ -11,7 +11,7 @@
   
   # make sure /pipe really is a pipe and not a plain file
   rm -rf /pipe
-  mkfifo /pipe       # ==> Create a "named pipe", named "/pipe".
+  mkfifo /pipe       # ==> Create a "named pipe", named "/pipe" ...
   
   # ==> 'su xyz' runs commands as user "xyz".
   # ==> 'ssh' invokes secure shell (remote login client).

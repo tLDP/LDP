@@ -460,3 +460,6 @@ exit $?
 # 5) Implement "vulnerable" mode of play.
 # 6) Improve save-to-file capability (and maybe make it optional).
 # 7) Fix bugs!!!
+
+# Reference for more info:
+# http://personal.riverusers.com/~thegrendel/qky.README.html

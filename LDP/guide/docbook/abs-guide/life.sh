@@ -1,27 +1,27 @@
 #!/bin/bash
 # life.sh: "Life in the Slow Lane"
-# Version 2: Patched by Daniel Albers
-#+           to allow non-square grids as input.
+# Version 0.2: Patched by Daniel Albers
+#+             to allow non-square grids as input.
 
 # ##################################################################### #
 # This is the Bash script version of John Conway's "Game of Life".      #
 # "Life" is a simple implementation of cellular automata.               #
 # --------------------------------------------------------------------- #
-# On a rectangular grid, let each "cell" be either "living" or "dead".  #
+# On a rectangular grid, let each "cell" be either "living" or "dead."  #
 # Designate a living cell with a dot, and a dead one with a blank space.#
 #  Begin with an arbitrarily drawn dot-and-blank grid,                  #
 #+ and let this be the starting generation, "generation 0."             #
 # Determine each successive generation by the following rules:          #
-# 1) Each cell has 8 neighbors, the adjoining cells                     #
-#+   left, right, top, bottom, and the 4 diagonals.                     #
+#   1) Each cell has 8 neighbors, the adjoining cells                   #
+#+     left, right, top, bottom, and the 4 diagonals.                   #
 #                                                                       #
 #                       123                                             #
-#                       4*5        The * is the cell in question.       #
+#                       4*5     The * is the cell under consideration.  #
 #                       678                                             #
 #                                                                       #
 # 2) A living cell with either 2 or 3 living neighbors remains alive.   #
 SURVIVE=2                                                               #
-# 3) A dead cell with 3 living neighbors becomes alive (a "birth").     #
+# 3) A dead cell with 3 living neighbors comes alive (a "birth").       #
 BIRTH=3                                                                 #
 # 4) All other cases result in a dead cell for the next generation.     #
 # ##################################################################### #
@@ -38,7 +38,7 @@ fi
 ############################################
 #  Abort script if "startfile" not specified
 #+ and
-#+ "gen0" not present.
+#+ default file "gen0" not present.
 
 E_NOSTARTFILE=68
 
@@ -52,11 +52,11 @@ fi
 
 ALIVE1=.
 DEAD1=_
-                 # Represent living and "dead" cells in the start-up file.
+                 # Represent living and dead cells in the start-up file.
 
 #  ---------------------------------------------------------- #
 #  This script uses a 10 x 10 grid (may be increased,
-#+ but a large grid will will cause very slow execution).
+#+ but a large grid will slow execution).
 ROWS=10
 COLS=10
 #  Change above two variables to match grid size, as desired.
@@ -66,7 +66,7 @@ GENERATIONS=10          #  How many generations to cycle through.
                         #  Adjust this upwards,
                         #+ if you have time on your hands.
 
-NONE_ALIVE=80           #  Exit status on premature bailout,
+NONE_ALIVE=85           #  Exit status on premature bailout,
                         #+ if no cells left alive.
 TRUE=0
 FALSE=1
@@ -78,17 +78,16 @@ generation=0            # Initialize generation count.
 
 # =================================================================
 
+let "cells = $ROWS * $COLS"   # How many cells.
 
-let "cells = $ROWS * $COLS"
-                        # How many cells.
-
-declare -a initial      # Arrays containing "cells."
+# Arrays containing "cells."
+declare -a initial
 declare -a current
 
 display ()
 {
 
-alive=0                 # How many cells "alive" at any given time.
+alive=0                 # How many cells alive at any given time.
                         # Initially zero.
 
 declare -a arr
@@ -161,12 +160,11 @@ return $TRUE                          # Valid coordinate.
 }  
 
 
-IsAlive ()              # Test whether cell is alive.
-                        # Takes array, cell number, state of cell as arguments.
-{
-  GetCount "$1" $2      # Get alive cell count in neighborhood.
+IsAlive ()              #  Test whether cell is alive.
+                        #  Takes array, cell number,
+{                       #+ state of cell as arguments.
+  GetCount "$1" $2      #  Get alive cell count in neighborhood.
   local nhbd=$?
-
 
   if [ "$nhbd" -eq "$BIRTH" ]  # Alive in any case.
   then
@@ -178,7 +176,7 @@ IsAlive ()              # Test whether cell is alive.
     return $ALIVE
   fi  
 
-  return $DEAD          # Default.
+  return $DEAD          # Dead by default.
 
 }  
 
@@ -216,7 +214,7 @@ GetCount ()             # Count live cells in passed cell's neighborhood.
     let "t_bot = $bottom + $i"
 
 
-    let "row = $r"                        # Count center row of neighborhood.
+    let "row = $r"                        # Count center row.
     IsValid $t_cen $row                   # Valid cell position?
     if [ $? -eq "$TRUE" ]
     then
@@ -280,7 +278,7 @@ do
 done   
 
 
-# let "generation += 1"   # Increment generation count.
+# let "generation += 1"          # Increment generation count.
 # Why was the above line commented out?
 
 
@@ -293,7 +291,7 @@ echo "Generation $generation  -  $alive alive"
 if [ "$alive" -eq 0 ]
 then
   echo
-  echo "Premature exit: no more cells alive!"
+  echo "Unexpected exit: no more cells alive!"
   exit $NONE_ALIVE        #  No point in continuing
 fi                        #+ if no live cells.
 
@@ -328,7 +326,7 @@ echo "Generation $generation  -  $alive alive"
 # -------------------------------------------
 
 
-let "generation += 1"     # Increment generation count.
+let "generation += 1"     # Bump generation count.
 echo
 
 # ------- Display second generation. -------
@@ -349,7 +347,7 @@ done
 
 echo
 
-exit 0   # END
+exit 0   # CEOF:EOF
 
 
 
@@ -371,5 +369,4 @@ exit 0   # END
 #+          in the script for an altered grid size.
 #
 # Exercise: Optimize this script.
-#           It has some repetitive and redundant code,
-#+          for example, lines 335-336.
+#           It has some redundant code.

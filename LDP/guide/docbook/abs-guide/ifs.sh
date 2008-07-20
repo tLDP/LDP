@@ -1,4 +1,6 @@
 #!/bin/bash
+# ifs.sh
+
 # $IFS treats whitespace differently than other characters.
 
 output_args_one_per_line()

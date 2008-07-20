@@ -5,7 +5,7 @@
 #  It lets you look at the intermediate results on the fly
 #+ while working on it.
 
-E_WRONGARGS=65
+E_WRONGARGS=85
 
 if [ -z "$1" ]
 then

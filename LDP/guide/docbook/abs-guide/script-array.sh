@@ -14,6 +14,7 @@ for element in $(seq 0 $((${#script_contents[@]} - 1)))
                     #  Try changing it to seq 1.
   echo -n "${script_contents[$element]}"
                     # List each field of this script on a single line.
+# echo -n "${script_contents[element]}" also works because of ${ ... }.
   echo -n " -- "    # Use " -- " as a field separator.
 done
 

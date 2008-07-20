@@ -1,7 +1,8 @@
 #! /bin/sh
 # Strips off the header from a mail/News message i.e. till the first
-# empty line
-# Mark Moraes, University of Toronto
+# empty line.
+# Author: Mark Moraes, University of Toronto
+# See the included file "Moraes-COPYRIGHT" for copyright info.
 
 # ==> These comments added by author of this document.
 

@@ -1,5 +1,5 @@
 #!/bin/bash
-# "and list"
+# and list
 
 if [ ! -z "$1" ] && echo "Argument #1 = $1" && [ ! -z "$2" ] \
 && echo "Argument #2 = $2"

@@ -106,3 +106,6 @@ rm -f ${TMPFILE}
 # ==> ---------
 # ==> 1) Add error checking.
 # ==> 2) Add bells & whistles.
+
+#  See the included file "Moraes-COPYRIGHT" for copyright info.
+#+ on this script.

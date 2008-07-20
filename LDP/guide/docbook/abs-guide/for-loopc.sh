@@ -1,10 +1,31 @@
 #!/bin/bash
-# Two ways to count up to 10.
+# Multiple ways to count up to 10.
 
 echo
 
 # Standard syntax.
 for a in 1 2 3 4 5 6 7 8 9 10
+do
+  echo -n "$a "
+done  
+
+echo; echo
+
+# +==========================================+
+
+# Using "seq" ...
+for a in `seq 10`
+do
+  echo -n "$a "
+done  
+
+echo; echo
+
+# +==========================================+
+
+# Using brace expansion ...
+# Bash, version 3+.
+for a in {1..10}
 do
   echo -n "$a "
 done  
@@ -28,8 +49,8 @@ echo; echo
 
 # Let's use the C "comma operator" to increment two variables simultaneously.
 
-for ((a=1, b=1; a <= LIMIT ; a++, b++))  # The comma chains together operations.
-do
+for ((a=1, b=1; a <= LIMIT ; a++, b++))
+do  # The comma chains together operations.
   echo -n "$a-$b "
 done
 

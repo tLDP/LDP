@@ -45,6 +45,7 @@ echo "Creating swap file of size $blocks blocks (KB)."
 dd if=/dev/zero of=$FILE bs=$BLOCKSIZE count=$blocks  # Zero out file.
 mkswap $FILE $blocks             # Designate it a swap file.
 swapon $FILE                     # Activate swap file.
+retcode=$?                       # Everything worked?
 #  Note that if one or more of these commands fails,
 #+ then it could cause nasty problems.
 ######################################################################
@@ -59,4 +60,4 @@ swapon $FILE                     # Activate swap file.
 
 echo "Swap file created and activated."
 
-exit $SUCCESS
+exit $retcode

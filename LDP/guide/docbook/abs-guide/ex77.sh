@@ -8,9 +8,11 @@
 
 echo $'Ringing bell 3 times \a \a \a'
      # May only ring once with certain terminals.
+     # Or ...
+     # May not ring at all, depending on terminal settings.
 echo $'Three form feeds \f \f \f'
 echo $'10 newlines \n\n\n\n\n\n\n\n\n\n'
 echo $'\102\141\163\150'   # Bash
-                           # Octal equivalent of characters.
+     # Octal equivalent of characters.
 
-exit 0
+exit

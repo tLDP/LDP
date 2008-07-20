@@ -1,9 +1,9 @@
 #!/bin/bash
 
-#  delete.sh, not-so-cunning file deletion utility.
+#  delete.sh, a not-so-cunning file deletion utility.
 #  Usage: delete filename
 
-E_BADARGS=65
+E_BADARGS=85
 
 if [ -z "$1" ]
 then
@@ -25,4 +25,4 @@ Cowardly refusing to delete a nonexistent file."
 # Note logic inversion above.
 # AND LIST executes on true, OR LIST on false.
 
-exit 0
+exit $?

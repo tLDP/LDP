@@ -2,7 +2,8 @@
 # empty-array.sh
 
 #  Thanks to Stephane Chazelas for the original example,
-#+ and to Michael Zick and Omair Eshkenazi for extending it.
+#+ and to Michael Zick, Omair Eshkenazi, for extending it.
+#  And to Nathan Coulter for clarifications and corrections.
 
 
 # An empty array is not the same as an array with empty elements.
@@ -11,6 +12,7 @@
   array1=( '' )   # "array1" consists of one empty element.
   array2=( )      # No elements . . . "array2" is empty.
   array3=(   )    # What about this array?
+
 
 echo
 ListArray()
@@ -54,8 +56,8 @@ array3[${#array3[*]}]="new2"
 
 ListArray
 
-# When extended as above; arrays are 'stacks'
-# The above is the 'push'
+# When extended as above, arrays are 'stacks' ...
+# Above is the 'push' ...
 # The stack 'height' is:
 height=${#array2[@]}
 echo
@@ -71,7 +73,7 @@ echo "New stack height for array2 = $height"
 ListArray
 
 # List only 2nd and 3rd elements of array0.
-from=1		# Zero-based numbering.
+from=1		    # Zero-based numbering.
 to=2
 array3=( ${array0[@]:1:2} )
 echo
@@ -108,25 +110,47 @@ echo "Elements in array8:  ${array8[@]}"
 
 #  The string operations are performed on
 #+ each of the elements in var[@] in succession.
-#  Therefore : Bash supports string vector operations
-#+ if the result is a zero length string,
+#  Therefore : Bash supports string vector operations.
+#  If the result is a zero length string,
 #+ that element disappears in the resulting assignment.
+#  However, if the expansion is in quotes, the null elements remain.
 
-#  Question, are those strings hard or soft quotes?
+#  Michael Zick: Question, are those strings hard or soft quotes?
+#  Nathan Coulter: There is no such thing as "soft quotes."
+#  What's really happening is that
+#+ the pattern matching happens after all the other expansions of [word]
+#+ in cases like ${parameter#word}.
+
 
 zap='new*'
 array9=( ${array0[@]/$zap/} )
 echo
+echo "Number of elements in array9:  ${#array9[@]}"
+array9=( "${array0[@]/$zap/}" )
 echo "Elements in array9:  ${array9[@]}"
+# This time the null elements remain.
+echo "Number of elements in array9:  ${#array9[@]}"
 
-# Just when you thought you where still in Kansas . . .
-array10=( ${array0[@]#$zap} )
+
+# Just when you thought you were still in Kansas . . .
+array10=( ${array0[@]#"$zap"} )
 echo
 echo "Elements in array10:  ${array10[@]}"
+# But, the asterisk in zap won't be interpreted if quoted.
+array10=( ${array0[@]#"$zap"} )
+echo
+echo "Elements in array10:  ${array10[@]}"
+# Well, maybe we _are_ still in Kansas . . .
+# (Revisions to above code block by Nathan Coulter.)
 
-# Compare array7 with array10.
-# Compare array8 with array9.
 
-# Answer: must be soft quotes.
+#  Compare array7 with array10.
+#  Compare array8 with array9.
 
-exit 0
+#  Reiterating: No such thing as soft quotes!
+#  Nathan Coulter's explains:
+#  Pattern matching of 'word' in ${parameter#word} is done after
+#+ parameter expansion and *before* quote removal.
+#  In the normal case, pattern matching is done *after* quote removal.
+ 
+exit

@@ -47,4 +47,4 @@ sed "$sedscript" $1 | fold -s --width=$MAXWIDTH
 #  An nice set of text processing utilities and an efficient
 #+ scripting language provide an alternative to bloated executables.
 
-exit 0
+exit

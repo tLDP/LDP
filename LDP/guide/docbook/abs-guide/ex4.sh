@@ -1,11 +1,12 @@
 #!/bin/bash
 
-#  "subst", a script that substitutes one pattern for
+#  subst.sh: a script that substitutes one pattern for
 #+ another in a file,
-#+ i.e., "subst Smith Jones letter.txt".
+#+ i.e., "sh subst.sh Smith Jones letter.txt".
+#                     Jones replaces Smith.
 
 ARGS=3         # Script requires 3 arguments.
-E_BADARGS=65   # Wrong number of arguments passed to script.
+E_BADARGS=85   # Wrong number of arguments passed to script.
 
 if [ $# -ne "$ARGS" ]
 # Test number of arguments to script (always a good idea).
@@ -26,16 +27,15 @@ else
 fi
 
 
-#  Here is where the heavy work gets done.
-
 # -----------------------------------------------
+#  Here is where the heavy work gets done.
 sed -e "s/$old_pattern/$new_pattern/g" $file_name
 # -----------------------------------------------
 
 #  's' is, of course, the substitute command in sed,
 #+ and /pattern/ invokes address matching.
-#  The "g", or global flag causes substitution for *every*
+#  The 'g,' or global flag causes substitution for EVERY
 #+ occurence of $old_pattern on each line, not just the first.
-#  Read the literature on 'sed' for an in-depth explanation.
+#  Read the 'sed' docs for an in-depth explanation.
 
-exit 0    # Successful invocation of the script returns 0.
+exit $?

@@ -26,3 +26,5 @@ echo "Value of t changed to ${!t}"    # 387
 #+ would have been nice. Sigh.
 
 exit 0
+
+# See also, ind-ref.sh example.

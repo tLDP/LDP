@@ -77,7 +77,7 @@ Move () {              # Move one unit right / left, or stay put.
 
 Play () {                    # Single pass (inner loop).
 i=0
-while [ "$i" -lt "$ROWS" ]       # One event per row.
+while [ "$i" -lt "$ROWS" ]   # One event per row.
 do
   Move
   ((i++));

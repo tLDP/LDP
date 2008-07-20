@@ -39,10 +39,12 @@ do
 done  
 
 return $number
-       # Exercise:
-       # --------
-       # Explain how this function works.
-       # Hint: division by successive subtraction.
+       # Exercises:
+       # ---------
+       # 1) Explain how this function works.
+       #    Hint: division by successive subtraction.
+       # 2) Extend to range of the function.
+       #    Hint: use "echo" and command-substitution capture.
 }
    
 
@@ -63,7 +65,9 @@ num=$?
 to_roman $num 4 IV
 num=$?
 to_roman $num 1 I
+# Successive calls to conversion function!
+# Is this really necessary??? Can it be simplified?
 
 echo
 
-exit 0
+exit

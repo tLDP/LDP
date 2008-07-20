@@ -1,18 +1,18 @@
 #!/bin/bash
-# match-string.sh: simple string matching
+# match-string.sh: Simple string matching.
 
 match_string ()
-{
+{ # Exact string match.
   MATCH=0
-  NOMATCH=90
+  E_NOMATCH=90
   PARAMS=2     # Function requires 2 arguments.
-  BAD_PARAMS=91
+  E_BAD_PARAMS=91
 
-  [ $# -eq $PARAMS ] || return $BAD_PARAMS
+  [ $# -eq $PARAMS ] || return $E_BAD_PARAMS
 
   case "$1" in
   "$2") return $MATCH;;
-  *   ) return $NOMATCH;;
+  *   ) return $E_NOMATCH;;
   esac
 
 }  

@@ -15,6 +15,8 @@ Attrib[2]="\"Thirteen Ways of Looking at a Blackbird\""
 
 echo
 
+tput bold   # Bold print.
+
 for index in 1 2 3 4 5    # Five lines.
 do
   printf "     %s\n" "${Line[index]}"
@@ -24,6 +26,9 @@ for index in 1 2          # Two attribution lines.
 do
   printf "          %s\n" "${Attrib[index]}"
 done
+
+tput sgr0   # Reset terminal.
+            # See 'tput' docs.
 
 echo
 

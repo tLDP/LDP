@@ -5,8 +5,8 @@ String=23skidoo1
 #      012345678    Bash
 #      123456789    awk
 # Note different string indexing system:
-# Bash numbers first character of string as '0'.
-# Awk  numbers first character of string as '1'.
+# Bash numbers first character of string as 0.
+# Awk  numbers first character of string as 1.
 
 echo ${String:2:4} # position 3 (0-1-2), 4 characters long
                                          # skid

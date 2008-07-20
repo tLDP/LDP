@@ -1,18 +1,18 @@
 #!/bin/bash
 # zmore
 
-#View gzipped files with 'more'
+# View gzipped files with 'more' filter.
 
-NOARGS=65
-NOTFOUND=66
-NOTGZIP=67
+E_NOARGS=65
+E_NOTFOUND=66
+E_NOTGZIP=67
 
 if [ $# -eq 0 ] # same effect as:  if [ -z "$1" ]
 # $1 can exist, but be empty:  zmore "" arg2 arg3
 then
   echo "Usage: `basename $0` filename" >&2
   # Error message to stderr.
-  exit $NOARGS
+  exit $E_NOARGS
   # Returns 65 as exit status of script (error code).
 fi  
 
@@ -20,24 +20,22 @@ filename=$1
 
 if [ ! -f "$filename" ]   # Quoting $filename allows for possible spaces.
 then
-  echo "File $filename not found!" >&2
-  # Error message to stderr.
-  exit $NOTFOUND
+  echo "File $filename not found!" >&2   # Error message to stderr.
+  exit $E_NOTFOUND
 fi  
 
 if [ ${filename##*.} != "gz" ]
 # Using bracket in variable substitution.
 then
   echo "File $1 is not a gzipped file!"
-  exit $NOTGZIP
+  exit $E_NOTGZIP
 fi  
 
 zcat $1 | more
 
-# Uses the filter 'more.'
-# May substitute 'less', if desired.
-
+# Uses the 'more' filter.
+# May substitute 'less' if desired.
 
 exit $?   # Script returns exit status of pipe.
-# Actually "exit $?" is unnecessary, as the script will, in any case,
-# return the exit status of the last command executed.
+#  Actually "exit $?" is unnecessary, as the script will, in any case,
+#+ return the exit status of the last command executed.

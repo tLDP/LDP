@@ -1,7 +1,7 @@
 #!/bin/bash
-# grp.sh: Very crude reimplementation of 'grep'.
+# grp.sh: Rudimentary reimplementation of grep.
 
-E_BADARGS=65
+E_BADARGS=85
 
 if [ -z "$1" ]    # Check for argument to script.
 then
@@ -18,7 +18,7 @@ do
   if [ ! -z "$output" ]           # What happens if "$output" is not quoted?
   then
     echo -n "$file: "
-    echo $output
+    echo "$output"
   fi              #  sed -ne "/$1/s|^|${file}: |p"  is equivalent to above.
 
   echo

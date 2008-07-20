@@ -1,5 +1,5 @@
 #!/bin/bash
-# int-or-string.sh: Integer or string?
+# int-or-string.sh
 
 a=2334                   # Integer.
 let "a += 1"

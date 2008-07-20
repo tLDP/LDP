@@ -1,11 +1,11 @@
 #!/bin/bash
 
-# This is a simple script that removes blank lines from a file.
+# This simple script removes blank lines from a file.
 # No argument checking.
 #
 # You might wish to add something like:
 #
-# E_NOARGS=65
+# E_NOARGS=85
 # if [ -z "$1" ]
 # then
 #  echo "Usage: `basename $0` target-file"
@@ -13,14 +13,15 @@
 # fi
 
 
+
+sed -e /^$/d "$1"
 # Same as
 #    sed -e '/^$/d' filename
 # invoked from the command line.
 
-sed -e /^$/d "$1"
 #  The '-e' means an "editing" command follows (optional here).
-#  '^' is the beginning of line, '$' is the end.
-#  This match lines with nothing between the beginning and the end,
+#  '^' indicates the beginning of line, '$' the end.
+#  This matches lines with nothing between the beginning and the end --
 #+ blank lines.
 #  The 'd' is the delete command.
 
@@ -30,4 +31,4 @@ sed -e /^$/d "$1"
 #  Note that this script doesn't actually change the target file.
 #  If you need to do that, redirect its output.
 
-exit 0
+exit

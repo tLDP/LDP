@@ -1,10 +1,12 @@
 #!/bin/bash
 # array-strops.sh: String operations on arrays.
-# Script by Michael Zick.
-# Used with permission.
 
-#  In general, any string operation in the ${name ... } notation
-#+ can be applied to all string elements in an array
+# Script by Michael Zick.
+# Fixups: 05 May 08
+# Used in ABS Guide with permission.
+
+#  In general, any string operation using the ${name ... } notation
+#+ can be applied to all string elements in an array,
 #+ with the ${name[@] ... } or ${name[*] ...} notation.
 
 
@@ -14,19 +16,20 @@ echo
 
 # Trailing Substring Extraction
 echo ${arrayZ[@]:0}     # one two three four five five
-                        # All elements.
+#                ^        All elements.
 
 echo ${arrayZ[@]:1}     # two three four five five
-                        # All elements following element[0].
+#                ^        All elements following element[0].
 
 echo ${arrayZ[@]:1:2}   # two three
-                        # Only the two elements after element[0].
+#                  ^      Only the two elements after element[0].
 
 echo "-----------------------"
 
-#  Substring Removal
-#  Removes shortest match from front of string(s),
-#+ where the substring is a regular expression.
+
+# Substring Removal
+
+# Removes shortest match from front of string(s).
 
 echo ${arrayZ[@]#f*r}   # one two three five five
                         # Applied to all elements of the array.
@@ -51,54 +54,61 @@ echo "-----------------------"
 
 # Substring Replacement
 
-# Replace first occurance of substring with replacement
+# Replace first occurrence of substring with replacement.
 echo ${arrayZ[@]/fiv/XYZ}   # one two three four XYZe XYZe
-                            # Applied to all elements of the array.
+#             ^  ^^^ ^^^      Applied to all elements of the array.
 
-# Replace all occurances of substring
+# Replace all occurrences of substring.
 echo ${arrayZ[@]//iv/YY}    # one two three four fYYe fYYe
                             # Applied to all elements of the array.
 
-# Delete all occurances of substring
-# Not specifing a replacement means 'delete'
+# Delete all occurrences of substring.
+# Not specifing a replacement means 'delete.'
 echo ${arrayZ[@]//fi/}      # one two three four ve ve
-                            # Applied to all elements of the array.
+#               ^^            Applied to all elements of the array.
 
-# Replace front-end occurances of substring
+# Replace front-end occurrences of substring.
 echo ${arrayZ[@]/#fi/XY}    # one two three four XYve XYve
-                            # Applied to all elements of the array.
+#                ^            Applied to all elements of the array.
 
-# Replace back-end occurances of substring
+# Replace back-end occurrences of substring.
 echo ${arrayZ[@]/%ve/ZZ}    # one two three four fiZZ fiZZ
-                            # Applied to all elements of the array.
+#                ^            Applied to all elements of the array.
 
 echo ${arrayZ[@]/%o/XX}     # one twXX three four five five
-                            # Why?
+#                ^            Why?
 
 echo "-----------------------"
 
-
-# Before reaching for awk (or anything else) --
-# Recall:
-#   $( ... ) is command substitution.
-#   Functions run as a sub-process.
-#   Functions write their output to stdout.
-#   Assignment reads the function's stdout.
-#   The name[@] notation specifies a "for-each" operation.
 
 newstr() {
     echo -n "!!!"
 }
 
 echo ${arrayZ[@]/%e/$(newstr)}
+#                ^  ^^^^^^^^^
 # on!!! two thre!!! four fiv!!! fiv!!!
-# Q.E.D: The replacement action is an 'assignment.'
+# Q.E.D: The replacement action is, in effect, an 'assignment.'
+
+echo "-----------------------"
 
 #  Accessing the "For-Each"
 echo ${arrayZ[@]//*/$(newstr optional_arguments)}
-#  Now, if Bash would just pass the matched string as $0
+# !!! !!! !!! !!! !!! !!!
+
+#  Now, if Bash would only pass the matched string
 #+ to the function being called . . .
 
 echo
 
 exit 0
+
+#  Before reaching for a Big Hammer -- awk, Perl, or anything else --
+#  recall:
+#    $( ... ) is command substitution.
+#    A function runs as a sub-process.
+#    A function writes its output to stdout.
+#    Assignment, in conjunction with 'echo' and command substitution,
+#+   can read a function's stdout.
+#    The name[@] notation specifies a "for-each" operation.
+#  Bash is more powerful than you think!

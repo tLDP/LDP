@@ -6,7 +6,7 @@
 #  License: Public Domain
 
 #  This script may be turned in to your instructor
-#+ in fulfillment of ALL Bash scripting homework assignments.
+#+ in fulfillment of ALL shell scripting homework assignments.
 #  It's sparsely commented, but you, the student, can easily remedy that.
 #  The script author repudiates all responsibility!
 
@@ -73,14 +73,14 @@ b_r
 
 for i in $(seq 0 $MAXL)
 do
- p_l "${L[i]}"
- if [[ "$i" -eq "$P1" || "$i" -eq "$P2" || "$i" -eq "$P3" ]]
- then
-   cr
-   elif [[ "$i" -eq "$PP1" || "$i" -eq "$PP2" ]]
-   then
-     cr; cr
-fi
+  p_l "${L[i]}"
+  if [[ "$i" -eq "$P1" || "$i" -eq "$P2" || "$i" -eq "$P3" ]]
+  then
+    cr
+    elif [[ "$i" -eq "$PP1" || "$i" -eq "$PP2" ]]
+    then
+      cr; cr
+  fi
 done
 
 restore
@@ -90,6 +90,7 @@ echo
 
 exit $E_LZY
 
-#  An example of an obfuscated script that is difficult to understand,
-#+ and frustrating to maintain.
-#  In your career as a sysadmin, you'll run into these all too often.
+#  A typical example of an obfuscated script that is difficult
+#+ to understand, and frustrating to maintain.
+#  In your career as a sysadmin, you'll run into these critters
+#+ all too often.

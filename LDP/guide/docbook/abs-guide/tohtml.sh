@@ -1,5 +1,5 @@
 #!/bin/bash
-# tohtml.sh
+# tohtml.sh [v. 0.2, reldate: 06/26/80, still buggy]
 
 # Convert a text file to HTML format.
 # Author: Mendel Cooper
@@ -96,10 +96,10 @@ process_text ()
       # ===================================================
       # Convert underscored phrase to italics.
       temp=$( echo "$line" |
-              sed -e 's/ _/ &lt;i&gt;/' -e 's/_ /&lt;\/i&gt; /' |
-              sed -e 's/^_/&lt;i&gt;/'  -e 's/_$/&lt;\/i&gt;/' )
+              sed -e 's/ _/ &lt;i&gt;/' -e 's/_/&lt;\/i&gt; /' |
+              sed -e 's/^_/&lt;i&gt;/'  -e 's/_/&lt;\/i&gt;/' )
       #  Process only underscores prefixed by space,
-      #+ followed by space, or at beginning or end of line.
+      #+ or at beginning or end of line.
       #  Do not convert underscores embedded within a word!
       line="$temp"
       # Slows script execution. Can be optimized?

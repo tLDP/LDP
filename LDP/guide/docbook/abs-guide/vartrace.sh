@@ -5,17 +5,17 @@ trap 'echo "VARIABLE-TRACE> \$variable = \"$variable\""' DEBUG
 
 variable=29
 
-echo "Just initialized \"\$variable\" to $variable."
+echo "  Just initialized \$variable to $variable."
 
 let "variable *= 3"
-echo "Just multiplied \"\$variable\" by 3."
+echo "  Just multiplied \$variable by 3."
 
-exit $?
+exit
 
 #  The "trap 'command1 . . . command2 . . .' DEBUG" construct is
 #+ more appropriate in the context of a complex script,
-#+ where placing multiple "echo $variable" statements might be
-#+ clumsy and time-consuming.
+#+ where inserting multiple "echo $variable" statements might be
+#+ awkward and time-consuming.
 
 # Thanks, Stephane Chazelas for the pointer.
 
@@ -24,8 +24,8 @@ Output of script:
 
 VARIABLE-TRACE> $variable = ""
 VARIABLE-TRACE> $variable = "29"
-Just initialized "$variable" to 29.
+  Just initialized $variable to 29.
 VARIABLE-TRACE> $variable = "29"
 VARIABLE-TRACE> $variable = "87"
-Just multiplied "$variable" by 3.
+  Just multiplied $variable by 3.
 VARIABLE-TRACE> $variable = "87"

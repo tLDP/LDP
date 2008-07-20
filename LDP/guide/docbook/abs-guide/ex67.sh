@@ -27,6 +27,7 @@ index=0
 while [ "$index" -lt "$element_count" ]
 do    # List all the elements in the array.
   echo ${colors[$index]}
+  #    ${colors[index]} also works because it's within ${ ... } brackets.
   let "index = $index + 1"
   # Or:
   #    index+=1

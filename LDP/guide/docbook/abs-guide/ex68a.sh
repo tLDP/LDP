@@ -21,7 +21,7 @@ Primes[i=1]='' # 1 is not a prime.
 until (( ( i += 1 ) > (${UPPER_LIMIT}/i) ))  # Need check only ith-way.
   do                                         # Why?
     if ((${Primes[t=i*(i-1), i]}))
-    # Obscure, but instructive, use of numeric eval in subscript.
+    # Obscure, but instructive, use of arithmetic expansion in subscript.
     then
       until (( ( t += i ) > ${UPPER_LIMIT} ))
         do Primes[t]=; done

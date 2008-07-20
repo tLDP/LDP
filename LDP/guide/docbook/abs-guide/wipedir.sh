@@ -1,6 +1,6 @@
 #!/bin/bash
 
-E_WRONG_DIRECTORY=73
+E_WRONG_DIRECTORY=83
 
 clear # Clear screen.
 
@@ -23,15 +23,16 @@ rm .[A-Za-z0-9]*    # Delete dotfiles.
 # (shopt -s dotglob; rm -f *)   will also work.
 # Thanks, S.C. for pointing this out.
 
-# Filenames may contain all characters in the 0 - 255 range, except "/".
-# Deleting files beginning with weird characters is left as an exercise.
-
-# Various other operations here, as necessary.
+#  A filename (`basename`) may contain all characters in the 0 - 255 range,
+#+ except "/".
+#  Deleting files beginning with weird characters, such as -
+#+ is left as an exercise.
 
 echo
 echo "Done."
 echo "Old files deleted in $TargetDirectory."
 echo
 
+# Various other operations here, as necessary.
 
-exit 0
+exit $?

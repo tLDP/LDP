@@ -29,7 +29,7 @@ getopt_simple $*
 echo "test is '$test'"
 echo "test2 is '$test2'"
 
-exit 0
+exit 0  # See also, UseGetOpt.sh, a modified versio of this script.
 
 ---
 
@@ -42,3 +42,4 @@ Processing parameter of: '/test2=value2'
 Parameter: 'test2', value: 'value2'
 test is 'value1'
 test2 is 'value2'
+

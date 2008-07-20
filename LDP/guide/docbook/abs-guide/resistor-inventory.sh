@@ -1,6 +1,6 @@
 #!/bin/bash
 # resistor-inventory.sh
-# Simple database application using indirect variable referencing.
+# Simple database / table-lookup application.
 
 # ============================================================== #
 # Data
@@ -18,7 +18,7 @@ B1724_loc=24N
 B1724_inventory=243
 
 B1725_value=10000
-B1725_powerdissip=.25
+B1725_powerdissip=.125
 B1725_colorcode="brown-black-orange"
 B1725_loc=24N
 B1725_inventory=89
@@ -42,7 +42,9 @@ do
 
   echo
   echo "Catalog number $catalog_number:"
-  echo "There are ${!Inv} of [${!Val} ohm / ${!Pdissip} watt] resistors in stock."
+  # Now, retrieve value, using indirect referencing.
+  echo "There are ${!Inv} of  [${!Val} ohm / ${!Pdissip} watt]\
+  resistors in stock."  #        ^             ^
   echo "These are located in bin # ${!Loc}."
   echo "Their color code is \"${!Ccode}\"."
 
@@ -57,6 +59,7 @@ echo; echo
 # 2) Rewrite this script to use arrays,
 #+   rather than indirect variable referencing.
 #    Which method is more straightforward and intuitive?
+#    Which method is easier to code?
 
 
 # Notes:

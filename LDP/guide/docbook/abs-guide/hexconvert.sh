@@ -1,16 +1,14 @@
 #!/bin/bash
 # hexconvert.sh: Convert a decimal number to hexadecimal.
 
-E_NOARGS=65 # Command-line arg missing.
+E_NOARGS=85 # Command-line arg missing.
 BASE=16     # Hexadecimal.
 
 if [ -z "$1" ]
-then
+then        # Need a command line argument.
   echo "Usage: $0 number"
   exit $E_NOARGS
-  # Need a command line argument.
-fi
-# Exercise: add argument validity checking.
+fi          # Exercise: add argument validity checking.
 
 
 hexcvt ()
@@ -22,12 +20,12 @@ then
 fi
 
 echo ""$1" "$BASE" o p" | dc
-#                 "o" sets radix (numerical base) of output.
-#                   "p" prints the top of stack.
-# See 'man dc' for other options.
+#                  o    sets radix (numerical base) of output.
+#                    p  prints the top of stack.
+# For other options: 'man dc' ...
 return
 }
 
 hexcvt "$1"
 
-exit 0
+exit

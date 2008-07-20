@@ -1,5 +1,6 @@
 #!/bin/bash
 # cw-solver.sh
+# This is actually a wrapper around a one-liner (line 46).
 
 #  Crossword puzzle and anagramming word game solver.
 #  You know *some* of the letters in the word you're looking for,
@@ -34,7 +35,7 @@ then             #+ as a command-line argument . . .
   echo "The x's represent known letters,"
   echo "and the periods are unknown letters (blanks)."
   echo "Letters and periods can be in any position."
-  echo "For example, try:   cw-solver.sh w...i....n"
+  echo "For example, try:   sh cw-solver.sh w...i....n"
   echo
   exit $E_NOPATT
 fi
@@ -49,7 +50,7 @@ grep ^"$1"$ "$DICT"   # Yes, only one line!
 
 #  From _Stupid Grep Tricks_, vol. 1,
 #+ a book the ABS Guide author may yet get around
-#+ to writing one of these days . . .
+#+ to writing . . . one of these days . . .
 # ===============================================
 echo
 
@@ -58,9 +59,8 @@ exit $?  # Script terminates here.
 #  If there are too many words generated,
 #+ redirect the output to a file.
 
-cw-solver w...i....n
+$ sh cw-solver.sh w...i....n
 
-twichildren
 wellington
 workingman
 workingmen

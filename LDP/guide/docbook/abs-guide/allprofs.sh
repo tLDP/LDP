@@ -1,5 +1,5 @@
 #!/bin/bash
-# allprofs.sh: print all user profiles
+# allprofs.sh: Print all user profiles.
 
 # This script written by Heiner Steven, and modified by the document author.
 

@@ -38,4 +38,4 @@ chmod 777 $MOUNTPOINT  # Makes new drive accessible to all users.
 # Add the following line to /etc/fstab.
 # /dev/hdb1  /mnt/newdisk  ext2  defaults  1 1
 
-exit 0
+exit

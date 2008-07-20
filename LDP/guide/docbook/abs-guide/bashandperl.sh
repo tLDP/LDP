@@ -10,7 +10,8 @@ exit 0
 # =======================================================
 
 #!/usr/bin/perl
-# This part of the script must be invoked with -x option.
+# This part of the script must be invoked with
+#    perl -x bashandperl.sh
 
 print "Greetings from the Perl part of the script.\n";
 # More Perl commands may follow here.
