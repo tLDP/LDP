@@ -5,6 +5,7 @@
 # This program extracts URLs from a Lyx file and checks them
 
 # 20060822/PB: major improvement, add support for persistent XML database
+# 20081109/PB: enhancement to detect URLs in newer lyx file format
 
 use strict;
 use Net::HTTP;
@@ -39,6 +40,8 @@ sub quote($) {
 
 sub extract_urls($) {
 
+	my ($url, $desc);
+
 	print STDERR "DEBUG/extract_urls: open file: $_[0]\n";
 
 	open FILE, "<" . $_[0] || die "ERROR : can't open file: " . $_[0];
@@ -50,10 +53,40 @@ sub extract_urls($) {
 		chomp $_;
 
 		if ($_ =~ /LatexCommand \\url\[([^]]*)\]{([^}]*)}/) {
-			my ($url, $desc);
 
 			$desc = $1;
 			$url = $2;
+
+			print STDERR "DEBUG/extract_urls: desc='$desc' URL=$url\n" if ($debug & 0x10);
+
+			if (defined $$p_urls{$url}->{'line'}) {
+				print STDERR "DEBUG/extract_urls: URL already found earlier - skip\n" if ($debug & 0x10);
+
+				if ($$p_urls{$url}->{'time'} == $time) {
+
+				} else {
+					# from database, update now
+					$$p_urls{$url}->{'time'} = $time;	
+					$$p_urls{$url}->{'line'} = $linecounter;
+					$$p_urls{$url}->{'desc'} = quote($desc);
+				};
+				next;
+			} else {
+				$$p_urls{$url}->{'desc'} = quote($desc);
+				$$p_urls{$url}->{'time'} = $time;	
+				$$p_urls{$url}->{'line'} = $linecounter;
+			};
+
+			$url = "";
+			$desc = "";
+
+		} elsif ($_ =~ /name \"([^"]*)\"/) {
+			# name "IPv6 & Linux - HowTo"
+			$desc = $1;
+		
+		} elsif ($_ =~ /target \"([^"]*)\"/) {
+			# target "http://www.bieringer.de/linux/IPv6/"
+			$url = $1;
 
 			print STDERR "DEBUG/extract_urls: desc='$desc' URL=$url\n" if ($debug & 0x10);
 
