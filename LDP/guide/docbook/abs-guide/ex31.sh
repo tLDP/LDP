@@ -1,6 +1,7 @@
 #!/bin/bash
 
 PS3='Choose your favorite vegetable: ' # Sets the prompt string.
+                                       # Otherwise it defaults to #? .
 
 echo
 
@@ -13,4 +14,11 @@ do
   break  # What happens if there is no 'break' here?
 done
 
-exit 0
+exit
+
+# Exercise:
+# --------
+#  Fix this script to accept user input not specified in
+#+ the "select" statement.
+#  For example, if the user inputs "peas,"
+#+ The script would respond "Sorry. That is not on the menu."

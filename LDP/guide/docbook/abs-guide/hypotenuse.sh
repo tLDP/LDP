@@ -3,7 +3,7 @@
 #                (square root of sum of squares of the "legs")
 
 ARGS=2                # Script needs sides of triangle passed.
-E_BADARGS=65          # Wrong number of arguments.
+E_BADARGS=85          # Wrong number of arguments.
 
 if [ $# -ne "$ARGS" ] # Test number of arguments to script.
 then
@@ -22,7 +22,7 @@ AWKSCRIPT=' { printf( "%3.7f\n", sqrt($1*$1 + $2*$2) ) } '
 #   ^^^^^^^^^^^^
 # An echo-and-pipe is an easy way of passing shell parameters to awk.
 
-exit 0
+exit
 
 # Exercise: Rewrite this script using 'bc' rather than awk.
 #           Which method is more intuitive?

@@ -20,7 +20,7 @@ do
 done 
 
 # Exercise:
-# Why does loop print up to 20?
+# Why does the loop print up to 20?
 
 echo; echo
 

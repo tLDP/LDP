@@ -9,7 +9,7 @@ E_BADARGS=65
 FILE=$1
 
 let LETTERS=$#-1   # How many letters specified (as command-line args).
-                   # (Subtract 1 from number of command line args.)
+                   # (Subtract 1 from number of command-line args.)
 
 
 show_help(){

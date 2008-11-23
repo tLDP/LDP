@@ -5,7 +5,7 @@
 # Reldate: 15 July 2008
 # License: GPL3
 
-ROWS=5     # Five rows of pegs.
+ROWS=5     # Five rows of pegs (or matchsticks).
 WON=91     # Exit codes to keep track of wins/losses.
 LOST=92    # Possibly useful if running in batch mode.  
 QUIT=99

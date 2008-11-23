@@ -1,5 +1,5 @@
 #!/bin/bash
-# tohtml.sh [v. 0.2, reldate: 06/26/80, still buggy]
+# tohtml.sh [v. 0.2, reldate: 06/26/08, still buggy]
 
 # Convert a text file to HTML format.
 # Author: Mendel Cooper

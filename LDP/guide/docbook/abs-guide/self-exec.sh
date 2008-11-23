@@ -1,6 +1,9 @@
 #!/bin/bash
 # self-exec.sh
 
+# Note: Set permissions on this script to 555 or 755,
+#       then call it with ./self-exec.sh or sh ./self-exec.sh.
+
 echo
 
 echo "This line appears ONCE in the script, yet it keeps echoing."

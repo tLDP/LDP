@@ -2,7 +2,7 @@
 # pr-ascii.sh: Prints a table of ASCII characters.
 
 START=33   # Range of printable ASCII characters (decimal).
-END=127    # Will not work for unprintable chars. (> 127).
+END=127    # Will not work for unprintable characters (> 127).
 
 echo " Decimal   Hex     Character"   # Header.
 echo " -------   ---     ---------"

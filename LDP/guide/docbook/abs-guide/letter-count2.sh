@@ -13,7 +13,7 @@ INIT_TAB_AWK=""
 count_case=0
 FILE_PARSE=$1
 
-E_PARAMERR=65
+E_PARAMERR=85
 
 usage()
 {

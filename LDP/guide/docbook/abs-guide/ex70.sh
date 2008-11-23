@@ -12,4 +12,4 @@ zzz23EndOfMessagezzz23
 #  However, embedding the message template in a script
 #+ is a quick-and-dirty one-off solution.
 
-exit 0
+exit

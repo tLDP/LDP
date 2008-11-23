@@ -11,7 +11,8 @@
 # Clarification and additional comments by William Park.
 
 #  Based on an example provided by Stephane Chazelas
-#+ which appeared in the book: Advanced Bash Scripting Guide.
+#+ which appeared in an earlier version of the
+#+ Advanced Bash Scripting Guide.
 
 # Output format of the 'times' command:
 # User CPU &lt;space&gt; System CPU
@@ -20,7 +21,7 @@
 #  Bash has two versions of assigning all elements of an array
 #+ to a new array variable.
 #  Both drop 'null reference' elements
-#+ in Bash versions 2.04, 2.05a and 2.05b.
+#+ in Bash versions 2.04 and later.
 #  An additional array assignment that maintains the relationship of
 #+ [subscript]=value for arrays may be added to newer versions.
 
@@ -53,7 +54,7 @@ declare -a bigThree=${bigOne[@]}
 times
 
 #  Comparing the numbers shows that the second form, pointed out
-#+ by Stephane Chazelas, is from three to four times faster.
+#+ by Stephane Chazelas, is faster.
 #
 #  As William Park explains:
 #+ The bigTwo array assigned element by element (because of parentheses),
@@ -77,7 +78,7 @@ times
 
 #  Note:
 #  ----
-#  The "declare -a" statements in lines 31 and 43
+#  The "declare -a" statements in lines 32 and 44
 #+ are not strictly necessary, since it is implicit
 #+ in the  Array=( ... )  assignment form.
 #  However, eliminating these declarations slows down

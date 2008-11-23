@@ -1,5 +1,5 @@
 #!/bin/bash
-# homework.sh: All-purpose homework assignment solution.
+#  homework.sh: All-purpose homework assignment solution.
 #  Author: M. Leo Cooper
 #  If you substitute your own name as author, then it is plagiarism,
 #+ possibly a lesser sin than cheating on your homework!
@@ -77,9 +77,9 @@ do
   if [[ "$i" -eq "$P1" || "$i" -eq "$P2" || "$i" -eq "$P3" ]]
   then
     cr
-    elif [[ "$i" -eq "$PP1" || "$i" -eq "$PP2" ]]
-    then
-      cr; cr
+  elif [[ "$i" -eq "$PP1" || "$i" -eq "$PP2" ]]
+  then
+    cr; cr
   fi
 done
 

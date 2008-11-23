@@ -11,7 +11,7 @@ echo -e '\E[37;44m'"\033[1mContact List\033[0m"
 echo; echo
 echo -e "\033[1mChoose one of the following persons:\033[0m"
                                         # Bold
-tput sgr0
+tput sgr0                               # Reset attributes.
 echo "(Enter only the first letter of name.)"
 echo
 echo -en '\E[47;34m'"\033[1mE\033[0m"   # Blue
@@ -37,7 +37,7 @@ case "$person" in
   # Accept upper or lowercase input.
   echo
   echo "Roland Evans"
-  echo "4321 Floppy Dr."
+  echo "4321 Flash Dr."
   echo "Hardscrabble, CO 80753"
   echo "(303) 734-9874"
   echo "(303) 734-9892 fax"

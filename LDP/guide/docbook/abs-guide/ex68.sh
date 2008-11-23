@@ -16,7 +16,7 @@ NON_PRIME=0
 
 let SPLIT=UPPER_LIMIT/2
 # Optimization:
-# Need to test numbers only halfway to upper limit (why?).
+# Need to test numbers only halfway to upper limit. Why?
 
 
 declare -a Primes
@@ -112,7 +112,7 @@ exit 0
 
 # Must invoke with command-line argument (limit of primes).
 
-UPPER_LIMIT=$1                  # From command line.
+UPPER_LIMIT=$1                  # From command-line.
 let SPLIT=UPPER_LIMIT/2         # Halfway to max number.
 
 Primes=( '' $(seq $UPPER_LIMIT) )

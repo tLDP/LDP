@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# Non-interactive use of 'vi' to edit a file.
+# Noninteractive use of 'vi' to edit a file.
 # Emulates 'sed'.
 
-E_BADARGS=65
+E_BADARGS=85
 
 if [ -z "$1" ]
 then
@@ -27,7 +27,7 @@ x23LimitStringx23
 #  Note that ^[ above is a literal escape
 #+ typed by Control-V &lt;Esc&gt;.
 
-#  Bram Moolenaar points out that this may not work with 'vim',
+#  Bram Moolenaar points out that this may not work with 'vim'
 #+ because of possible problems with terminal interaction.
 
-exit 0
+exit

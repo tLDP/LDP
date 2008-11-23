@@ -104,7 +104,7 @@ DoSomething () {
 ################################### M A I N ########################
 #  If you remove "function UseGetOpt () {" and corresponding "}",
 #+ you can uncomment the "exit 0" line below, and invoke this script
-#+ with the various options from the command line.
+#+ with the various options from the command-line.
 #-------------------------------------------------------------------
 # exit 0
 

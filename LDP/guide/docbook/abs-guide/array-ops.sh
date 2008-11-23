@@ -33,12 +33,15 @@ echo ${#array[@]}      #  6
 echo "--------------"
 
 array2=( [0]="first element" [1]="second element" [3]="fourth element" )
+#            ^     ^       ^     ^      ^       ^     ^      ^       ^
+# Quoting permits embedding whitespace within individual array elements.
 
 echo ${array2[0]}      # first element
 echo ${array2[1]}      # second element
 echo ${array2[2]}      #
                        # Skipped in initialization, and therefore null.
 echo ${array2[3]}      # fourth element
+echo ${#array2[0]}     # 13    (length of first element)
+echo ${#array2[*]}     # 3     (number of elements in array)
 
-
-exit 0
+exit

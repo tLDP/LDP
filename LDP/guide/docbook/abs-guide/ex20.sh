@@ -2,7 +2,7 @@
 
 func1 ()
 {
-echo This is a function.
+  echo This is a function.
 }
 
 declare -f        # Lists the function above.

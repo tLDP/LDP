@@ -229,7 +229,7 @@ instead of running it."
     echo "The script will ask you for the filename."
     echo "-$cook : Change the cookies file for this session."
     echo "-$list : Tell wget to use URL's from a list instead of \
-from the command line."
+from the command-line."
     echo "-$wopt : Pass any other options direct to wget."
     echo ""
     echo "See the wget man page for additional options \
@@ -256,7 +256,7 @@ your mind)."
        return
    else
       echo "using $urlfile."
-      echo "If you gave url's on the command line, I'll use those first."
+      echo "If you gave url's on the command-line, I'll use those first."
                             # Report wget standard behaviour to the user.
       lister=" -i $urlfile" # This is what we want to pass to wget.
       return
@@ -375,7 +375,7 @@ shift $((OPTIND - 1))     # Do funky magic stuff with $#.
 
 if [ -z "$1" ] && [ -z "$lister" ]; then
                           #  We should be left with at least one URL
-                          #+ on the command line, unless a list is 
+                          #+ on the command-line, unless a list is 
 			  #+ being used -- catch empty CL's.
    echo "No URL's given! You must enter them on the same line as wgetter2."
    echo "E.g.,  wgetter2 http://somesite http://anothersite."

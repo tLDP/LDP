@@ -3,14 +3,14 @@
 
 # Script by Stefano Palmeri, with minor editing by document author.
 # Minor edits suggested by Jim Angstadt.
-# Used in the "ABS Guide" with permission.
+# Used in the ABS Guide with permission.
 
 
 ######################################################################
 ###  draw_box function doc  ###
 
 #  The "draw_box" function lets the user
-#+ draw a box into a terminal.       
+#+ draw a box in a terminal.       
 #
 #  Usage: draw_box ROW COLUMN HEIGHT WIDTH [COLOR] 
 #  ROW and COLUMN represent the position        
@@ -53,7 +53,7 @@ E_BADARGS=65
 #=============#
 
 
-if [ $# -lt "$MINARGS" ]; then                 # If args are less than 4, exit.
+if [ $# -lt "$MINARGS" ]; then          # If args are less than 4, exit.
     exit $E_BADARGS
 fi
 
@@ -63,8 +63,8 @@ if echo $@ | tr -d [:blank:] | tr -d [:digit:] | grep . &> /dev/null; then
    exit $E_BADARGS
 fi
 
-BOX_HEIGHT=`expr $3 - 1`   #  -1 correction needed because angle char "+" is 
-BOX_WIDTH=`expr $4 - 1`    #+ a part of both box height and width.
+BOX_HEIGHT=`expr $3 - 1`   #  -1 correction needed because angle char "+"
+BOX_WIDTH=`expr $4 - 1`    #+ is a part of both box height and width.
 T_ROWS=`tput lines`        #  Define current terminal dimension 
 T_COLS=`tput cols`         #+ in rows and columns.
          

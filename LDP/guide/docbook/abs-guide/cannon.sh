@@ -1,6 +1,10 @@
 #!/bin/bash
 # cannon.sh: Approximating PI by firing cannonballs.
 
+# Author: Mendel Cooper
+# License: Public Domain
+# Version 2.2, reldate 13oct08.
+
 # This is a very simple instance of a "Monte Carlo" simulation:
 #+ a mathematical model of a real-life event,
 #+ using pseudorandom numbers to emulate random chance.
@@ -42,7 +46,8 @@ MAXSHOTS=1000    # Fire this many shots.
                  # 10000 or more would be better, but would take too long.
 PMULTIPLIER=4.0  # Scaling factor to approximate PI.
 
-M_PI=3.141592654 # Actual value of PI, for comparison purposes.
+declare -r M_PI=3.141592654
+                 # Actual 9-place value of PI, for comparison purposes.
 
 get_random ()
 {
@@ -63,11 +68,13 @@ EOF
 )
 #  Setting "scale" to zero rounds down result to integer value,
 #+ a necessary compromise in this script.
-#  This diminshes the accuracy of the simulation.
+#  This decreases the accuracy of the simulation.
 }
 
 
+# ==========================================================
 # main() {
+# "Main" code block, mimmicking a C-language main() function.
 
 # Initialize variables.
 shots=0
@@ -81,17 +88,17 @@ do
 
   xCoord=$(get_random)                        # Get random X and Y coords.
   yCoord=$(get_random)
-  hypotenuse $xCoord $yCoord                  #  Hypotenuse of right-triangle =
-                                              #+ distance.
+  hypotenuse $xCoord $yCoord                  #  Hypotenuse of
+                                              #+ right-triangle = distance.
   ((shots++))
 
   printf "#%4d   " $shots
   printf "Xc = %4d  " $xCoord
   printf "Yc = %4d  " $yCoord
-  printf "Distance = %5d  " $distance         #  Distance from 
-                                              #+ center of lake --
-                                              #  the "origin" --
-                                              #+ coordinate (0,0).
+  printf "Distance = %5d  " $distance         #   Distance from
+                                              #+  center of lake
+                                              #+  -- the "origin" --
+                                              #+  coordinate (0,0).
 
   if [ "$distance" -le "$DIMENSION" ]
   then
@@ -110,16 +117,22 @@ do
 done
 
 echo
-echo "After $shots shots, PI looks like approximately $Pi"
-# Tends to run a bit high . . . 
-# Probably due to round-off error and imperfect randomness of $RANDOM.
+echo "After $shots shots, PI looks like approximately   $Pi"
+#  Tends to run a bit high,
+#+ probably due to round-off error and imperfect randomness of $RANDOM.
+#  But still usually within plus-or-minus 5% . . .
+#+ a pretty good rough approximation.
 error=$(echo "scale=9; $Pi - $M_PI" | bc)
-echo "Deviation from mathematical value of PI =      $error"
+pct_error=$(echo "scale=2; 100.0 * $error / $M_PI" | bc)
+echo -n "Deviation from mathematical value of PI =        $error"
+echo " ($pct_error% error)"
 echo
 
+# End of "main" code block.
 # }
+# ==========================================================
 
-exit 0
+exit
 
 #  One might well wonder whether a shell script is appropriate for
 #+ an application as complex and computation-intensive as a simulation.

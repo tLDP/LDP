@@ -34,7 +34,7 @@ cd $(dirname $0)
 
 # datadir is the directory you want podcasts saved to:
 datadir=$(date +%Y-%m-%d)
-# ==> Will create a directory with the name: YYYY-MM-DD
+# ==> Will create a date-labeled directory, named: YYYY-MM-DD
 
 # Check for and create datadir if necessary:
 if test ! -d $datadir
@@ -45,7 +45,8 @@ fi
 # Delete any temp file:
 rm -f temp.log
 
-# Read the bp.conf file and wget any url not already in the podcast.log file:
+#  Read the bp.conf file and wget any url not already
+#+ in the podcast.log file:
 while read podcast
   do # ==> Main action follows.
   file=$(wget -q $podcast -O - | tr '\r' '\n' | tr \' \" | \

@@ -17,7 +17,7 @@ fi
 [ ! -f "$file" ] && echo "File \"$file\" not found. \
 Cowardly refusing to delete a nonexistent file."
 # AND LIST, to give error message if file not present.
-# Note echo message continued on to a second line with an escape.
+# Note echo message continuing on to a second line after an escape.
 
 [ ! -f "$file" ] || (rm -f $file; echo "File \"$file\" deleted.")
 # OR LIST, to delete file if present.

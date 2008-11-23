@@ -3,15 +3,17 @@
 
 # Uses the "mplayer" media player program:
 #      http://www.mplayerhq.hu/homepage
-#      Appropriate codecs may need to be installed for this script to work.
 # Uses the "ogg" library and "oggenc":
 #      http://www.xiph.org/
+#
+# This script may need appropriate codecs installed, such as sipr.so ...
+# Possibly also the compat-libstdc++ package.
 
 
 OFILEPREF=${1%%ra}      # Strip off the "ra" suffix.
 OFILESUFF=wav           # Suffix for wav file.
 OUTFILE="$OFILEPREF""$OFILESUFF"
-E_NOARGS=65
+E_NOARGS=85
 
 if [ -z "$1" ]          # Must specify a filename to convert.
 then
@@ -33,7 +35,7 @@ exit $?
 #  Note:
 #  ----
 #  On a Website, simply clicking on a *.ram streaming audio file
-#+ usually only downloads the URL of the actual audio file, the *.ra file.
+#+ usually only downloads the URL of the actual *.ra audio file.
 #  You can then use "wget" or something similar
 #+ to download the *.ra file itself.
 
@@ -46,4 +48,4 @@ exit $?
 #  If you're really ambitious, expand the script
 #+ to do automatic downloads and conversions of streaming audio files.
 #  Given a URL, batch download streaming audio files (using "wget")
-#+ and convert them.
+#+ and convert them on the fly.

@@ -7,7 +7,7 @@
 #    usage-message.sh: 1: Usage: usage-message.sh ARGUMENT
 
 echo "These two lines echo only if command-line parameter given."
-echo "command line parameter = \"$1\""
+echo "command-line parameter = \"$1\""
 
 exit 0  # Will exit here only if command-line parameter present.
 

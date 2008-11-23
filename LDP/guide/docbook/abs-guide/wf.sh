@@ -3,10 +3,10 @@
 # This is a more efficient version of the "wf2.sh" script.
 
 
-# Check for input file on command line.
+# Check for input file on command-line.
 ARGS=1
-E_BADARGS=65
-E_NOFILE=66
+E_BADARGS=85
+E_NOFILE=86
 
 if [ $# -ne "$ARGS" ]  # Correct number of arguments passed to script?
 then

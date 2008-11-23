@@ -12,8 +12,8 @@ echo "The number of seconds elapsed since 01/01/1970 is `date +%s`."
 prefix=temp
 suffix=$(date +%s)  # The "+%s" option to 'date' is GNU-specific.
 filename=$prefix.$suffix
-echo $filename
-#  It's great for creating "unique" temp filenames,
+echo "Temporary filename = $filename"
+#  It's great for creating "unique and random" temp filenames,
 #+ even better than using $$.
 
 # Read the 'date' man page for more formatting options.

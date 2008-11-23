@@ -6,13 +6,13 @@
 #+ from various sites, including
 #+ Project Gutenberg (http://www.gutenberg.org/etext/247).
 #
-#  Convert it from DOS to UNIX format (only LF at end of line)
+#  Convert it from DOS to UNIX format (with only LF at end of line)
 #+ before using it with this script.
-#  Store the file in plain, uncompressed ASCII.
+#  Store the file in plain, uncompressed ASCII text.
 #  Set DEFAULT_DICTFILE variable below to path/filename.
 
 
-E_BADARGS=65
+E_BADARGS=85
 MAXCONTEXTLINES=50                        # Maximum number of lines to show.
 DEFAULT_DICTFILE="/usr/share/dict/webster1913-dict.txt"
                                           # Default dictionary file pathname.
@@ -68,7 +68,7 @@ sed '$d' | sed '$d'
 #+ (blank line and first line of next entry).
 # ---------------------------------------------------------
 
-exit 0
+exit $?
 
 # Exercises:
 # ---------
@@ -79,7 +79,7 @@ exit 0
 # 2)  Convert the script to a GUI application,
 #   + using something like 'gdialog' or 'zenity' . . .
 #     The script will then no longer take its argument(s)
-#   + from the command line.
+#   + from the command-line.
 #
 # 3)  Modify the script to parse one of the other available
 #   + Public Domain Dictionaries, such as the U.S. Census Bureau Gazetteer.

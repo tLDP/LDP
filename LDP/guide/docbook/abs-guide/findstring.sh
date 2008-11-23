@@ -11,10 +11,10 @@ do
   #  In the "sed" expression,
   #+ it is necessary to substitute for the normal "/" delimiter
   #+ because "/" happens to be one of the characters filtered out.
-  #  Failure to do so gives an error message (try it).
+  #  Failure to do so gives an error message. (Try it.)
 done  
 
-exit 0
+exit $?
 
 #  Exercise (easy):
 #  ---------------

@@ -4,9 +4,10 @@
 #  Written by Rick Boivie.
 #  Used with permission.
 #  This is a revised and simplified version of a script
-#+ by Jordi Sanfeliu (and patched by Ian Kjos).
+#+ by Jordi Sanfeliu (the original author), and patched by Ian Kjos.
 #  This script replaces the earlier version used in
 #+ previous releases of the Advanced Bash Scripting Guide.
+#  Copyright (c) 2002, by Jordi Sanfeliu, Rick Boivie, and Ian Kjos.
 
 # ==> Comments added by the author of this document.
 
@@ -19,11 +20,13 @@ for dir in `echo *`
 #  ==> but "dir in `echo *`" will not handle filenames with blanks.
 do
   if [ -d "$dir" ] ; then # ==> If it is a directory (-d)...
-  zz=0                    # ==> Temp variable, keeping track of directory level.
+  zz=0                    # ==> Temp variable, keeping track of
+                          #     directory level.
   while [ $zz != $1 ]     # Keep track of inner nested loop.
     do
       echo -n "| "        # ==> Display vertical connector symbol,
-                          # ==> with 2 spaces & no line feed in order to indent.
+                          # ==> with 2 spaces & no line feed
+                          #     in order to indent.
       zz=`expr $zz + 1`   # ==> Increment zz.
     done
 
@@ -46,8 +49,8 @@ done
 }
 
 if [ $# != 0 ] ; then
-  cd $1 # move to indicated directory.
-  #else # stay in current directory
+  cd $1   # Move to indicated directory.
+  #else   # stay in current directory
 fi
 
 echo "Initial directory = `pwd`"

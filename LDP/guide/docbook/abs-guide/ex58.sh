@@ -7,7 +7,7 @@ BACKUPFILE=backup-$(date +%m-%d-%Y)
 #                 Embeds date in backup filename.
 #                 Thanks, Joshua Tschida, for the idea.
 archive=${1:-$BACKUPFILE}
-#  If no backup-archive filename specified on command line,
+#  If no backup-archive filename specified on command-line,
 #+ it will default to "backup-MM-DD-YYYY.tar.gz."
 
 tar cvf - `find . -mtime -1 -type f -print` > $archive.tar

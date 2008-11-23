@@ -133,7 +133,7 @@ echo "Number of elements in array9:  ${#array9[@]}"
 
 
 # Just when you thought you were still in Kansas . . .
-array10=( ${array0[@]#"$zap"} )
+array10=( ${array0[@]#$zap} )
 echo
 echo "Elements in array10:  ${array10[@]}"
 # But, the asterisk in zap won't be interpreted if quoted.
@@ -148,7 +148,7 @@ echo "Elements in array10:  ${array10[@]}"
 #  Compare array8 with array9.
 
 #  Reiterating: No such thing as soft quotes!
-#  Nathan Coulter's explains:
+#  Nathan Coulter explains:
 #  Pattern matching of 'word' in ${parameter#word} is done after
 #+ parameter expansion and *before* quote removal.
 #  In the normal case, pattern matching is done *after* quote removal.

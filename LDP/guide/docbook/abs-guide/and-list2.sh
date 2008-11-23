@@ -1,11 +1,13 @@
 #!/bin/bash
 
 ARGS=1        # Number of arguments expected.
-E_BADARGS=65  # Exit value if incorrect number of args passed.
+E_BADARGS=85  # Exit value if incorrect number of args passed.
 
 test $# -ne $ARGS && \
+#    ^^^^^^^^^^^^ condition #1
 echo "Usage: `basename $0` $ARGS argument(s)" && exit $E_BADARGS
-#  If condition 1 tests true (wrong number of args passed to script),
+#                                             ^^
+#  If condition #1 tests true (wrong number of args passed to script),
 #+ then the rest of the line executes, and script terminates.
 
 # Line below executes only if the above test fails.

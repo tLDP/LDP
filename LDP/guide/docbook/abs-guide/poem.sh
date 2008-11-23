@@ -7,6 +7,7 @@ Line[2]="The beauty of inflections"
 Line[3]="Or the beauty of innuendoes,"
 Line[4]="The blackbird whistling"
 Line[5]="Or just after."
+# Note that quoting permits embedding whitespace.
 
 # Attribution.
 Attrib[1]=" Wallace Stevens"

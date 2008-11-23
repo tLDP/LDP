@@ -1,11 +1,12 @@
 #!/bin/bash
 
 # Adds up a specified column (of numbers) in the target file.
+# Floating-point (decimal) numbers okay, because awk can handle them.
 
 ARGS=2
-E_WRONGARGS=65
+E_WRONGARGS=85
 
-if [ $# -ne "$ARGS" ] # Check for proper no. of command line args.
+if [ $# -ne "$ARGS" ] # Check for proper number of command-line args.
 then
    echo "Usage: `basename $0` filename column-number"
    exit $E_WRONGARGS
@@ -22,7 +23,12 @@ column_number=$2
 #  This is done in the embedded awk script below.
 #  See the awk documentation for more details.
 
-# A multi-line awk script is invoked by:  awk ' ..... '
+# A multi-line awk script is here invoked by
+#   awk '
+#   ...
+#   ...
+#   ...
+#   '
 
 
 # Begin awk script.

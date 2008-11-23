@@ -26,4 +26,4 @@ groff -Tascii -man $1 | less
 #
 #   Thanks, S.C.
 
-exit 0
+exit $?   # See also the "maned.sh" script.

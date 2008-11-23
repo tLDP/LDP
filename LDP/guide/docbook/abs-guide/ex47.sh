@@ -1,8 +1,9 @@
 #!/bin/bash
 # printf demo
 
-PI=3.14159265358979
-DecimalConstant=31373
+declare -r PI=3.14159265358979     # Read-only variable, i.e., a constant.
+declare -r DecimalConstant=31373
+
 Message1="Greetings,"
 Message2="Earthling."
 

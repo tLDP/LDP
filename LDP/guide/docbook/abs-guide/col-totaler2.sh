@@ -5,28 +5,33 @@
 #  This one uses indirect references.
 
 ARGS=2
-E_WRONGARGS=65
+E_WRONGARGS=85
 
-if [ $# -ne "$ARGS" ] # Check for proper no. of command line args.
+if [ $# -ne "$ARGS" ] # Check for proper number of command-line args.
 then
    echo "Usage: `basename $0` filename column-number"
    exit $E_WRONGARGS
 fi
 
-filename=$1
-column_number=$2
+filename=$1         # Name of file to operate on.
+column_number=$2    # Which column to total up.
 
 #===== Same as original script, up to this point =====#
 
 
-# A multi-line awk script is invoked by   awk ' ..... '
+# A multi-line awk script is invoked by
+#   awk "
+#   ...
+#   ...
+#   ...
+#   "
 
 
 # Begin awk script.
 # ------------------------------------------------
 awk "
 
-{ total += \$${column_number} # indirect reference
+{ total += \$${column_number} # Indirect reference
 }
 END {
      print total
@@ -41,4 +46,4 @@ END {
 #  Thanks, Stephane Chazelas.
 
 
-exit 0
+exit $?

@@ -3,12 +3,12 @@
 
 #  The notorious "hailstone" or Collatz series.
 #  -------------------------------------------
-#  1) Get the integer "seed" from the command line.
-#  2) NUMBER &lt;--- seed
+#  1) Get the integer "seed" from the command-line.
+#  2) NUMBER &lt;-- seed
 #  3) Print NUMBER.
 #  4)  If NUMBER is even, divide by 2, or
 #  5)+ if odd, multiply by 3 and add 1.
-#  6) NUMBER &lt;--- result 
+#  6) NUMBER &lt;-- result 
 #  7) Loop back to step 3 (for specified number of iterations).
 #
 #  The theory is that every sequence,
@@ -17,14 +17,14 @@
 #+ even after fluctuating through a wide range of values.
 #
 #  This is an instance of an "iterate,"
-#+ an operation that feeds its output back into the input.
+#+ an operation that feeds its output back into its input.
 #  Sometimes the result is a "chaotic" series.
 
 
 MAX_ITERATIONS=200
-# For large seed numbers (&gt;32000), increase MAX_ITERATIONS.
+# For large seed numbers (&gt;32000), try increasing MAX_ITERATIONS.
 
-h=${1:-$$}                      #  Seed
+h=${1:-$$}                      #  Seed.
                                 #  Use $PID as seed,
                                 #+ if not specified as command-line arg.
 
@@ -35,9 +35,12 @@ echo
 for ((i=1; i<=MAX_ITERATIONS; i++))
 do
 
-echo -n "$h	"
-#          ^^^^^
-#           tab
+# echo -n "$h	"
+#            ^^^ 
+#            tab
+# printf does it better ...
+COLWIDTH=%7d
+printf $COLWIDTH $h
 
   let "remainder = h % 2"
   if [ "$remainder" -eq 0 ]   # Even?
@@ -59,7 +62,7 @@ done
 
 echo
 
-#  For more information on this mathematical function,
+#  For more information on this strange mathematical function,
 #+ see _Computers, Pattern, Chaos, and Beauty_, by Pickover, p. 185 ff.,
 #+ as listed in the bibliography.
 

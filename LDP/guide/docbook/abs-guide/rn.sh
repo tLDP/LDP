@@ -1,5 +1,6 @@
 #! /bin/bash
-#
+# rn.sh
+
 # Very simpleminded filename "rename" utility (based on "lowercase.sh").
 #
 #  The "ren" utility, by Vladimir Lanin (lanin@csd2.nyu.edu),
@@ -7,7 +8,7 @@
 
 
 ARGS=2
-E_BADARGS=65
+E_BADARGS=85
 ONE=1                     # For getting singular/plural right (see below).
 
 if [ $# -ne "$ARGS" ]
@@ -38,14 +39,10 @@ else
  echo "$number files renamed."
 fi 
 
-exit 0
+exit $?
 
 
 # Exercises:
 # ---------
-# What type of files will this not work on?
+# What types of files will this not work on?
 # How can this be fixed?
-#
-#  Rewrite this script to process all the files in a directory
-#+ containing spaces in their names, and to rename them,
-#+ substituting an underscore for each space.

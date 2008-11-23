@@ -5,7 +5,7 @@ E_NOARGS=85 # Command-line arg missing.
 BASE=16     # Hexadecimal.
 
 if [ -z "$1" ]
-then        # Need a command line argument.
+then        # Need a command-line argument.
   echo "Usage: $0 number"
   exit $E_NOARGS
 fi          # Exercise: add argument validity checking.

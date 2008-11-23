@@ -7,12 +7,12 @@
 # ==> These comments added by author of this document.
 
 if [ $# -eq 0 ]; then
-# ==> If no command line args present, then works on file redirected to stdin.
+# ==> If no command-line args present, then works on file redirected to stdin.
 	sed -e '1,/^$/d' -e '/^[ 	]*$/d'
 	# --> Delete empty lines and all lines until 
 	# --> first one beginning with white space.
 else
-# ==> If command line args present, then work on files named.
+# ==> If command-line args present, then work on files named.
 	for i do
 		sed -e '1,/^$/d' -e '/^[ 	]*$/d' $i
 		# --> Ditto, as above.

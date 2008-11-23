@@ -5,10 +5,10 @@
 # Compare this example to the "wf.sh" script later on.
 
 
-# Check for input file on command line.
+# Check for input file on command-line.
 ARGS=1
-E_BADARGS=65
-E_NOFILE=66
+E_BADARGS=85
+E_NOFILE=86
 
 if [ $# -ne "$ARGS" ]
 # Correct number of arguments passed to script?
@@ -25,7 +25,7 @@ fi
 
 
 
-########################################################
+#####################################################
 cat "$1" | xargs -n1 | \
 #  List the file, one word per line. 
 tr A-Z a-z | \
@@ -35,10 +35,11 @@ sed -e 's/\.//g'  -e 's/\,//g' -e 's/ /\
 #  Filter out periods and commas, and
 #+ change space between words to linefeed,
 sort | uniq -c | sort -nr
-#  Finally prefix occurrence count and sort numerically.
-########################################################
+#  Finally remove duplicates, prefix occurrence count
+#+ and sort numerically.
+#####################################################
 
 #  This does the same job as the "wf.sh" example,
 #+ but a bit more ponderously, and it runs more slowly (why?).
 
-exit 0
+exit $?

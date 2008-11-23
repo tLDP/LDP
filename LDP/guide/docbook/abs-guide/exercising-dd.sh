@@ -5,7 +5,7 @@
 # Somewhat modified by ABS Guide author.
 
 infile=$0       # This script.
-outfile=log.txt # This output file left behind.
+outfile=log.txt # Output file left behind.
 n=3
 p=5
 
@@ -16,6 +16,6 @@ dd if=$infile of=$outfile bs=1 skip=$((n-1)) count=$((p-n+1)) 2> /dev/null
 
 echo -n "hello world" | dd cbs=1 conv=unblock 2> /dev/null
 # Echoes "hello world" vertically.
-# Why? Newline after each character dd emits.
+# Why? A newline follows each character dd emits.
 
 exit 0

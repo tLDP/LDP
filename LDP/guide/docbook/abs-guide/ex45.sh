@@ -90,13 +90,13 @@ and 6 chars long is \"$b\"."
 
 
 #  The default behavior of the 'match' operations is to
-#+ search for the specified match at the ***beginning*** of the string.
+#+ search for the specified match at the BEGINNING of the string.
 #
-#        uses Regular Expressions
+#       Using Regular Expressions ...
 b=`expr match "$a" '[0-9]*'`               #  Numerical count.
 echo Number of digits at the beginning of \"$a\" is $b.
 b=`expr match "$a" '\([0-9]*\)'`           #  Note that escaped parentheses
-#                   ==      ==              + trigger substring match.
+#                   ==      ==             #+ trigger substring match.
 echo "The digits at the beginning of \"$a\" are \"$b\"."
 
 echo

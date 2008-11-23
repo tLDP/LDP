@@ -3,7 +3,7 @@
 # Script modified 10/09/03 at the suggestion of Bill Gradwohl.
 
 
-# Here we observe how 'getopts' processes command line arguments to script.
+# Here we observe how 'getopts' processes command-line arguments to script.
 # The arguments are parsed as "options" (flags) and associated arguments.
 
 # Try invoking this script with
@@ -17,7 +17,7 @@
 # (OPTIND is unreliable at stating where an option came from).
 #
 #  If an option expects an argument ("flag:"), then it will grab
-#+ whatever is next on the command line.
+#+ whatever is next on the command-line.
 
 NO_ARGS=0 
 E_OPTERROR=65
@@ -48,7 +48,7 @@ done
 
 shift $(($OPTIND - 1))
 #  Decrements the argument pointer so it points to next argument.
-#  $1 now references the first non option item supplied on the command line
+#  $1 now references the first non option item supplied on the command-line
 #+ if one exists.
 
 exit 0

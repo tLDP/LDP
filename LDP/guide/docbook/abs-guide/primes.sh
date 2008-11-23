@@ -28,14 +28,17 @@ Primes()
    return
    done
 
-   Primes $n $@ $n            # Recursion outside loop.
-                              # Successively accumulate positional parameters.
-                              # "$@" is the accumulating list of primes.
+   Primes $n $@ $n            #  Recursion outside loop.
+                              #  Successively accumulate
+			      #+ positional parameters.
+                              #  "$@" is the accumulating list of primes.
 }
 
 Primes 1
 
-exit $?  # Pipe output of the script to 'fmt' for prettier printing.
+exit $?
+
+# Pipe output of the script to 'fmt' for prettier printing.
 
 #  Uncomment lines 16 and 24 to help figure out what is going on.
 
@@ -43,4 +46,4 @@ exit $?  # Pipe output of the script to 'fmt' for prettier printing.
 #+ with the Sieve of Eratosthenes (ex68.sh).
 
 
-#  Exercise: Rewrite this script without recursion, for faster execution.
+#  Exercise: Rewrite this script without recursion.

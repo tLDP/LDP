@@ -44,7 +44,7 @@ Fatal () { Msg "$@"; exit 66; }
 PrintBases () {
     # Determine base of the number
     for i      # ==> in [list] missing...
-    do         # ==> so operates on command line arg(s).
+    do         # ==> so operates on command-line arg(s).
 	case "$i" in
 	    0b*)		ibase=2;;	# binary
 	    0x*|[a-f]*|[A-F]*)	ibase=16;;	# hexadecimal

@@ -2,12 +2,12 @@
 # Faxing (must have 'efax' package installed).
 
 EXPECTED_ARGS=2
-E_BADARGS=65
+E_BADARGS=85
 MODEM_PORT="/dev/ttyS2"   # May be different on your machine.
 #                ^^^^^      PCMCIA modem card default port.
 
 if [ $# -ne $EXPECTED_ARGS ]
-# Check for proper number of command line args.
+# Check for proper number of command-line args.
 then
    echo "Usage: `basename $0` phone# text-file"
    exit $E_BADARGS

@@ -19,4 +19,13 @@ echo | awk '
 #  Piping an empty "echo" to awk gives it dummy input,
 #+ and thus makes it unnecessary to supply a filename.
 
+echo "----"
+
+# And likewise:
+
+echo | awk '
+{ print index("'"${String}"'", "skid")      # 3
+}                                           # (skid starts at position 3)
+'   # The awk equivalent of "expr index" ...
+
 exit 0

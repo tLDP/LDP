@@ -23,7 +23,7 @@ case "$person" in
   # Accept upper or lowercase input.
   echo
   echo "Roland Evans"
-  echo "4321 Floppy Dr."
+  echo "4321 Flash Dr."
   echo "Hardscrabble, CO 80753"
   echo "(303) 734-9874"
   echo "(303) 734-9892 fax"

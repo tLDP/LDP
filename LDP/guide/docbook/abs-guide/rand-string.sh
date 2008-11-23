@@ -2,7 +2,7 @@
 # rand-string.sh
 # Generating an 8-character "random" string.
 
-if [ "-n $1" ]  #  If command line argument present,
+if [ "-n $1" ]  #  If command-line argument present,
 then            #+ then set start-string to it.
   str0="$1"
 else            #  Else use PID of script as start-string.

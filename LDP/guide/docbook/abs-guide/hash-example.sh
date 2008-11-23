@@ -1,6 +1,6 @@
 #!/bin/bash
 # hash-example.sh: Colorizing text.
-# Author: Mariusz Gniazdowski &lt;mgniazd-at-gmail.com&gt;
+# Author: Mariusz Gniazdowski &lt;mariusz.gn-at-gmail.com&gt;
 
 . Hash.lib      # Load the library of functions.
 

@@ -1,7 +1,9 @@
 #!/bin/bash
 # life.sh: "Life in the Slow Lane"
-# Version 0.2: Patched by Daniel Albers
-#+             to allow non-square grids as input.
+
+# Version 0.2:   Patched by Daniel Albers
+#+               to allow non-square grids as input.
+# Version 0.2.1: Added 2-second delay between generations.
 
 # ##################################################################### #
 # This is the Bash script version of John Conway's "Game of Life".      #
@@ -68,6 +70,7 @@ GENERATIONS=10          #  How many generations to cycle through.
 
 NONE_ALIVE=85           #  Exit status on premature bailout,
                         #+ if no cells left alive.
+DELAY=2                 #  Pause between generations, etc.
 TRUE=0
 FALSE=1
 ALIVE=0
@@ -311,11 +314,17 @@ sed -e 's/\./\. /g' -e 's/_/_ /g'` )
 clear          # Clear screen.
 
 echo #         Title
+setterm -reverse on
 echo "======================="
+setterm -reverse off
 echo "    $GENERATIONS generations"
 echo "           of"
 echo "\"Life in the Slow Lane\""
+setterm -reverse on
 echo "======================="
+setterm -reverse off
+
+sleep $DELAY   # Display "splash screen" for 2 seconds.
 
 
 # -------- Display first generation. --------
@@ -323,6 +332,7 @@ Gen0=`echo ${initial[@]}`
 display "$Gen0"           # Display only.
 echo; echo
 echo "Generation $generation  -  $alive alive"
+sleep $DELAY
 # -------------------------------------------
 
 
@@ -332,6 +342,7 @@ echo
 # ------- Display second generation. -------
 Cur=`echo ${initial[@]}`
 next_gen "$Cur"          # Update & display.
+sleep $DELAY
 # ------------------------------------------
 
 let "generation += 1"     # Increment generation count.
@@ -342,6 +353,7 @@ do
   Cur="$avar"
   next_gen "$Cur"
   let "generation += 1"
+  sleep $DELAY
 done
 # ==============================================================
 

@@ -14,12 +14,13 @@
 
 #  Pipe the output of this script to 'more'
 #+ so it doesn't scroll off the terminal.
+#  Or, redirect output to a file.
 
 
-# Subscript packed.
 declare -a array1=( zero1 one1 two1 )
-# Subscript sparse ([1] is not defined).
+# Subscript packed.
 declare -a array2=( [0]=zero2 [2]=two2 [3]=three2 )
+# Subscript sparse -- [1] is not defined.
 
 echo
 echo '- Confirm that the array is really subscript sparse. -'

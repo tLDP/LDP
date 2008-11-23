@@ -79,4 +79,4 @@ head -c4 /dev/urandom | od -N4 -tu4 | sed -ne '1s/.* //p'
 # An even simpler altenative to the above one-line script would be:
 #           head -c4 /dev/urandom| od -An -tu4
 
-exit 0
+exit

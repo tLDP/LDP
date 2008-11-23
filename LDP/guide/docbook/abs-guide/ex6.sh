@@ -27,22 +27,22 @@ ThisVariable=Value-of-ThisVariable
 #+ to characters disallowed in their names.
 : ${ThisVariable?}
 echo "Value of ThisVariable is $ThisVariable".
-echo
-echo
+
+echo; echo
 
 
 : ${ZZXy23AB?"ZZXy23AB has not been set."}
-#  If ZZXy23AB has not been set,
+#  Since ZZXy23AB has not been set,
 #+ then the script terminates with an error message.
 
 # You can specify the error message.
 # : ${variablename?"ERROR MESSAGE"}
 
 
-# Same result with:    dummy_variable=${ZZXy23AB?}
-#                      dummy_variable=${ZZXy23AB?"ZXy23AB has not been set."}
+# Same result with:   dummy_variable=${ZZXy23AB?}
+#                     dummy_variable=${ZZXy23AB?"ZXy23AB has not been set."}
 #
-#                      echo ${ZZXy23AB?} >/dev/null
+#                     echo ${ZZXy23AB?} >/dev/null
 
 #  Compare these methods of checking whether a variable has been set
 #+ with "set -u" . . .

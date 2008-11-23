@@ -7,9 +7,9 @@
 
 
 ARGS=2
-E_WRONGARGS=65
+E_WRONGARGS=85
 
-if [ $# -ne "$ARGS" ] # Check for proper no. of command line args.
+if [ $# -ne "$ARGS" ] # Check for proper number of command-line args.
 then
    echo "Usage: `basename $0` filename column-number"
    exit $E_WRONGARGS

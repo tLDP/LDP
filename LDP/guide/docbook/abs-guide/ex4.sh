@@ -9,7 +9,6 @@ ARGS=3         # Script requires 3 arguments.
 E_BADARGS=85   # Wrong number of arguments passed to script.
 
 if [ $# -ne "$ARGS" ]
-# Test number of arguments to script (always a good idea).
 then
   echo "Usage: `basename $0` old-pattern new-pattern filename"
   exit $E_BADARGS
@@ -38,4 +37,4 @@ sed -e "s/$old_pattern/$new_pattern/g" $file_name
 #+ occurence of $old_pattern on each line, not just the first.
 #  Read the 'sed' docs for an in-depth explanation.
 
-exit $?
+exit $?  # Redirect the output of this script to write to a file.

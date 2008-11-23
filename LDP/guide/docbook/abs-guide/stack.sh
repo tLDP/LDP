@@ -4,6 +4,7 @@
 #  Similar to the CPU stack, a push-down stack stores data items
 #+ sequentially, but releases them in reverse order, last-in first-out.
 
+
 BP=100            #  Base Pointer of stack array.
                   #  Begin at element 100.
 
@@ -13,6 +14,14 @@ SP=$BP            #  Stack Pointer.
 Data=             #  Contents of stack location.  
                   #  Must use global variable,
                   #+ because of limitation on function return range.
+
+
+                  # 100     Base pointer       <-- Base Pointer
+                  #  99     First data item
+                  #  98     Second data item
+                  # ...     More data
+                  #         Last data item     <-- Stack pointer
+
 
 declare -a stack
 
@@ -71,16 +80,16 @@ push garbage
 pop
 status_report     # Garbage in, garbage out.      
 
-value1=23; push $value1
-value2=skidoo; push $value2
-value3=FINAL; push $value3
+value1=23;        push $value1
+value2=skidoo;    push $value2
+value3=LAST;      push $value3
 
-pop              # FINAL
+pop               # LAST
 status_report
-pop              # skidoo
+pop               # skidoo
 status_report
-pop              # 23
-status_report    # Last-in, first-out!
+pop               # 23
+status_report     # Last-in, first-out!
 
 #  Notice how the stack pointer decrements with each push,
 #+ and increments with each pop.

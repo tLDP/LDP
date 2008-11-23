@@ -5,7 +5,7 @@
 #+ which helps speed up certain filesystem operations.
 
 ROOT_UID=0         # Root has $UID 0.
-E_WRONG_USER=65    # Not root?
+E_WRONG_USER=85    # Not root?
 
 FILE=/swap
 BLOCKSIZE=1024
@@ -22,7 +22,7 @@ fi
   
 
 blocks=${1:-$MINBLOCKS}          #  Set to default of 40 blocks,
-                                 #+ if nothing specified on command line.
+                                 #+ if nothing specified on command-line.
 # This is the equivalent of the command block below.
 # --------------------------------------------------
 # if [ -n "$1" ]

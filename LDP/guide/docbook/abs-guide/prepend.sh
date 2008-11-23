@@ -5,7 +5,7 @@
 #+ and slightly modified by document author.
 
 
-E_NOSUCHFILE=65
+E_NOSUCHFILE=85
 
 read -p "File: " file   # -p arg to 'read' displays prompt.
 if [ ! -e "$file" ]
@@ -19,12 +19,17 @@ cat - $file &lt;&lt;&lt;$title &gt; $file.new
 
 echo "Modified file is $file.new"
 
-exit 0
+exit  # Ends script execution.
 
-# from 'man bash':
-# Here Strings
-# 	A variant of here documents, the format is:
-# 
-# 		&lt;&lt;&lt;word
-# 
-# 	The word is expanded and supplied to the command on its standard input.
+  from 'man bash':
+  Here Strings
+  	A variant of here documents, the format is:
+  
+  		&lt;&lt;&lt;word
+  
+  	The word is expanded and supplied to the command on its standard input.
+
+
+  Of course, the following also works:
+   sed -e '1i\
+   Title: ' $file

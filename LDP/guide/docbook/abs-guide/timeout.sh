@@ -13,7 +13,7 @@ timedout_read() {
   stty -icanon min 0 time ${timeout}0
   eval read $varname      # or just  read $varname
   stty "$old_tty_settings"
-  # See man page for "stty".
+  # See man page for "stty."
 }
 
 echo; echo -n "What's your name? Quick! "
@@ -25,7 +25,7 @@ timedout_read $INTERVAL your_name
 
 echo
 
-if [ ! -z "$your_name" ]  # If name input before timeout...
+if [ ! -z "$your_name" ]  # If name input before timeout ...
 then
   echo "Your name is $your_name."
 else
@@ -34,7 +34,7 @@ fi
 
 echo
 
-# The behavior of this script differs somewhat from "timed-input.sh".
+# The behavior of this script differs somewhat from "timed-input.sh."
 # At each keystroke, the counter resets.
 
 exit 0

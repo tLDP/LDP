@@ -14,7 +14,7 @@
 
 E_BADARGS=66
 
-if test -z "$1"  # No command line arg supplied?
+if test -z "$1"  # No command-line arg supplied?
 then
   echo "Usage: `basename $0` Process(es)_to_kill"
   exit $E_BADARGS

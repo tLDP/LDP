@@ -19,7 +19,7 @@ DEST=${1:-/var/www/html/fedora/updates/}
 LOG=/tmp/repo-update-$(/bin/date +%Y-%m-%d).txt
 PID_FILE=/var/run/${0##*/}.pid
 
-E_RETURN=65        # Something unexpected happened.
+E_RETURN=85        # Something unexpected happened.
 
 
 # General rsync options

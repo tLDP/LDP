@@ -17,4 +17,4 @@ Endofmessage
 #   cat &lt;&lt;"Endofmessage"
 #   cat &lt;&lt;\Endofmessage
 
-exit 0
+exit

@@ -8,7 +8,7 @@
 #  Sunsite requires "lsm" file, otherwise will bounce contributions.
 
 
-E_ARGERROR=65
+E_ARGERROR=85
 
 if [ -z "$1" ]
 then
@@ -22,7 +22,7 @@ Filename=`basename $1`           # Strips pathname out of file name.
 Server="ibiblio.org"
 Directory="/incoming/Linux"
 #  These need not be hard-coded into script,
-#+ but may instead be changed to command line argument.
+#+ but may instead be changed to command-line argument.
 
 Password="your.e-mail.address"   # Change above to suit.
 

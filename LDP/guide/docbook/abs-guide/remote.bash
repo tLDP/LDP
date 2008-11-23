@@ -14,7 +14,7 @@
 #   For any 'standard' distribution, it probably is,
 #+  and without any funky ssh-keygen having been done.
 
-# Try ssh to your machine from the command line:
+# Try ssh to your machine from the command-line:
 #
 # $ ssh $HOSTNAME
 # Without extra set-up you'll be asked for your password.
@@ -46,7 +46,7 @@ ls -l
 USER=${USERNAME:-$(whoami)}
 HOST=${HOSTNAME:-$(hostname)}
 
-#  Now excute the above command line on the remote host,
+#  Now excute the above command-line on the remote host,
 #+ with all transmissions encrypted.
 
 ssh -l ${USER} ${HOST} " ls -l "
@@ -61,7 +61,7 @@ ssh -l ${USER} ${HOST} " ls -l "
 #  In this case, sshd does  ' bash -c "ls -l" '   on your behalf.
 
 #  For information on topics such as not having to enter a
-#+ password/passphrase for every command line, see
+#+ password/passphrase for every command-line, see
 #+    man ssh
 #+    man ssh-keygen
 #+    man sshd_config.

@@ -10,4 +10,4 @@ perl -e 'print "This is an embedded Perl script.\n";'
 echo "==============================================================="
 echo "However, the script may also contain shell and system commands."
 
-exit 0
+exit

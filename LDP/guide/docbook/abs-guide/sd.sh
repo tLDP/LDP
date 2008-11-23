@@ -24,7 +24,7 @@ SC=9            # Scale to be used by bc. Nine decimal places.
 E_DATAFILE=90   # Data file error.
 
 # ----------------- Set data file ---------------------
-if [ ! -z $1 ]  # Specify filename as cmd-line arg?
+if [ ! -z "$1" ]  # Specify filename as cmd-line arg?
 then
   datafile="$1" #  ASCII text file,
 else            #+ one (numerical) data point per line!
@@ -95,8 +95,8 @@ echo
 
 exit
 
-# This script could stand some drastic streamlining,
-# but not at the cost of reduced legibility, please.
+#  This script could stand some drastic streamlining,
+#+ but not at the cost of reduced legibility, please.
 
 
 # ++++++++++++++++++++++++++++++++++++++++ #

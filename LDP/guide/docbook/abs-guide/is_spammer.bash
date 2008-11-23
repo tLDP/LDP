@@ -1596,7 +1596,7 @@ usage() {
     Set the environment variable SPAMMER_LIMIT to change.
     SPAMMER_LIMIT=0 means 'unlimited'
 
-    Limit may also be set on the command line.
+    Limit may also be set on the command-line.
     If arg#1 is an integer, the limit is set to that value
     and then the above argument rules are applied.
 
@@ -2010,28 +2010,28 @@ Do: ./is_spammer.bash
 
   (a) Starting with a single domain name:
 
-    i. Without a command line search limit: First 
+    i. Without a command-line search limit: First 
        argument to script.
 
-    ii. With a command line search limit: Second 
+    ii. With a command-line search limit: Second 
         argument to script.
 
   (b) Starting with a single IP address:
 
-    i. Without a command line search limit: First 
+    i. Without a command-line search limit: First 
        argument to script.
 
-    ii. With a command line search limit: Second 
+    ii. With a command-line search limit: Second 
         argument to script.
 
   (c) Starting with (mixed) multiple name(s) and/or address(es):
       Create a file with one name or address per line.
       Your choice of filename.
 
-    i. Without a command line search limit: Filename as 
+    i. Without a command-line search limit: Filename as 
        first argument to script.
 
-    ii. With a command line search limit: Filename as 
+    ii. With a command-line search limit: Filename as 
         second argument to script.
 
 6. What to do with the display output.

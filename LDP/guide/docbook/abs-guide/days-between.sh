@@ -6,8 +6,8 @@
 #+      that closed the loophole permitting large negative
 #+      integer return values.
 
-ARGS=2                # Two command line parameters expected.
-E_PARAM_ERR=65        # Param error.
+ARGS=2                # Two command-line parameters expected.
+E_PARAM_ERR=85        # Param error.
 
 REFYR=1600            # Reference year.
 CENTURY=100
@@ -27,7 +27,7 @@ month=
 year=
 
 
-Param_Error ()        # Command line parameters wrong.
+Param_Error ()        # Command-line parameters wrong.
 {
   echo "Usage: `basename $0` [M]M/[D]D/YYYY [M]M/[D]D/YYYY"
   echo "       (date must be after 1/3/1600)"
@@ -35,7 +35,7 @@ Param_Error ()        # Command line parameters wrong.
 }  
 
 
-Parse_Date ()                 # Parse date from command line params.
+Parse_Date ()                 # Parse date from command-line params.
 {
   month=${1%%/**}
   dm=${1%/**}                 # Day and month.
@@ -108,7 +108,7 @@ abs ()                             #  Absolute value
 
 
 
-if [ $# -ne "$ARGS" ]              # Require two command line params.
+if [ $# -ne "$ARGS" ]              # Require two command-line params.
 then
   Param_Error
 fi  
@@ -145,5 +145,5 @@ echo $diff
 exit 0
 
 #  Compare this script with
-#+ the implementation of Gauss' Formula in a C program at:
+#+ the implementation of Gauss' Formula in a C program at
 #+    http://buschencrew.hypermart.net/software/datedif

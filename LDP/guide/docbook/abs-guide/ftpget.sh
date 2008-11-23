@@ -1,7 +1,7 @@
 #! /bin/sh 
 # $Id$ 
 # Script to perform batch anonymous ftp. Essentially converts a list of
-# of command line arguments into input to ftp.
+# of command-line arguments into input to ftp.
 # ==> This script is nothing but a shell wrapper around "ftp" . . .
 # Simple, and quick - written as a companion to ftplist 
 # -h specifies the remote host (default prep.ai.mit.edu) 
@@ -62,7 +62,7 @@ trap 'rm -f ${TMPFILE} ; exit' 0   1     2              3        15
 echo "user anonymous ${USER-gnu}@${SITE} > ${TMPFILE}"
 # ==> Added quotes (recommended in complex echoes).
 echo binary >> ${TMPFILE}
-for i in $*   # ==> Parse command line args.
+for i in $*   # ==> Parse command-line args.
 do
 	case $i in
 	-v) verbflag=-v; echo hash >> ${TMPFILE}; shift;;

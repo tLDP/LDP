@@ -3,10 +3,10 @@
 # Script to automate burning a CDR.
 
 
-SPEED=2          # May use higher speed if your hardware supports it.
+SPEED=10         # May use higher speed if your hardware supports it.
 IMAGEFILE=cdimage.iso
 CONTENTSFILE=contents
-DEVICE=cdrom
+DEVICE=/dev/cdrom
 # DEVICE="0,0"     For older versions of cdrecord
 DEFAULTDIR=/opt  # This is the directory containing the data to be burned.
                  # Make sure it exists.
@@ -22,7 +22,7 @@ DEFAULTDIR=/opt  # This is the directory containing the data to be burned.
 if [ -z "$1" ]
 then
   IMAGE_DIRECTORY=$DEFAULTDIR
-  # Default directory, if not specified on command line.
+  # Default directory, if not specified on command-line.
 else
     IMAGE_DIRECTORY=$1
 fi
@@ -42,5 +42,7 @@ echo "Creating ISO9660 file system image ($IMAGEFILE)."
 echo "Burning the disk."
 echo "Please be patient, this will take a while."
 cdrecord -v -isosize speed=$SPEED dev=$DEVICE $IMAGEFILE
+#  In newer Linux distros, the "wodim" utility may assume the
+#+ functionality of "cdrecord."
 
 exit $?

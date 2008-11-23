@@ -17,7 +17,7 @@
 sed -e /^$/d "$1"
 # Same as
 #    sed -e '/^$/d' filename
-# invoked from the command line.
+# invoked from the command-line.
 
 #  The '-e' means an "editing" command follows (optional here).
 #  '^' indicates the beginning of line, '$' the end.
