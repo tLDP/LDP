@@ -5,7 +5,7 @@
 #  Uses "anagram" utility
 #+ that is part of the author's "yawl" word list package.
 #  http://ibiblio.org/pub/Linux/libs/yawl-0.3.2.tar.gz
-#  http://personal.riverusers.com/~thegrendel/yawl-0.3.2.tar.gz
+#  http://bash.neuralshortcircuit.com/yawl-0.3.2.tar.gz
 
 E_NOARGS=66
 E_BADARG=67

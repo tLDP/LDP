@@ -15,13 +15,11 @@ volume=$'\xc0'      # Max volume = \xff (or \x00).
 mute=$'\x80'        # No volume = \x80 (the middle).
 
 function mknote ()  # $1=Note Hz in bytes (e.g. A = 440Hz ::
-                    #+ 8000 fps / 440 = 16 :: A = 16 bytes per second)
-{
+{                   #+ 8000 fps / 440 = 16 :: A = 16 bytes per second)
   for t in `seq 0 $duration`
   do
     test $(( $t % $1 )) = 0 && echo -n $volume || echo -n $mute
   done
- 
 }
 
 e=`mknote 49`
@@ -39,4 +37,4 @@ echo -n "$g$e2$d$c$d$c$a$g$n$g$e$n$g$e2$d$c$c$b$c$cis$n$cis$d \
 $n$g$e2$d$c$d$c$a$g$n$g$e$n$g$a$d$c$b$a$b$c" > /dev/dsp
 # dsp = Digital Signal Processor
 
-exit $?   # A "bonny" example of a shell script!
+exit      # A "bonny" example of a shell script!

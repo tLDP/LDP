@@ -1,28 +1,30 @@
 #!/bin/bash
 # Killing ppp to force a log-off.
+# For dialup connection, of course.
 
 # Script should be run as root user.
 
-killppp="eval kill -9 `ps ax | awk '/ppp/ { print $1 }'`"
-#                     -------- process ID of ppp -------  
-
-$killppp                  # This variable is now a command.
-
-
-# The following operations must be done as root user.
-
-chmod 666 /dev/ttyS3      # Restore read+write permissions, or else what?
-#  Since doing a SIGKILL on ppp changed the permissions on the serial port,
-#+ we restore permissions to previous state.
-
-rm /var/lock/LCK..ttyS3   # Remove the serial port lock file. Why?
-
-#  Note:
+SERPORT=ttyS3
 #  Depending on the hardware and even the kernel version,
 #+ the modem port on your machine may be different --
 #+ /dev/ttyS1 or /dev/ttyS2.
 
-exit 0
+
+killppp="eval kill -9 `ps ax | awk '/ppp/ { print $1 }'`"
+#                     -------- process ID of ppp -------  
+
+$killppp                     # This variable is now a command.
+
+
+# The following operations must be done as root user.
+
+chmod 666 /dev/$SERPORT      # Restore r+w permissions, or else what?
+#  Since doing a SIGKILL on ppp changed the permissions on the serial port,
+#+ we restore permissions to previous state.
+
+rm /var/lock/LCK..$SERPORT   # Remove the serial port lock file. Why?
+
+exit $?
 
 # Exercises:
 # ---------

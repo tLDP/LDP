@@ -4,7 +4,7 @@
 ##############################################################
 # QUACKEY: a somewhat simplified version of Perquackey [TM]. #
 #                                                            #
-# Author: Mendel Cooper  &lt;thegrendel@theriver.com&gt;           #
+# Author: Mendel Cooper  &lt;thegrendel.abs@gmail.com&gt;          #
 # version 0.1.02      03 May, 2008                           #
 # License: GPL3                                              #
 ##############################################################
@@ -13,9 +13,9 @@ WLIST=/usr/share/dict/word.lst
 #                     ^^^^^^^^  Word list file found here.
 #  ASCII word list, one word per line, UNIX format.
 #  A suggested list is the script author's "yawl" word list package.
-#  http://ibiblio.org/pub/Linux/libs/yawl-0.3.2.tar.gz
+#  http://bash.neuralshortciruit.com/yawl-0.3.2.tar.gz
 #    or
-#  http://personal.riverusers.com/~thegrendel/yawl-0.3.2.tar.gz
+#  http://ibiblio.org/pub/Linux/libs/yawl-0.3.2.tar.gz
 
 NONCONS=0     # Word not constructable from letter set.
 CONS=1        # Constructable.
@@ -462,4 +462,4 @@ exit $?
 # 7) Fix bugs!!!
 
 # Reference for more info:
-# http://personal.riverusers.com/~thegrendel/qky.README.html
+# http://bash.neuralshortcircuit.com/qky.README.html

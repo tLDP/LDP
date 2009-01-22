@@ -3,7 +3,7 @@
 # A rudimentary man page editor
 
 # Version: 0.1 (Alpha, probably buggy)
-# Author: Mendel Cooper &lt;thegrendel@theriver.com&gt;
+# Author: Mendel Cooper &lt;thegrendel.abs@gmail.com&gt;
 # Reldate: 16 June 2008
 # License: GPL3
 

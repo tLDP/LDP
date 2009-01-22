@@ -144,6 +144,12 @@ echo $diff
 
 exit 0
 
+#  Exercise:
+#  --------
+#  If given only one command-line parameter, have the script
+#+ use today's date as the second.
+
+
 #  Compare this script with
 #+ the implementation of Gauss' Formula in a C program at
 #+    http://buschencrew.hypermart.net/software/datedif

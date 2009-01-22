@@ -1,16 +1,16 @@
 #!/bin/bash
 # pad.sh
 
-######################################################
+#######################################################
 #               PAD (xml) file creator
-#+ Written by Mendel Cooper &lt;thegrendel@theriver.com&gt;.
+#+ Written by Mendel Cooper &lt;thegrendel.abs@gmail.com&gt;.
 #+ Released to the Public Domain.
 #
 #  Generates a "PAD" descriptor file for shareware
 #+ packages, according to the specifications
 #+ of the ASP.
 #  http://www.asp-shareware.org/pad
-######################################################
+#######################################################
 
 
 # Accepts (optional) save filename as a command-line argument.

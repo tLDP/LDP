@@ -16,7 +16,7 @@
 # ==> Used in ABS Guide with the script author's permission.
 # ==> Comments added by ABS Guide author.
 
-NOARGS=65
+NOARGS=85
 PN=`basename "$0"`			       # Program name
 VER=`echo '$Revision$' | cut -d' ' -f2`  # ==> VER=1.2
 
@@ -31,10 +31,10 @@ A number may be
     hexadecimal (base 16)	starting with 0x (i.e. 0xc)
     decimal			otherwise (i.e. 12)" >&2
     exit $NOARGS 
-}   # ==> Function to print usage message.
+}   # ==> Prints usage message.
 
 Msg () {
-    for i   # ==> in [list] missing.
+    for i   # ==> in [list] missing. Why?
     do echo "$PN: $i" >&2
     done
 }
@@ -55,7 +55,7 @@ PrintBases () {
 		continue;;
 	esac
 
-	# Remove prefix, convert hex digits to uppercase (bc needs this)
+	# Remove prefix, convert hex digits to uppercase (bc needs this).
 	number=`echo "$i" | sed -e 's:^0[bBxX]::' | tr '[a-f]' '[A-F]'`
 	# ==> Uses ":" as sed separator, rather than "/".
 
@@ -89,15 +89,15 @@ do
 	--)     shift; break;;
 	-h)     Usage;;                 # ==> Help message.
 	-*)     Usage;;
-         *)     break;;                 # first number
-    esac   # ==> More error checking for illegal input might be useful.
+         *)     break;;                 # First number
+    esac   # ==> Error checking for illegal input might be appropriate.
     shift
 done
 
 if [ $# -gt 0 ]
 then
     PrintBases "$@"
-else					# read from stdin
+else					# Read from stdin.
     while read line
     do
 	PrintBases $line
@@ -105,4 +105,4 @@ else					# read from stdin
 fi
 
 
-exit 0
+exit

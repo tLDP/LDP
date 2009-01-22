@@ -5,8 +5,8 @@
 #        Soundex script
 #              by
 #         Mendel Cooper
-#     thegrendel@theriver.com
-#       23 January, 2002
+#     thegrendel.abs@gmail.com
+#     reldate: 23 January, 2002
 #
 #   Placed in the Public Domain.
 #
@@ -18,7 +18,7 @@
 
 
 ARGCOUNT=1                     # Need name as argument.
-E_WRONGARGS=70
+E_WRONGARGS=90
 
 if [ $# -ne "$ARGCOUNT" ]
 then
@@ -82,9 +82,9 @@ let "char_pos += 1"            # Bump character position to 2nd letter of name.
 name1=${name:$char_pos}
 
 
-# ++++++++++++++++++++++++++ Exception Patch +++++++++++++++++++++++++++++++++
-#  Now, we run both the input name and the name shifted one char to the right
-#+ through the value-assigning function.
+# ++++++++++++++++++++++++++ Exception Patch ++++++++++++++++++++++++++++++
+#  Now, we run both the input name and the name shifted one char
+#+ to the right through the value-assigning function.
 #  If we get the same value out, that means that the first two characters
 #+ of the name have the same value assigned, and that one should cancel.
 #  However, we also need to test whether the first letter of the name
@@ -111,7 +111,7 @@ then
 else  
   suffix=${s2:$char_pos}
 fi  
-# ++++++++++++++++++++++ end Exception Patch +++++++++++++++++++++++++++++++++
+# ++++++++++++++++++++++ end Exception Patch ++++++++++++++++++++++++++++++
 
 
 padding=000                    # Use at most 3 zeroes to pad.

@@ -9,8 +9,8 @@
 # ===========================================================
 #                 Standard Check for Script Argument(s)
 ARGS=1
-E_BADARGS=65
-E_NOFILE=66
+E_BADARGS=85
+E_NOFILE=86
 
 if [ $# -ne $ARGS ]
 then
@@ -31,7 +31,7 @@ WORDFILE=/usr/share/dict/linux.words  #  Dictionary file.
 #  May specify a different word list file
 #+ of one-word-per-line format.
 #  For example, the "yawl" word-list package,
-#  http://personal.riverusers.com/~thegrendel/yawl-0.3.2.tar.gz
+#  http://bash.neuralshortcircuit.com/yawl-0.3.2.tar.gz
 
 
 wlist=`strings "$1" | tr A-Z a-z | tr '[:space:]' Z | \

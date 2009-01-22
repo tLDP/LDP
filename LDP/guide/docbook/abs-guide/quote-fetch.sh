@@ -2,7 +2,7 @@
 # quote-fetch.sh: Download a stock quote.
 
 
-E_NOPARAMS=66
+E_NOPARAMS=86
 
 if [ -z "$1" ]  # Must specify a stock (symbol) to fetch.
   then echo "Usage: `basename $0` stock-symbol"

@@ -1,5 +1,5 @@
 #!/bin/bash
-# poem.sh: Pretty-prints one of the document author's favorite poems.
+# poem.sh: Pretty-prints one of the ABS Guide author's favorite poems.
 
 # Lines of the poem (single stanza).
 Line[1]="I do not know which to prefer,"

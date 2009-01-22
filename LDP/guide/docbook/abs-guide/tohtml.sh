@@ -23,7 +23,7 @@ IMGDIR="images"  # Image directory
 # Headers
 HDR01='&lt;!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"&gt;'
 HDR02='&lt;!-- Converted to HTML by ***tohtml.sh*** script --&gt;'
-HDR03='&lt;!-- script author: M. Leo Cooper &lt;thegrendel@theriver.com&gt; --&gt;'
+HDR03='&lt;!-- script author: M. Leo Cooper &lt;thegrendel.abs@gmail.com&gt; --&gt;'
 HDR10='&lt;html&gt;'
 HDR11='&lt;head&gt;'
 HDR11a='&lt;/head&gt;'

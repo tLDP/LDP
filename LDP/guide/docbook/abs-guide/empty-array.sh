@@ -2,7 +2,7 @@
 # empty-array.sh
 
 #  Thanks to Stephane Chazelas for the original example,
-#+ and to Michael Zick, Omair Eshkenazi, for extending it.
+#+ and to Michael Zick and Omair Eshkenazi, for extending it.
 #  And to Nathan Coulter for clarifications and corrections.
 
 
@@ -115,11 +115,12 @@ echo "Elements in array8:  ${array8[@]}"
 #+ that element disappears in the resulting assignment.
 #  However, if the expansion is in quotes, the null elements remain.
 
-#  Michael Zick: Question, are those strings hard or soft quotes?
-#  Nathan Coulter: There is no such thing as "soft quotes."
-#  What's really happening is that
-#+ the pattern matching happens after all the other expansions of [word]
-#+ in cases like ${parameter#word}.
+#  Michael Zick:    Question, are those strings hard or soft quotes?
+#  Nathan Coulter:  There is no such thing as "soft quotes."
+#!    What's really happening is that
+#!+   the pattern matching happens after
+#!+   all the other expansions of [word]
+#!+   in cases like ${parameter#word}.
 
 
 zap='new*'

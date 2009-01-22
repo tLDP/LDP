@@ -42,7 +42,7 @@ fi
 #+ and
 #+ default file "gen0" not present.
 
-E_NOSTARTFILE=68
+E_NOSTARTFILE=86
 
 if [ ! -e "$startfile" ]
 then
@@ -65,7 +65,7 @@ COLS=10
 #  ---------------------------------------------------------- #
 
 GENERATIONS=10          #  How many generations to cycle through.
-                        #  Adjust this upwards,
+                        #  Adjust this upwards
                         #+ if you have time on your hands.
 
 NONE_ALIVE=85           #  Exit status on premature bailout,
@@ -120,7 +120,7 @@ do
   fi  
 
   echo -n "$cell" | sed -e 's/_/ /g'
-  # Print out array and change underscores to spaces.
+  # Print out array, changing underscores to spaces.
 done  
 
 return
@@ -164,7 +164,7 @@ return $TRUE                          # Valid coordinate.
 
 
 IsAlive ()              #  Test whether cell is alive.
-                        #  Takes array, cell number,
+                        #  Takes array, cell number, and
 {                       #+ state of cell as arguments.
   GetCount "$1" $2      #  Get alive cell count in neighborhood.
   local nhbd=$?
@@ -179,7 +179,7 @@ IsAlive ()              #  Test whether cell is alive.
     return $ALIVE
   fi  
 
-  return $DEAD          # Dead by default.
+  return $DEAD          # Dead, by default.
 
 }  
 
@@ -222,7 +222,7 @@ GetCount ()             # Count live cells in passed cell's neighborhood.
     if [ $? -eq "$TRUE" ]
     then
       if [ ${array[$t_cen]} = "$ALIVE1" ] # Is it alive?
-      then                                # Yes?
+      then                                # If yes, then ...
         let "count += 1"                  # Increment count.
       fi	
     fi  
@@ -294,7 +294,7 @@ echo "Generation $generation  -  $alive alive"
 if [ "$alive" -eq 0 ]
 then
   echo
-  echo "Unexpected exit: no more cells alive!"
+  echo "Premature exit: no more cells alive!"
   exit $NONE_ALIVE        #  No point in continuing
 fi                        #+ if no live cells.
 
@@ -307,8 +307,8 @@ fi                        #+ if no live cells.
 
 # Load initial array with contents of startup file.
 initial=( `cat "$startfile" | sed -e '/#/d' | tr -d '\n' |\
-sed -e 's/\./\. /g' -e 's/_/_ /g'` )
 # Delete lines containing '#' comment character.
+           sed -e 's/\./\. /g' -e 's/_/_ /g'` )
 # Remove linefeeds and insert space between elements.
 
 clear          # Clear screen.
