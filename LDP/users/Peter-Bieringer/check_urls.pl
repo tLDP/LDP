@@ -6,6 +6,7 @@
 
 # 20060822/PB: major improvement, add support for persistent XML database
 # 20081109/PB: enhancement to detect URLs in newer lyx file format
+# 20090214/PB: detect IPv6 addresses in brackets and remove brackets, otherwise it won't work
 
 use strict;
 use Net::HTTP;
@@ -144,14 +145,22 @@ sub check_ipv6only($$) {
 	print STDERR "DEBUG/check_ipv6only: check: " . $_[0] . "\n" if ($debug & 0x10);
 
 	my ($family, $socktype, $proto, $saddr, $canonname, @res);
+	my ($host, $port);
+
+	$family = -1;
+
+	if ($_[0] =~ /^\[([0-9a-fA-F:]+)\]$/) {
+		# Strip [...]
+		$_[0] = $1;
+	};
 
 	@res = getaddrinfo($_[0], $_[1], AF_INET6, SOCK_STREAM);
 
 	if (scalar(@res) < 5) {
+		print STDERR "DEBUG/check_ipv6only: getaddrinfo fails\n" if ($debug & 0x10);
 		return 1;
 	};
 
-	my ($host, $port);
 	$family = -1;
 
 	while (scalar(@res) >= 5) {
