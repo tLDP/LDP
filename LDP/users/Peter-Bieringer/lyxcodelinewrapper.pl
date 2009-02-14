@@ -4,7 +4,7 @@
 #
 # LyX codeline wrapper tool
 #
-# (P) & (C) 2002 by Peter Bieringer <pb@bieringer.de>
+# (P) & (C) 2002-2009 by Peter Bieringer <pb@bieringer.de>
 #
 # Published under the GNU GPL licence
 #
@@ -18,6 +18,7 @@
 # Changes:
 #  20020118: Initial try
 #  20020119: Improve tool, do not touch code lines including LyX tags
+#  20090214/PB: adjustments for LyX format 345
 #
 # Known bugs:
 #  * Sure some
@@ -25,18 +26,19 @@
 # Known limitations:
 #  * Code lines containing LyX tags are currently not supported and skipped
 
+my $lyx_format_supported = "345";
+
 sub print_long_line ($);
 
 my $TAG_CODE = 0;
 my $line_carry = "";
 my $lines_original = "";
 my $line_limit = 79;
-my $linebreakchar = chr(172);
+#my $linebreakchar = chr(172);
+my $linebreakchar = "¬"; # UTF-8 support
 
-#for (my $i = 1; $i < 255; $i++) {
-#	print $i . chr($i) . "\n";
-#};
-#exit 1;
+#my $debug = 1;
+my $debug = 0;
 
 while (<STDIN>) {
 	my $line = $_;
@@ -44,45 +46,54 @@ while (<STDIN>) {
 
 	#print "$line";
 	#print "\n";
-
-	if ($line =~ /^\\layout Code$/ && $TAG_CODE != 1) {
+	#
+	if ($line =~ /^\\lyxformat ([0-9]+)$/) {
+		if ($1 ne $lyx_format_supported) {
+			die "Lyx format not supported: $1";
+		};
+	} elsif ($line =~ /^\\begin_layout Code$/ && $TAG_CODE != 1) {
 		print STDERR "INF: Code tag starts\n";
 		$TAG_CODE = 1;
 		$line_carry = "";
 		$lines_original = "";
 		next;
-	} elsif ($line =~ /^\\layout Code$/ && $TAG_CODE == 1) {
-		print STDERR "INF: Code tag end/starts\n";
+	} elsif ($line =~ /^\\end_layout$/ && $TAG_CODE == 1) {
+		print STDERR "INF: Code tag ends\n";
 
 		if ($lines_original =~ /\\/) {
 			# Ooops, lines contain a LyX tag, currently not supported, so let it be
-                	#print STDERR "WARN: Lines contain LyX code tag, let it like it is\n: '$lines_original'";
+	               	#print STDERR "WARN: Lines contain LyX code tag, let it like it is\n: '$lines_original'";
                 	print STDERR "WARN: Lines contain LyX code tag, let it like it is\n";
-			print "\\layout Code" . "\n" . $lines_original;
+			if ($debug & 0x01) { print "G"; };
+			print "\\begin_layout Code" . "\n" . $lines_original . "\\end_layout" . "\n";
 		} elsif ($lines_original =~ /$linebreakchar/) {
 			# Code line already wrapped
                 	print STDERR "INF: Code line already wrapped, let it like it is\n";
-			print "\\layout Code" . "\n" . $lines_original;
+			if ($debug & 0x01) { print "F"; };
+			print "\\begin_layout Code" . "\n" . $lines_original . "\\end_layout" . "\n";
 		} else {
 			print_long_line $line_carry;
 		};
 
-		$TAG_CODE = 1;
+		$TAG_CODE = 0;
 		$line_carry = "";
 		$lines_original = "";
 		next;
 	} elsif ($line =~ /^\\layout/ && $TAG_CODE == 1) {
+		die "unsupported";
                 print STDERR "INF: Code tag ends\n";
 
 		if ($lines_original =~ /\\/) {
 			# Ooops, lines contain a LyX tag, currently not supported, so let it be
                 	#print STDERR "WARN: Lines contain LyX code tag, let it like it is\n: '$lines_original'";
                 	print STDERR "WARN: Lines contain LyX code tag, let it like it is\n";
-			print "\\layout Code" . "\n" . $lines_original;
+			if ($debug & 0x01) { print "A"; };
+			print "\\begin_layout Code" . "\n" . $lines_original;
 		} elsif ($lines_original =~ /$linebreakchar/) {
 			# Code line already wrapped
                 	print STDERR "INF: Code line already wrapped, let it like it is\n";
-			print "\\layout Code" . "\n" . $lines_original;
+			if ($debug & 0x01) { print "B"; };
+			print "\\begin_layout Code" . "\n" . $lines_original;
 		} else {
 			print_long_line $line_carry;
 		};
@@ -117,7 +128,8 @@ sub print_long_line ($){
 	my $c = "";
 	
 	if (length($line) == 0) {
-		my $s = "\\layout Code" . "\n" . "\n"; 
+		if ($debug & 0x01) { print "C"; };
+		my $s = "\\begin_layout Code" . "\n" . "\n" . "\\end_layout" . "\n"; 
 		print $s;
 		return;
 	};
@@ -133,7 +145,8 @@ sub print_long_line ($){
 		}
 
 		if (length($line) - $l <= $line_limit) {
-			my $s = "\\layout Code" . "\n" . "\n" . $c . substr($line, $l) . "\n";
+			if ($debug & 0x01) { print "D"; };
+			my $s = "\\begin_layout Code" . "\n" . $c . substr($line, $l) . "\n" . "\\end_layout" . "\n";
                		print STDERR "INF:  Step end\n";
 			print $s;
 			print STDERR $s;
@@ -149,7 +162,8 @@ sub print_long_line ($){
 
 		if ($t == 0) { $t = $line_limit };
  		print STDERR "INF:  Start printing l=$l t=$t\n";
-		my $s = "\\layout Code" . "\n" . "\n" . $c . substr($line, $l, $t) . "\n";
+		if ($debug & 0x01) { print "E"; };
+		my $s = "\\begin_layout Code" . "\n" . $c . substr($line, $l, $t) . "\n" . "\\end_layout" . "\n\n";
 		print $s;
 		print STDERR $s;
 		$l = $l + $t;
