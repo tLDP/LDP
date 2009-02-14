@@ -4,6 +4,7 @@
 # 20020128/PB: change PDF generation to LDP conform one, PS is still not LDP conform
 # 20070401/PB: disable sgmlfixer (no longer needed)
 #              add support for XML file, replace nsgmls by onsgmls
+# 20090214/PB: remove </?dummy> tag from SGML, onsgmls don't like it
 
 # $Id$
 
@@ -104,6 +105,9 @@ validate_sgml() {
 			touch "$file_input.recoded"
 		fi
 	fi
+
+	# remove tags <dummy>, </dummy>
+	perl -pi -e 's|</?dummy>||g' "$file_input"
 
 	echo "INF: Validate SGML/XML code '$file_input'"
 	if [ "$doctype" = "XML" ]; then
