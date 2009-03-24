@@ -29,7 +29,8 @@ Password="your.e-mail.address"   # Change above to suit.
 ftp -n $Server &lt;&lt;End-Of-Session
 # -n option disables auto-logon
 
-user anonymous "$Password"
+user anonymous "$Password"       #  If this doesn't work, then try:
+                                 #  quote user anonymous "$Password"
 binary
 bell                             # Ring 'bell' after each file transfer.
 cd $Directory

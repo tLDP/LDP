@@ -6,8 +6,8 @@
 SPEED=10         # May use higher speed if your hardware supports it.
 IMAGEFILE=cdimage.iso
 CONTENTSFILE=contents
-DEVICE=/dev/cdrom
-# DEVICE="0,0"     For older versions of cdrecord
+# DEVICE=/dev/cdrom     For older versions of cdrecord
+DEVICE="1,0,0"
 DEFAULTDIR=/opt  # This is the directory containing the data to be burned.
                  # Make sure it exists.
                  # Exercise: Add a test for this.
@@ -41,8 +41,10 @@ echo "Creating ISO9660 file system image ($IMAGEFILE)."
 # Burn the CDR.
 echo "Burning the disk."
 echo "Please be patient, this will take a while."
-cdrecord -v -isosize speed=$SPEED dev=$DEVICE $IMAGEFILE
-#  In newer Linux distros, the "wodim" utility may assume the
+wodim -v -isosize dev=$DEVICE $IMAGEFILE
+#  In newer Linux distros, the "wodim" utility assumes the
 #+ functionality of "cdrecord."
+exitcode=$?
+echo "Exit code = $exitcode"
 
-exit $?
+exit $exitcode

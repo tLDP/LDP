@@ -10,8 +10,10 @@ echo "\$var   = $var"           # $var   = 23
 # So far, everything as expected. But ...
 
 echo "\$\$var  = $$var"         # $$var  = 4570var
-# Not meaningful. The contents of a memory location pointed to?
-# Not useful at this point.
+#  Not useful ...
+#  \$\$ expanded to PID of process being executed,
+#+ and "var" is echoed as plain text.
+#  (Thank you, Jakob Bohm, for pointing this out.)
 
 echo "\\\$\$var = \$$var"       # \$$var = $23
 #  As expected. The first $ is escaped and pasted on to

@@ -74,10 +74,10 @@ declare -a ArrayVar
 
 
 
-# The echo command is a built-in.
+# The echo command is a builtin.
 echo $VarSomething
 
-# The printf command is a built-in.
+# The printf command is a builtin.
 # Translate %s as: String-Format
 printf %s $VarSomething         # No linebreak specified, none output.
 echo                            # Default, only linebreak output.

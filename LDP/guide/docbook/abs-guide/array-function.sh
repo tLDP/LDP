@@ -51,4 +51,25 @@ echo "Passed array (within function) = ${passed_array[@]}"
 
 echo
 
+############################################
+
+# And here is an even more explicit example:
+
+ret_array ()
+{
+  for element in {11..20}
+  do
+    echo "$element "   #  Echo individual elements
+  done                 #+ of what will be assembled into an array.
+}
+
+arr=( $(ret_array) )   #  Assemble into array.
+
+echo "Capturing array \"arr\" from function ret_array () ..."
+echo "Third element of array \"arr\" is ${arr[2]}."   # 13  (zero-indexed)
+echo -n "Entire array is: "
+echo ${arr[@]}                # 11 12 13 14 15 16 17 18 19 20
+
+echo
+
 exit 0
