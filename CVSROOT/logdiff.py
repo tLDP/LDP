@@ -76,7 +76,7 @@ Where options is:
 # Config start
 
 # Which SMTP server we wanna use?
-our_smtp = "152.2.241.57"
+our_smtp = "152.46.7.36"
 addr_suffix = "tldp.org"
 passwd_users_file = "/etc/passwd"
 
