@@ -1,10 +1,19 @@
 #!/bin/sh
-
+#
+# (P) & (C) 2003 - 2009 by Dr. Peter Bieringer <pb@bieringer.de>
+#
+# Generator script
+#
+# Requires: htmldoc recode docbook-utils-pdf
+#
+# Changelog
+#
 # 20020117/PB: review
 # 20020128/PB: change PDF generation to LDP conform one, PS is still not LDP conform
 # 20070401/PB: disable sgmlfixer (no longer needed)
 #              add support for XML file, replace nsgmls by onsgmls
 # 20090214/PB: remove </?dummy> tag from SGML, onsgmls don't like it
+# 20090523/PB: extend required binary check
 
 # $Id$
 
@@ -45,6 +54,10 @@ DB2PS="/usr/bin/db2ps"
 DB2PDF="/usr/bin/db2pdf"
 LDP_PRINT="/usr/local/bin/ldp_print"
 PS2ASCII="/usr/bin/ps2ascii"
+RECODE="/usr/bin/recode"
+HTMLDOC="/usr/bin/htmldoc"
+
+checklist_bin="ONSGMLS JADE DB2PS DB2PDF LDP_PRINT PS2ASCII RECODE HTMLDOC"
 
 file_ps="$file_base.ps"
 file_pdf="$file_base.pdf"
@@ -77,13 +90,15 @@ for f in $file_ldpdsl $file_xmldcl; do
 done
 
 # look for required binaries
-for f in $LDP_PRINT $ONSGMLS $JADE $DB2PS $PS2ASCII $DB2PDF; do
+for name in $checklist_bin; do
+	f="${!name}"
+
 	if [ ! -e $f ]; then
-		echo "Missing file: $f"
+		echo "Missing file: $f ($name)"
 		exit 1
 	fi
 	if [ ! -x $f ]; then
-		echo "Cannot executue: $f"
+		echo "Cannot executue: $f ($name)"
 		exit 1
 	fi
 done
@@ -101,7 +116,7 @@ validate_sgml() {
 	if [ "$doctype" = "SGML" ]; then
 		if [ ! -f "$file_input.recoded" -o "$file_input" -nt "$file_input.recoded" ]; then
 			echo "INF: Recode SGML from UTF-8 to ISO8859-1 '$file_input'"
-			recode UTF-8..ISO8859-1 "$file_input"
+			$RECODE UTF-8..ISO8859-1 "$file_input"
 			touch "$file_input.recoded"
 		fi
 	fi
