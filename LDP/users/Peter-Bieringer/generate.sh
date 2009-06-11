@@ -278,4 +278,17 @@ fi
 #create_rtf
 #[ $? -ne 0 ] && exit 1
 
+## Add VGWort URL
+case $file_input in
+    'Linux+IPv6-HOWTO.sgml')
+	echo "NOTICE: add vgwort URL"
+	./adjust-html-vgwort.sh en
+	;;
+    'Linux+IPv6-HOWTO.de.sgml')
+	echo "NOTICE: add vgwort URL"
+	./adjust-html-vgwort.sh de
+	;;
+esac
+
+
 exit 0
