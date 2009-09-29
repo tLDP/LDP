@@ -20,7 +20,7 @@ do
     continue                # On to next.
    fi
 
-  ls -l $file | awk '{ print $9 "         file size: " $5 }'  # Print 2 fields.
+  ls -l $file | awk '{ print $8 "         file size: " $5 }'  # Print 2 fields.
   whatis `basename $file`   # File info.
   # Note that the whatis database needs to have been set up for this to work.
   # To do this, as root run /usr/bin/makewhatis.

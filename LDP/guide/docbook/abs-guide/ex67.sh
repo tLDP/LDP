@@ -30,8 +30,7 @@ do    # List all the elements in the array.
   #    ${colors[index]} also works because it's within ${ ... } brackets.
   let "index = $index + 1"
   # Or:
-  #    index+=1
-  # if running Bash, version 3.1 or later.
+  #    ((index++))
 done
 # Each array element listed on a separate line.
 # If this is not desired, use  echo -n "${colors[$index]} "

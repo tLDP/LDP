@@ -10,8 +10,8 @@
 
 
 MAX_ARG=5
-E_WRONG_ARGS=65
-E_RANGE_ERR=66
+E_WRONG_ARGS=85
+E_RANGE_ERR=86
 
 
 if [ -z "$1" ]
@@ -22,7 +22,7 @@ fi
 
 if [ "$1" -gt $MAX_ARG ]
 then
-  echo "Out of range (5 is maximum)."
+  echo "Out of range ($MAX_ARG is maximum)."
   #  Let's get real now.
   #  If you want greater range than this,
   #+ rewrite it in a Real Programming Language.

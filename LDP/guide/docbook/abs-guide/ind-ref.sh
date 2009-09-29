@@ -11,7 +11,8 @@ echo "\$var   = $var"           # $var   = 23
 
 echo "\$\$var  = $$var"         # $$var  = 4570var
 #  Not useful ...
-#  \$\$ expanded to PID of process being executed,
+#  \$\$ expanded to PID of the script
+#  -- refer to the entry on the $$ variable --
 #+ and "var" is echoed as plain text.
 #  (Thank you, Jakob Bohm, for pointing this out.)
 
@@ -71,7 +72,8 @@ echo
 # (Thanks, Stephane Chazelas, for clearing up the above behavior.)
 
 
-# Another method is the ${!t} notation, discussed in "Bash, version 2" section.
-# See also ex78.sh.
+#   A more straightforward method is the ${!t} notation, discussed in the
+#+ "Bash, version 2" section.
+#   See also ex78.sh.
 
 exit 0

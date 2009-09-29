@@ -62,7 +62,7 @@ sift () # Sift out the non-primes.
 {
 
 let i=$LOWER_LIMIT+1
-# We know 1 is prime, so let's start with 2.
+# Let's start with 2.
 
 until [ "$i" -gt "$UPPER_LIMIT" ]
 do

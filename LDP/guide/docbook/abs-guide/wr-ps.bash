@@ -26,7 +26,7 @@ done < <( echo "random input" )
 #    ^ ^
 
 echo "\$global (using process substitution) = $global"
-# random input
+# Random input
 # $global (using process substitution) = 3D: Available outside the loop.
 
 
@@ -60,6 +60,6 @@ do
   # It does *not* run in a subshell, so ...
 done < <( cat $0 )
 echo "OUTPUT = "
-echo ${outloop[*]}                    # ... the entire script echoes.
+echo ${outloop[*]}          # ... the entire script echoes.
 
 exit $?

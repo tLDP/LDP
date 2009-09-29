@@ -9,7 +9,10 @@ do
     echo "{$line}"
     last=$line
 done
-printf "\nAll done, last:$last\n"
+
+echo
+echo "++++++++++++++++++++++"
+printf "\nAll done, last: $last\n"
 
 exit 0  # End of code.
         # (Partial) output of script follows.
@@ -27,9 +30,10 @@ exit 0  # End of code.
 {echo "{$line}"}
 {last=$line}
 {done}
-{printf "nAll done, last:$lastn"}
+{printf "nAll done, last: $lastn"}
 
 
-All done, last:(null)
+All done, last: (null)
 
-The variable (last) is set within the subshell but unset outside.
+The variable (last) is set within the loop/subshell
+but its value does not persist outside the loop.

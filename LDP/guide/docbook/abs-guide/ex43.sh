@@ -18,6 +18,15 @@ echo
 echo "==========================================================="
 echo
 
+eval "`seq 3 | sed -e 's/.*/echo var&=ABCDEFGHIJ/'`"
+# var1=ABCDEFGHIJ
+# var2=ABCDEFGHIJ
+# var3=ABCDEFGHIJ
+
+echo
+echo "==========================================================="
+echo
+
 
 # Now, showing how to do something useful with "eval" . . .
 # (Thank you, E. Choroba!)

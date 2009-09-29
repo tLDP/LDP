@@ -1,14 +1,15 @@
 #!/bin/bash
 # unset.sh: Unsetting a variable.
 
-variable=hello                       # Initialized.
+variable=hello                       #  Initialized.
 echo "variable = $variable"
 
-unset variable                       # Unset.
-                                     # Same effect as:  variable=
-echo "(unset) variable = $variable"  # $variable is null.
+unset variable                       #  Unset.
+                                     #  In this particular context,
+                                     #+ same effect as:   variable=
+echo "(unset) variable = $variable"  #  $variable is null.
 
-if [ -z "$variable" ]                # Try a string-length test.
+if [ -z "$variable" ]                #  Try a string-length test.
 then
   echo "\$variable has zero length."
 fi

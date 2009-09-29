@@ -28,7 +28,7 @@ column_number=$2    # Which column to total up.
 
 
 # Begin awk script.
-# ------------------------------------------------
+# -------------------------------------------------
 awk "
 
 { total += \$${column_number} # Indirect reference
@@ -38,7 +38,8 @@ END {
      }
 
      " "$filename"
-# ------------------------------------------------
+# Note that awk doesn't need an eval preceding \$$.
+# -------------------------------------------------
 # End awk script.
 
 #  Indirect variable reference avoids the hassles

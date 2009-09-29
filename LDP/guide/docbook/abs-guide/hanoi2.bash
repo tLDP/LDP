@@ -5,38 +5,41 @@
 # http://hanoi.kernelthread.com
 
 #  hanoi2.bash
-#  Version 2: modded for ASCII-graphic display.
+#  Version 2.00: modded for ASCII-graphic display.
+#  Version 2.01: fixed no command-line param bug.
 #  Uses code contributed by Antonio Macchi,
 #+ with heavy editing by ABS Guide author.
-#  This variant also falls under the original copyright, see above.
+#  This variant falls under the original copyright, see above.
 #  Used in ABS Guide with Amit Singh's permission (thanks!).
 
 
-#   Variables   #
+###   Variables && sanity check   ###
+
 E_NOPARAM=86
-E_BADPARAM=87   # Illegal no. of disks passed to script.
+E_BADPARAM=87           # Illegal no. of disks passed to script.
 E_NOEXIT=88
-DISKS=$1
+
+DISKS=${1:-E_NOPARAM}   # Must specify how many disks.
 Moves=0
 
 MWIDTH=7
 MARGIN=2
-# Arbitrary "magic" constants, work okay for relatively small # of disks.
+# Arbitrary "magic" constants; work okay for relatively small # of disks.
 # BASEWIDTH=51   # Original code.
-let "basewidth = $MWIDTH * $DISKS + $MARGIN" # "Base" beneath rods.
+let "basewidth = $MWIDTH * $DISKS + $MARGIN"       # "Base" beneath rods.
 # Above "algorithm" could likely stand improvement.
 
-# Display variables.
+###   Display variables   ###
 let "disks1 = $DISKS - 1"
 let "spaces1 = $DISKS" 
 let "spaces2 = 2 * $DISKS" 
 
-let "lastmove_t = $DISKS - 1"                # Final move?
+let "lastmove_t = $DISKS - 1"                      # Final move?
 
 
 declare -a Rod1 Rod2 Rod3
 
-#################
+###   #########################   ###
 
 
 function repeat  {  # $1=char $2=number of repetitions
@@ -131,6 +134,7 @@ then   # Last move? If yes, then display final position.
   fi
 }
 
+
 # From here down, almost the same as original (hanoi.bash) script.
 
 dohanoi() {   # Recursive function.
@@ -151,6 +155,7 @@ dohanoi() {   # Recursive function.
         ;;
     esac
 }
+
 
 setup_arrays ()
 {
@@ -179,7 +184,7 @@ case $# in
        1)
            disks=$1
            dohanoi $1 1 3 2
-#          Total moves = 2^n - 1, where n = # of disks.
+#          Total moves = 2^n - 1, where n = number of disks.
 	   echo
            exit 0;
            ;;
@@ -190,6 +195,7 @@ case $# in
        esac
     ;;
     *)
+       clear
        echo "usage: $0 N"
        echo "       Where \"N\" is the number of disks."
        exit $E_NOPARAM;

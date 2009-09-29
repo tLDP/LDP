@@ -6,7 +6,7 @@
 #+ since the decrypted password is sent in the clear.
 #  Use something like "ssh" if this is a concern.
 
-E_BADARGS=65
+E_BADARGS=85
 
 if [ -z "$1" ]
 then

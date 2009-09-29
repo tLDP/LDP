@@ -30,7 +30,7 @@ done | sort                                  # Otherwise file list is unsorted.
 #  As Dominik 'Aeneas' Schnitzer points out,
 #+ failing to quote  $( find $directory -type l )
 #+ will choke on filenames with embedded whitespace.
-#  Even this will only pick up the first field of each argument.
+#  containing whitespace. 
 
 exit 0
 

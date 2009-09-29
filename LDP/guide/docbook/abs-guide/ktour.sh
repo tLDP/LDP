@@ -4,7 +4,7 @@
 # author: mendel cooper
 # reldate: 12 Jan 2009
 # license: public domain
-# (Not much sense in GPLing something that's pretty much in the common
+# (Not much sense GPLing something that's pretty much in the common
 #+ domain anyhow.)
 
 ###################################################################
@@ -17,7 +17,7 @@
 #  Could it be that he has a habit of partying into the wee hours #
 #+ of the morning?                                                #
 #  Possibly he leaves pizza crusts in the bed, empty beer bottles #
-#+ all over the floor, and clogs the plumbing. ...                #
+#+ all over the floor, and clogs the plumbing. . . .              #
 #                                                                 #
 #  -------------------------------------------------------------  #
 #                                                                 #
