@@ -280,16 +280,20 @@ fi
 #[ $? -ne 0 ] && exit 1
 
 ## Add VGWort URL
-case $file_input in
-    'Linux+IPv6-HOWTO.sgml')
-	echo "NOTICE: add vgwort URL"
-	./adjust-html-vgwort.sh en
-	;;
-    'Linux+IPv6-HOWTO.de.sgml')
-	echo "NOTICE: add vgwort URL"
-	./adjust-html-vgwort.sh de
-	;;
-esac
+if [ -x ./adjust-html-vgwort.sh ]; then
+	case $file_input in
+	    'Linux+IPv6-HOWTO.sgml')
+		echo "NOTICE: add vgwort URL"
+		./adjust-html-vgwort.sh en
+		;;
+	    'Linux+IPv6-HOWTO.de.sgml')
+		echo "NOTICE: add vgwort URL"
+		./adjust-html-vgwort.sh de
+		;;
+	esac
+else
+	echo "NOTICE : can't add vgwort URL (missing adjust-html-vgwort.sh)"
+fi
 
 
 exit 0
