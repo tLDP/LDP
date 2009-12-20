@@ -14,6 +14,7 @@
 #              add support for XML file, replace nsgmls by onsgmls
 # 20090214/PB: remove </?dummy> tag from SGML, onsgmls don't like it
 # 20090523/PB: extend required binary check
+# 20091220/PB: catch recode problem
 
 # $Id$
 
@@ -116,7 +117,7 @@ validate_sgml() {
 	if [ "$doctype" = "SGML" ]; then
 		if [ ! -f "$file_input.recoded" -o "$file_input" -nt "$file_input.recoded" ]; then
 			echo "INF: Recode SGML from UTF-8 to ISO8859-1 '$file_input'"
-			$RECODE UTF-8..ISO8859-1 "$file_input"
+			$RECODE UTF-8..ISO8859-1 "$file_input" || return 1
 			touch "$file_input.recoded"
 		fi
 	fi
