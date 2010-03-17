@@ -38,13 +38,13 @@ echo -n "$n "
 let "n++"          # let "++n"  also works.
 echo -n "$n "
 
-(( n++ ))          # (( ++n )  also works.
+(( n++ ))          # (( ++n ))  also works.
 echo -n "$n "
 
 : $(( n++ ))       # : $(( ++n )) also works.
 echo -n "$n "
 
-: $[ n++ ]         # : $[ ++n ]] also works
+: $[ n++ ]         # : $[ ++n ] also works
 echo -n "$n "
 
 echo

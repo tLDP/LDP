@@ -1,4 +1,5 @@
 #!/bin/bash
+# arith-tests.sh
 # Arithmetic tests.
 
 # The (( ... )) construct evaluates and tests numerical expressions.
@@ -15,6 +16,10 @@ echo "Exit status of \"(( 5 > 4 ))\" is $?."     # 0
 
 (( 5 > 9 ))                                      # false
 echo "Exit status of \"(( 5 > 9 ))\" is $?."     # 1
+
+(( 5 == 5 ))                                     # true
+echo "Exit status of \"(( 5 == 5 ))\" is $?."    # 0
+# (( 5 = 5 ))  gives an error message.
 
 (( 5 - 5 ))                                      # 0
 echo "Exit status of \"(( 5 - 5 ))\" is $?."     # 1

@@ -21,4 +21,4 @@ exit
 #  Fix this script to accept user input not specified in
 #+ the "select" statement.
 #  For example, if the user inputs "peas,"
-#+ The script would respond "Sorry. That is not on the menu."
+#+ the script would respond "Sorry. That is not on the menu."
