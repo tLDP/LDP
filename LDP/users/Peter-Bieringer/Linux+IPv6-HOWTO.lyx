@@ -1,4 +1,4 @@
-#LyX 1.6.4 created this file. For more info see http://www.lyx.org/
+#LyX 1.6.5 created this file. For more info see http://www.lyx.org/
 \lyxformat 345
 \begin_document
 \begin_header
@@ -12708,23 +12708,6 @@ Quality of Service (QoS)
 
 \begin_layout Standard
 IPv6 supports QoS with use of Flow Labels and Traffic Classes.
- This can be controlled using 
-\begin_inset Quotes sld
-\end_inset
-
-tc
-\begin_inset Quotes srd
-\end_inset
-
- (contained in package 
-\begin_inset Quotes sld
-\end_inset
-
-iproute
-\begin_inset Quotes srd
-\end_inset
-
-).
 \end_layout
 
 \begin_layout Standard
@@ -12744,8 +12727,293 @@ target "http://www.faqs.org/rfcs/rfc3697.html"
 
 \end_layout
 
+\begin_layout Section
+General
+\end_layout
+
 \begin_layout Standard
-more to be filled...
+Proper working QoS is only possible on the outgoing interface of a router
+ or node, where the bottleneck begins.
+ Everything else is a hickup and not subject to work as expected or has
+ a successful result.
+\end_layout
+
+\begin_layout Code
+-------------->-------
+\end_layout
+
+\begin_layout Code
+           Queue 1    
+\backslash
+
+\end_layout
+
+\begin_layout Code
+           --->---     ---->--------->--------->---------------
+\end_layout
+
+\begin_layout Code
+Big pipe   Queue 2      Queue 1 / Queue 2 / Queue 3   Thin Pipe
+\end_layout
+
+\begin_layout Code
+           --->----    ---->--------->--------->---------------
+\end_layout
+
+\begin_layout Code
+           Queue 3    /
+\end_layout
+
+\begin_layout Code
+-------------->-------
+\end_layout
+
+\begin_layout Section
+Linux QoS using 
+\begin_inset Quotes sld
+\end_inset
+
+tc
+\begin_inset Quotes srd
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Linux is using 
+\begin_inset Quotes sld
+\end_inset
+
+tc
+\begin_inset Quotes srd
+\end_inset
+
+ from the 
+\begin_inset Quotes sld
+\end_inset
+
+iproute2
+\begin_inset Quotes srd
+\end_inset
+
+ package to configure traffic shaping, generally described in the 
+\begin_inset CommandInset href
+LatexCommand href
+name "Linux Advanced Routing & Traffic Control HOWTO"
+target "http://lartc.org/"
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Subsection
+Example for a constant bitrate queuing
+\end_layout
+
+\begin_layout Standard
+With the 
+\begin_inset Quotes sld
+\end_inset
+
+cbq
+\begin_inset Quotes srd
+\end_inset
+
+ scheduler, pipes with constant bit rates can be defined.
+\end_layout
+
+\begin_layout Subsubsection
+Root qdisc definition
+\end_layout
+
+\begin_layout Standard
+Define root qdisc with a bandwidth of 1000 MBit/s on eth1
+\end_layout
+
+\begin_layout Code
+# tc qdisc add dev eth1 root handle 1: cbq avpkt 1000 bandwidth 1000Mbit
+\end_layout
+
+\begin_layout Subsubsection
+QoS class definition
+\end_layout
+
+\begin_layout Standard
+Define a class 1:1 with 1 MBit/s
+\end_layout
+
+\begin_layout Code
+# tc class add dev eth1 parent 1: classid 1:1 cbq rate   1Mbit allot 1500
+ bounded 
+\end_layout
+
+\begin_layout Standard
+Define a class 1:2 with 50 MBit/s
+\end_layout
+
+\begin_layout Code
+# tc class add dev eth1 parent 1: classid 1:2 cbq rate  50Mbit allot 1500
+ bounded
+\end_layout
+
+\begin_layout Standard
+Define a class 1:3 with 10 MBit/s
+\end_layout
+
+\begin_layout Code
+# tc class add dev eth1 parent 1: classid 1:3 cbq rate  10Mbit allot 1500
+ bounded
+\end_layout
+
+\begin_layout Standard
+Define a class 1:4 with 200 kBit/s
+\end_layout
+
+\begin_layout Code
+# tc class add dev eth1 parent 1: classid 1:4 cbq rate 200kbit allot 1500
+ bounded
+\end_layout
+
+\begin_layout Subsubsection
+QoS filter definition
+\end_layout
+
+\begin_layout Standard
+Define a filter for IPv4 (
+\emph on
+protocol ip
+\emph default
+), TCP (
+\emph on
+match ip protocol 6 0xff
+\emph default
+) destination port 5001 (
+\emph on
+match ip dport 5001 0xffff
+\emph default
+) using class 1:2 from above
+\end_layout
+
+\begin_layout Code
+# tc filter add dev eth1 parent 1: protocol ip   u32 match ip  protocol
+ 6 0xff match ip dport 5001 0xffff flowid 1:1
+\end_layout
+
+\begin_layout Standard
+Define a filter for IPv6 (
+\emph on
+protocol ip
+\emph default
+), TCP (
+\emph on
+match ip6 protocol 6 0xff
+\emph default
+) destination port 5001 using class 1:2 from above
+\end_layout
+
+\begin_layout Code
+# tc filter add dev eth1 parent 1: protocol ipv6 u32 match ip6 protocol
+ 6 0xff match ip6 dport 5001 0xffff flowid 1:2
+\end_layout
+
+\begin_layout Standard
+Define a filter for IPv6 for packets having flow label 0x12345 (
+\emph on
+match ip6 flowlabel 0x12345 0x3ffff
+\emph default
+) using class 1:3 from above
+\end_layout
+
+\begin_layout Code
+# tc filter add dev eth1 parent 1: protocol ipv6 u32 match ip6 flowlabel
+ 12345 0x3ffff flowid 1:3 
+\end_layout
+
+\begin_layout Standard
+Define a filter for IPv6 for packets having Linux iptables mark 32 (
+\emph on
+handle 32 fw
+\emph default
+) specified using class 1:4 from above
+\end_layout
+
+\begin_layout Code
+# tc filter add dev eth1 parent 1: protocol ipv6 handle 32 fw flowid 1:4
+\end_layout
+
+\begin_layout Standard
+The last filter definition requires an entry in the ip6tables to mark a
+ packet
+\end_layout
+
+\begin_layout Code
+# ip6tables -A POSTROUTING -t mangle -p tcp --dport 5003 -j MARK --set-mark
+ 32 
+\end_layout
+
+\begin_layout Subsubsection
+Testing filter definitions using iperf
+\end_layout
+
+\begin_layout Standard
+Start on server side each one one separate console:
+\end_layout
+
+\begin_layout Code
+# iperf -V -s -p 5001
+\end_layout
+
+\begin_layout Code
+# iperf -V -s -p 5002
+\end_layout
+
+\begin_layout Code
+# iperf -V -s -p 5003
+\end_layout
+
+\begin_layout Standard
+Start on client side and compare results:
+\end_layout
+
+\begin_layout Code
+# iperf -V -c SERVER-IPv4 -p 5001    (expected:      1 MBit/s)
+\end_layout
+
+\begin_layout Code
+# iperf -V -c SERVER-IPv6 -p 5001    (expected:     50 MBit/s)
+\end_layout
+
+\begin_layout Code
+# iperf -V -c SERVER-IPv4 -p 5002    (expected:  >> 50 MBit/s && <= 1000
+ MBit/s)
+\end_layout
+
+\begin_layout Code
+# iperf -V -c SERVER-IPv6 -p 5002    (expected:  >> 50 MBit/s && <= 1000
+ MBit/s)
+\end_layout
+
+\begin_layout Code
+# iperf -V -c SERVER-IPv4 -p 5003    (expected:  >> 50 MBit/s && <= 1000
+ MBit/s)
+\end_layout
+
+\begin_layout Code
+# iperf -V -c SERVER-IPv6 -p 5003    (expected:    200 kBit/s)
+\end_layout
+
+\begin_layout Standard
+As result, the result on client and server side should be as defined (see
+ above), the results on port 5002 should be very similar independend from
+ used IP protocol.
+\end_layout
+
+\begin_layout Standard
+Just note that currently, the filter which specifies the flowlabel can't
+ be tested, because lack of support somewhere in client programs (e.g.
+ traceroute, ping6).
 \end_layout
 
 \begin_layout Chapter
