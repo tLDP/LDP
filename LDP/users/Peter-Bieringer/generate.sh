@@ -58,7 +58,14 @@ PS2ASCII="/usr/bin/ps2ascii"
 RECODE="/usr/bin/recode"
 HTMLDOC="/usr/bin/htmldoc"
 
-checklist_bin="ONSGMLS JADE DB2PS DB2PDF LDP_PRINT PS2ASCII RECODE HTMLDOC"
+#LDP_PDFPS="yes"
+
+checklist_bin="ONSGMLS JADE DB2PS DB2PDF PS2ASCII RECODE HTMLDOC"
+
+if [ "$LDP_PDFPS" = "yes" ]; then
+	checklist_bin="$checklist_bin LDP_PRINT"
+fi
+
 
 file_ps="$file_base.ps"
 file_pdf="$file_base.pdf"
@@ -79,8 +86,6 @@ if [ ! -f $file_input ]; then
 	echo "ERR: Missing SGML file, perhaps export DocBook of LyX won't work"
 	exit 1
 fi
-
-LDP_PDFPS="yes"
 
 # look for required files
 for f in $file_ldpdsl $file_xmldcl; do
@@ -116,8 +121,8 @@ done
 validate_sgml() {
 	if [ "$doctype" = "SGML" ]; then
 		if [ ! -f "$file_input.recoded" -o "$file_input" -nt "$file_input.recoded" ]; then
-			echo "INF: Recode SGML from UTF-8 to ISO8859-1 '$file_input'"
-			$RECODE UTF-8..ISO8859-1 "$file_input" || return 1
+			echo "INF: Recode SGML from UTF8 to ISO8859-1 '$file_input'"
+			$RECODE UTF8..ISO8859-1 "$file_input" || return 1
 			touch "$file_input.recoded"
 		fi
 	fi
