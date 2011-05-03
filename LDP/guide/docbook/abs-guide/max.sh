@@ -7,7 +7,7 @@ EQUAL=251          # Return value if both params equal.
 #+ params that might be fed to the function.
 
 max2 ()             # Returns larger of two numbers.
-{                   # Note: numbers compared must be less than 257.
+{                   # Note: numbers compared must be less than 250.
 if [ -z "$2" ]
 then
   return $E_PARAM_ERR

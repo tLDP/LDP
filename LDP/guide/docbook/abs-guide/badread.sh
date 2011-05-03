@@ -3,6 +3,8 @@
 #  Attempting to use 'echo and 'read'
 #+ to assign variables non-interactively.
 
+#   shopt -s lastpipe
+
 a=aaa
 b=bbb
 c=ccc
@@ -15,6 +17,12 @@ echo "a = $a"  # a = aaa
 echo "b = $b"  # b = bbb
 echo "c = $c"  # c = ccc
 # Reassignment failed.
+
+### However . . .
+##  Uncommenting line 6:
+#   shopt -s lastpipe
+##+ fixes the problem!
+### This is a new feature in Bash, version 4.2.
 
 # ------------------------------
 

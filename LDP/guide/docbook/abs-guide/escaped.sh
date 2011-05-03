@@ -3,6 +3,10 @@
 
 echo; echo
 
+#############################################################
+### First, let's show some basic escaped-character usage. ###
+#############################################################
+
 # Escaping a newline.
 # ------------------
 
@@ -33,25 +37,37 @@ echo "QUOTATION MARK"
 echo -e "\042"       # Prints " (quote, octal ASCII character 42).
 echo "=============="
 
+
+
 # The $'\X' construct makes the -e option unnecessary.
+
 echo; echo "NEWLINE AND BEEP"
 echo $'\n'           # Newline.
 echo $'\a'           # Alert (beep).
 
-echo "==============="
+echo "---------------"
 echo "QUOTATION MARKS"
-# Version 2 and later of Bash permits using the $'\nnn' construct.
-# Note that in this case, '\nnn' is an octal value.
+echo "---------------"
+echo; echo; echo
+# Here we have seen $'\nnn" string expansion.
+
+# =================================================================== #
+# Version 2 of Bash introduced the $'\nnn' string expansion construct.
+# =================================================================== #
+
+echo "Introducing the \$\' ... \' string-expansion construct!"
+echo
+
 echo $'\t \042 \t'   # Quote (") framed by tabs.
+# Note that  '\nnn' is an octal value.
 
 # It also works with hexadecimal values, in an $'\xhhh' construct.
 echo $'\t \x22 \t'  # Quote (") framed by tabs.
 # Thank you, Greg Keraunen, for pointing this out.
 # Earlier Bash versions allowed '\x022'.
+
 echo "==============="
 echo
-
-
 
 
 

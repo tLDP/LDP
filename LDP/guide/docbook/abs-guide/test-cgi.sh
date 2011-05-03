@@ -1,13 +1,12 @@
 #!/bin/bash
-# May have to change the location for your site.
-# (At the ISP's servers, Bash may not be in the usual place.)
-# Other places: /usr/bin or /usr/local/bin
-# Might even try it without any path in sha-bang.
-
 # test-cgi.sh
 # by Michael Zick
 # Used with permission
 
+# May have to change the location for your site.
+# (At the ISP's servers, Bash may not be in the usual place.)
+# Other places: /usr/bin or /usr/local/bin
+# Might even try it without any path in sha-bang.
 
 # Disable filename globbing.
 set -f

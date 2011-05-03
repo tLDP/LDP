@@ -2,6 +2,7 @@
 # random-between.sh
 # Random number between two specified values. 
 # Script by Bill Gradwohl, with minor modifications by the document author.
+# Corrections in lines 187 and 189 by Anthony Le Clezio.
 # Used with permission.
 
 
@@ -184,9 +185,9 @@ done
 # Let's check the results
 
 for ((i=${minimum}; i<=${maximum}; i+=divisibleBy)); do
-   [ ${answer[i+displacement]} -eq 0 ] \
+   [ ${answer[i+disp]} -eq 0 ] \
    && echo "We never got an answer of $i." \
-   || echo "${i} occurred ${answer[i+displacement]} times."
+   || echo "${i} occurred ${answer[i+disp]} times."
 done
 
 

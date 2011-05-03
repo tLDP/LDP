@@ -75,7 +75,9 @@ mv mesg.temp messages               # Becomes new log directory.
 #* No longer needed, as the above method is safer.
 
 cat /dev/null > wtmp  #  ': > wtmp' and '> wtmp'  have the same effect.
-echo "Logs cleaned up."
+echo "Log files cleaned up."
+#  Note that there are other log files in /var/log not affected
+#+ by this script.
 
 exit 0
 #  A zero return value from the script upon exit indicates success

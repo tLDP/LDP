@@ -15,3 +15,8 @@ echo "Wilma's address is ${address[Wilma]}."
 # Wilma's address is 1854 Vermont Ave, Los Angeles, CA 90023.
 echo "John's address is ${address[John]}."
 # John's address is 202 E. 3rd St., New York, NY 10009.
+
+echo
+
+echo "${!address[*]}"   # The array indices ...
+# Charles John Wilma

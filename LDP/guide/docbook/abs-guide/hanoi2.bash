@@ -16,10 +16,10 @@
 ###   Variables && sanity check   ###
 
 E_NOPARAM=86
-E_BADPARAM=87           # Illegal no. of disks passed to script.
+E_BADPARAM=87            # Illegal no. of disks passed to script.
 E_NOEXIT=88
 
-DISKS=${1:-E_NOPARAM}   # Must specify how many disks.
+DISKS=${1:-$E_NOPARAM}   # Must specify how many disks.
 Moves=0
 
 MWIDTH=7

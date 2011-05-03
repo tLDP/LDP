@@ -1,8 +1,11 @@
 #!/bin/bash
+# connect-stat.sh
+#  Note that this script may need modification
+#+ to work with a wireless connection.
 
 PROCNAME=pppd        # ppp daemon
 PROCFILENAME=status  # Where to look.
-NOTCONNECTED=65
+NOTCONNECTED=85
 INTERVAL=2           # Update every 2 seconds.
 
 pidno=$( ps ax | grep -v "ps ax" | grep -v grep | grep $PROCNAME |
@@ -22,7 +25,7 @@ awk '{ print $1 }' )
 if [ -z "$pidno" ]   # If no pid, then process is not running.
 then
   echo "Not connected."
-  exit $NOTCONNECTED
+# exit $NOTCONNECTED
 else
   echo "Connected."; echo
 fi
@@ -34,7 +37,7 @@ do
   # While process running, then "status" file exists.
   then
     echo "Disconnected."
-    exit $NOTCONNECTED
+#   exit $NOTCONNECTED
   fi
 
 netstat -s | grep "packets received"  # Get some connect statistics.
@@ -54,3 +57,4 @@ exit 0
 #    ---------
 #    Improve the script so it exits on a "q" keystroke.
 #    Make the script more user-friendly in other ways.
+#    Fix the script to work with wireless/DSL connections.

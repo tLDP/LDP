@@ -5,7 +5,7 @@
 
 
 ARGCOUNT=1       # Expect one arg.
-E_WRONGARGS=65
+E_WRONGARGS=85
 
 file=/etc/passwd
 pattern=$1

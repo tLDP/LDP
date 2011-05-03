@@ -45,6 +45,7 @@ do
   # Now, retrieve value, using indirect referencing.
   echo "There are ${!Inv} of  [${!Val} ohm / ${!Pdissip} watt]\
   resistors in stock."  #        ^             ^
+  # As of Bash 4.2, you can replace "ohm" with \u2126 (using echo -e).
   echo "These are located in bin # ${!Loc}."
   echo "Their color code is \"${!Ccode}\"."
 
