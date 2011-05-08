@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# (P) & (C) 2003 - 2009 by Dr. Peter Bieringer <pb@bieringer.de>
+# (P) & (C) 2003 - 2011 by Dr. Peter Bieringer <pb@bieringer.de>
 #
 # Generator script
 #
@@ -15,8 +15,14 @@
 # 20090214/PB: remove </?dummy> tag from SGML, onsgmls don't like it
 # 20090523/PB: extend required binary check
 # 20091220/PB: catch recode problem
+# 20110508/PB: force UTF-8 as input format to fix mixed charset problems in HTML
+#              renice whole script
+#              support also ldp.dsl stored in same directory as the script
 
 # $Id$
+
+# Renice script
+renice -n 10 $$
 
 if [ -z "$1" ]; then
 	file_input="Linux+IPv6-HOWTO.sgml"
@@ -73,6 +79,15 @@ file_txt="$file_base.txt"
 file_html="$file_base.html"
 
 file_ldpdsl="/usr/local/share/sgml/dsssl/ldp.dsl"
+if [ ! -f $file_ldpdsl ]; then
+	# try local stored one
+	file_ldpdsl="`dirname $0`"
+	if [ "$file_ldpdsl" = "." ]; then
+		file_ldpdsl="`pwd`"
+	fi
+	file_ldpdsl="$file_ldpdsl/ldp.dsl"
+fi
+
 file_xmldcl="/usr/share/sgml/xml.dcl"
 dir_dssslstylesheets="/usr/share/sgml/docbook/dsssl-stylesheets"
 
@@ -119,14 +134,6 @@ done
 
 ## Functions
 validate_sgml() {
-	if [ "$doctype" = "SGML" ]; then
-		if [ ! -f "$file_input.recoded" -o "$file_input" -nt "$file_input.recoded" ]; then
-			echo "INF: Recode SGML from UTF8 to ISO8859-1 '$file_input'"
-			$RECODE UTF8..ISO8859-1 "$file_input" || return 1
-			touch "$file_input.recoded"
-		fi
-	fi
-
 	# remove tags <dummy>, </dummy>
 	perl -pi -e 's|</?dummy>||g' "$file_input"
 
@@ -135,7 +142,7 @@ validate_sgml() {
 		local options="$file_xmldcl"
 	fi
 	set -x
-	LANG=C $ONSGMLS -s $options $file_input
+	SP_ENCODING=UTF-8 SP_CHARSET_FIXED=yes $ONSGMLS -s $options $file_input
 	local retval=$?
 	set +x
 	if [ $retval -gt 0 ]; then
@@ -154,7 +161,7 @@ create_html_multipage() {
 	pushd "$file_base" || exit 1
 	rm -f *
 	set -x
-	LANG=C nice -n 10 $JADE -t sgml -i html -D $dir_dssslstylesheets -d "${file_ldpdsl}#html" ../$file_input
+	SP_ENCODING=UTF-8 $JADE -t sgml -i html -D $dir_dssslstylesheets -d "${file_ldpdsl}#html" ../$file_input
 	local retval=$?
 	set +x
 	popd
@@ -166,7 +173,7 @@ create_html_multipage() {
 create_html_singlepage() {
 	echo "INF: Create HTML singlepage '$file_html'"
 	set -x
-	LANG=C nice -n 10 $JADE -t sgml -i html -V nochunks -d "${file_ldpdsl}#html" $file_input >$file_html
+	SP_ENCODING=UTF-8 $JADE -t sgml -i html -V nochunks -d "${file_ldpdsl}#html" $file_input >$file_html
 	set +x
 	local retval=$?
 	if [ $retval -eq 0 ]; then
@@ -180,7 +187,7 @@ create_html_singlepage() {
 create_rtf() {
 	echo "INF: Create RTF file '$file_rtf'"
 	set -x
-	nice -n 10 $JADE -t rtf -d ${file_ldpdsl} $file_input
+	SP_ENCODING=UTF-8 $JADE -t rtf -d ${file_ldpdsl} $file_input
 	set +x
 	local retval=$?
 	if [ $retval -eq 0 ]; then
@@ -194,7 +201,7 @@ create_rtf() {
 create_ps() {
 	echo "INF: Create PS file '$file_ps'"
 	set -x
-	nice -n 10 $DB2PS --dsl ${file_ldpdsl} $file_input
+	$DB2PS --dsl ${file_ldpdsl} $file_input
 	set +x
 	local retval=$?
 	if [ $retval -eq 0 ]; then
@@ -215,13 +222,13 @@ create_pdf() {
 			return 1
 		fi
 		set -x
-		nice -n 10 $LDP_PRINT $file_html
+		SP_ENCODING=UTF-8 $LDP_PRINT $file_html
 		set +x
 		local retval=$?
 	else
 		echo "INF: Create PDF file (NOT LDP conform) '$file_pdf'"
 		set -x
-		nice -n 10 $DB2PDF --dsl ${file_ldpdsl} $file_input
+		SP_ENCODING=UTF-8 $DB2PDF --dsl ${file_ldpdsl} $file_input
 		set +x
 		local retval=$?
 	fi
@@ -239,7 +246,7 @@ create_txt() {
 	if [ -f $file_ps ]; then
 		echo "INF: Create TXT file '$file_txt'"
 		set -x
-		nice -n 10 $PS2ASCII $file_ps > $file_txt
+		$PS2ASCII $file_ps > $file_txt
 		set +x
 		local retval=$?
 	else
