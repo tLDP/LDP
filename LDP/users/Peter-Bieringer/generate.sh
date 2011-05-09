@@ -18,6 +18,7 @@
 # 20110508/PB: force UTF-8 as input format to fix mixed charset problems in HTML
 #              renice whole script
 #              support also ldp.dsl stored in same directory as the script
+# 20110509/PB: add charset meta header on each html page to force UTF-8
 
 # $Id$
 
@@ -164,9 +165,14 @@ create_html_multipage() {
 	SP_ENCODING=UTF-8 $JADE -t sgml -i html -D $dir_dssslstylesheets -d "${file_ldpdsl}#html" ../$file_input
 	local retval=$?
 	set +x
+
+	perl -pi -e 's#><META#><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"\n><META#o' *.html
+	local r=$?
+	if [ $r -ne 0 ]; then
+		retval=$?
+	fi
+
 	popd
-	# Force
-	#local retval=0
 	return $retval
 }
 
@@ -176,6 +182,13 @@ create_html_singlepage() {
 	SP_ENCODING=UTF-8 $JADE -t sgml -i html -V nochunks -d "${file_ldpdsl}#html" $file_input >$file_html
 	set +x
 	local retval=$?
+
+	perl -pi -e 's#><META#><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"\n><META#o' $file_html
+	local r=$?
+	if [ $r -ne 0 ]; then
+		retval=$?
+	fi
+
 	if [ $retval -eq 0 ]; then
 		echo "INF: Create HTML singlepage - done"
 	else
