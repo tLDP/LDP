@@ -4,6 +4,8 @@
 #
 # Generator script
 #
+# $Id$
+#
 # Requires: htmldoc recode docbook-utils-pdf
 #
 # Changelog
@@ -20,10 +22,28 @@
 #              support also ldp.dsl stored in same directory as the script
 # 20110509/PB: add charset meta header on each html page to force UTF-8
 
-# $Id$
+loglevel=6
+
+# parse options
+while getopts "ql:" opt; do
+	case $opt in
+	    q)
+		loglevel=4
+		;;
+	    l)
+		loglevel=$OPTARG
+		echo "INFO  : set loglevel to: $loglevel"
+		;;
+	    \?)
+		echo "Invalid option: -$OPTARG" >&2
+		;;
+	esac
+done
+
+shift $((OPTIND-1))
 
 # Renice script
-renice -n 10 $$
+renice -n 10 $$ >/dev/null
 
 if [ -z "$1" ]; then
 	file_input="Linux+IPv6-HOWTO.sgml"
@@ -132,39 +152,42 @@ done
 #	echo "WARN: cannot execute 'runsgmlfix.sh'"
 #fi
 
+export SP_ENCODING=UTF-8
+export SP_CHARSET_FIXED=yes
 
 ## Functions
 validate_sgml() {
 	# remove tags <dummy>, </dummy>
 	perl -pi -e 's|</?dummy>||g' "$file_input"
 
-	echo "INF: Validate SGML/XML code '$file_input'"
+	echo "INFO  : Validate SGML/XML code '$file_input'"
 	if [ "$doctype" = "XML" ]; then
 		local options="$file_xmldcl"
 	fi
-	set -x
-	SP_ENCODING=UTF-8 SP_CHARSET_FIXED=yes $ONSGMLS -s $options $file_input
+	[ $loglevel -ge 7 ] && set -x
+
+	$ONSGMLS -s $options $file_input
 	local retval=$?
-	set +x
+	[ $loglevel -ge 7 ] && set +x
 	if [ $retval -gt 0 ]; then
 		echo "ERR: Validation results in errors!"
 		return 1
 	else
-		echo "INF: Validation was successfully"
+		echo "INFO  : Validation was successfully"
 	fi
 }
 
 create_html_multipage() {
-	echo "INF: Create HTML multipages"
+	echo "INFO  : Create HTML multipages"
 	if [ ! -d "$file_base" ]; then
 		mkdir "$file_base" || exit 1
 	fi
-	pushd "$file_base" || exit 1
+	pushd "$file_base" >/dev/null || exit 1
 	rm -f *
-	set -x
-	SP_ENCODING=UTF-8 $JADE -t sgml -i html -D $dir_dssslstylesheets -d "${file_ldpdsl}#html" ../$file_input
+	[ $loglevel -ge 7 ] && set -x
+	$JADE -t sgml -i html -D $dir_dssslstylesheets -d "${file_ldpdsl}#html" ../$file_input
 	local retval=$?
-	set +x
+	[ $loglevel -ge 7 ] && set +x
 
 	perl -pi -e 's#><META#><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"\n><META#o' *.html
 	local r=$?
@@ -172,16 +195,16 @@ create_html_multipage() {
 		retval=$?
 	fi
 
-	popd
+	popd >/dev/null
 	return $retval
 }
 
 create_html_singlepage() {
-	echo "INF: Create HTML singlepage '$file_html'"
-	set -x
-	SP_ENCODING=UTF-8 $JADE -t sgml -i html -V nochunks -d "${file_ldpdsl}#html" $file_input >$file_html
-	set +x
+	echo "INFO  : Create HTML singlepage '$file_html'"
+	[ $loglevel -ge 7 ] && set -x
+	$JADE -t sgml -i html -V nochunks -d "${file_ldpdsl}#html" $file_input >$file_html
 	local retval=$?
+	[ $loglevel -ge 7 ] && set +x
 
 	perl -pi -e 's#><META#><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"\n><META#o' $file_html
 	local r=$?
@@ -190,7 +213,7 @@ create_html_singlepage() {
 	fi
 
 	if [ $retval -eq 0 ]; then
-		echo "INF: Create HTML singlepage - done"
+		echo "INFO  : Create HTML singlepage - done"
 	else
 		echo "ERR: Create HTML singlepage - an error occurs!"
 	fi
@@ -198,13 +221,13 @@ create_html_singlepage() {
 }
 
 create_rtf() {
-	echo "INF: Create RTF file '$file_rtf'"
-	set -x
-	SP_ENCODING=UTF-8 $JADE -t rtf -d ${file_ldpdsl} $file_input
-	set +x
+	echo "INFO  : Create RTF file '$file_rtf'"
+	[ $loglevel -ge 7 ] && set -x
+	$JADE -t rtf -d ${file_ldpdsl} $file_input
 	local retval=$?
+	[ $loglevel -ge 7 ] && set +x
 	if [ $retval -eq 0 ]; then
-		echo "INF: Create RTF file - done"
+		echo "INFO  : Create RTF file - done"
 	else
 		echo "ERR: Create RTF file - an error occurs!"
 	fi
@@ -212,13 +235,13 @@ create_rtf() {
 }
 
 create_ps() {
-	echo "INF: Create PS file '$file_ps'"
-	set -x
+	echo "INFO  : Create PS file '$file_ps'"
+	[ $loglevel -ge 7 ] && set -x
 	$DB2PS --dsl ${file_ldpdsl} $file_input
-	set +x
 	local retval=$?
+	[ $loglevel -ge 7 ] && set +x
 	if [ $retval -eq 0 ]; then
-		echo "INF: Create PS file - done"
+		echo "INFO  : Create PS file - done"
 	else
 		echo "ERR: Create PS file - an error occurs!"
 	fi
@@ -228,25 +251,25 @@ create_ps() {
 create_pdf() {
 	if [ "$LDP_PDFPS" = "yes" ]; then
 		# Use LDP conform mechanism
-		echo "INF: Create PDF file (LDP conform) '$file_pdf' from HTML file '$file_html'"
+		echo "INFO  : Create PDF file (LDP conform) '$file_pdf' from HTML file '$file_html'"
 
 		if [ $file_html -ot $file_input ]; then
 			echo "ERR: Create PDF file - needed single page HTML file '$file_html' is older than original '$file_input'"
 			return 1
 		fi
-		set -x
-		SP_ENCODING=UTF-8 $LDP_PRINT $file_html
-		set +x
+		[ $loglevel -ge 7 ] && set -x
+		$LDP_PRINT $file_html
 		local retval=$?
+		[ $loglevel -ge 7 ] && set +x
 	else
-		echo "INF: Create PDF file (NOT LDP conform) '$file_pdf'"
-		set -x
-		SP_ENCODING=UTF-8 $DB2PDF --dsl ${file_ldpdsl} $file_input
-		set +x
+		echo "INFO  : Create PDF file (NOT LDP conform) '$file_pdf'"
+		[ $loglevel -ge 7 ] && set -x
+		$DB2PDF --dsl ${file_ldpdsl} $file_input
 		local retval=$?
+		[ $loglevel -ge 7 ] && set +x
 	fi
 	if [ $retval -eq 0 ]; then
-		echo "INF: Create PDF file - done"
+		echo "INFO  : Create PDF file - done"
 	else
 		echo "ERR: Create PDF file - an error occurs!"
 	fi
@@ -254,19 +277,19 @@ create_pdf() {
 }
 
 create_txt() {
-	echo "INF: Create TXT file '$file_txt' from PS file '$file_ps'"
+	echo "INFO  : Create TXT file '$file_txt' from PS file '$file_ps'"
 	[ -f $file_txt ] && rm $file_txt
 	if [ -f $file_ps ]; then
-		echo "INF: Create TXT file '$file_txt'"
-		set -x
+		echo "INFO  : Create TXT file '$file_txt'"
+		[ $loglevel -ge 7 ] && set -x
 		$PS2ASCII $file_ps > $file_txt
-		set +x
 		local retval=$?
+		[ $loglevel -ge 7 ] && set +x
 	else
 		echo "ERR: Cannot create TXT because of missing PS file"
 	fi
 	if [ $retval -eq 0 ]; then
-		echo "INF: Create TXT file - done"
+		echo "INFO  : Create TXT file - done"
 	else
 		echo "ERR: Create TXT file - an error occurs!"
 	fi
