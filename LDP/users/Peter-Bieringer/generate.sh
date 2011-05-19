@@ -42,9 +42,6 @@ done
 
 shift $((OPTIND-1))
 
-# Renice script
-renice -n 10 $$ >/dev/null
-
 if [ -z "$1" ]; then
 	file_input="Linux+IPv6-HOWTO.sgml"
 	#file_input="Linux+IPv6-HOWTO.xml"

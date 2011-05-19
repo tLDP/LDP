@@ -1,12 +1,4 @@
 #!/bin/bash
-#
-# (P) & (C) 2011 - 2011 by Dr. Peter Bieringer <pb@bieringer.de>
-#
-# wrapper script for generate.sh
-#
-# 20110517/PB: initial release
-# 20110518/PB: minor improvements
-
 
 URL_BASE="http://cvs.tldp.org/go.to/LDP/LDP/users/Peter-Bieringer/"
 
@@ -18,7 +10,7 @@ FILE_PT_BR="Linux+IPv6-HOWTO.pt_BR.sgml"
 options_wget="--quiet"
 DIR_DOWNLOAD="download"
 
-DIR_DEST_BASE="/var/www/html/howto"
+DIR_DEST_BASE="/var/www/html/howtos"
 
 ## logging
 log() {
@@ -53,8 +45,8 @@ download() {
 		return 1
 	fi
 
-	if  [ "force_download" != "1" ]; then
-		log "NOTICE" "skip download $url_base/$file (use option -f)"
+	if  [ "$force_download" != "1" ]; then
+		log "NOTICE" "skip download $url_base/$file (use option -d)"
 		return 0
 	fi
 
@@ -102,6 +94,17 @@ check() {
 
 		return 0
 	else
+		if cmp -s "$file" "$DIR_DOWNLOAD/$file"; then
+			log "INFO" "'old' is identical with 'new' file: $file"
+		else
+			log "NOTICE" "'old' is not equal with 'new' file: $file"
+			cp -p "$DIR_DOWNLOAD/$file" "$file"
+			if [ $? -ne 0 ]; then
+				log "ERROR" "can't copy 'new' file to 'old' file: $DIR_DOWNLOAD/$file -> $file"
+				return 1
+			fi
+			return 0
+		fi
 		# check contents of destination directory
 		log "INFO" "check directory: $dir"
 
@@ -127,11 +130,6 @@ check() {
 		# 'old' file already exists
 		if [ "$file" -nt "$DIR_DOWNLOAD/$file" ]; then
 			log "WARN" "'old' is newer than 'new' file: $file"
-			return 1
-		fi
-
-		if cmp -s "$file" "$DIR_DOWNLOAD/$file"; then
-			log "INFO" "'old' is identical with 'new' file: $file"
 			return 1
 		fi
 	fi
