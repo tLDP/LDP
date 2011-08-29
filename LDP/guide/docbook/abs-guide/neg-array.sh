@@ -3,6 +3,8 @@
 # Requires Bash, version -ge 4.2.
 
 array=( zero one two three four five )   # Six-element array.
+#         0    1   2    3    4    5
+#        -6   -5  -4   -3   -2   -1
 
 # Negative array indices now permitted.
 echo ${array[-1]}   # five
@@ -34,3 +36,5 @@ done  # Lists the elements in the array, backwards.
       # We have just simulated the "tac" command on this array.
 
 echo
+
+# See also neg-offset.sh.

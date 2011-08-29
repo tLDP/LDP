@@ -1,8 +1,8 @@
 #!/bin/bash
 
-E_WRONG_DIRECTORY=83
+E_WRONG_DIRECTORY=65
 
-clear # Clear screen.
+clear # Clear the screen.
 
 TargetDirectory=/home/bozo/projects/GreatAmericanNovel
 
@@ -26,9 +26,10 @@ rm .[A-Za-z0-9]*    # Delete dotfiles.
 #  A filename (`basename`) may contain all characters in the 0 - 255 range,
 #+ except "/".
 #  Deleting files beginning with weird characters, such as -
-#+ is left as an exercise.
+#+ is left as an exercise. (Hint: rm ./-weirdname or rm -- -weirdname)
 
 echo
+ls -al              # Any files left?
 echo "Done."
 echo "Old files deleted in $TargetDirectory."
 echo

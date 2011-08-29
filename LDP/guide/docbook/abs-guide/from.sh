@@ -7,6 +7,7 @@
 
 
 MAILDIR=~/mail/*               #  No quoting of variable. Why?
+# Maybe check if exists $MAILDIR . . . if [ -d $MAILDIR ] . . .
 GREP_OPTS="-H -A 5 --color"    #  Show file, plus extra context lines
                                #+ and display "From" in color.
 TARGETSTR="^From"              # "From" at beginning of line.
@@ -20,5 +21,5 @@ done
 
 exit $?
 
-#  Might wish to pipe the output of this script to 'more' or
-#+ redirect it to a file . . .
+#  You might wish to pipe the output of this script to 'more'
+#+ or redirect it to a file . . .

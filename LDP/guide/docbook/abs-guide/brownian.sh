@@ -48,6 +48,7 @@ echo                  # Blank line at beginning of run.
 
 
 Show_Slots () {
+echo; echo
 echo -n " "
 for i in $( seq $NUMSLOTS )   # Pretty-print array elements.
 do
@@ -56,7 +57,7 @@ done
 
 echo # Row of slots:
 echo " |__|__|__|__|__|__|__|__|__|__|__|__|__|__|__|__|__|__|__|__|__|"
-echo "                                ^^"
+echo "                                ||"
 echo #  Note that if the count within any particular slot exceeds 99,
      #+ it messes up the display.
      #  Running only(!) 500 passes usually avoids this.
@@ -86,6 +87,9 @@ done
 SHIFT=11                     # Why 11, and not 10?
 let "POS += $SHIFT"          # Shift "zero position" to center.
 (( Slots[$POS]++ ))          # DEBUG: echo $POS
+
+# echo -n "$POS "
+
   }
 
 
@@ -115,3 +119,5 @@ exit $?
 #+    a scattergram.
 #  2) Alter the script to use /dev/urandom instead of $RANDOM.
 #     Will this make the results more random?
+#  3) Provide some sort of "animation" or graphic output
+#     for each marble played.

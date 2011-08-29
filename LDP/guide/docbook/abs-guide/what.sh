@@ -12,7 +12,9 @@ done
 
 exit 0
 
-# You may wish to redirect output of this script, like so:
-# ./what.sh >>whatis.db
-# or view it a page at a time on stdout,
-# ./what.sh | less
+#  Note: For this to work, you must create a "whatis" database
+#+ with /usr/sbin/makewhatis.
+#  You may wish to redirect output of this script, like so:
+#    ./what.sh >>whatis.db
+#  or view it a page at a time on stdout,
+#    ./what.sh | less

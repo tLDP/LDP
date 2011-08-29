@@ -1,5 +1,7 @@
 #!/bin/bash
 # life.sh: "Life in the Slow Lane"
+# Author: Mendel Cooper
+# License: GPL3
 
 # Version 0.2:   Patched by Daniel Albers
 #+               to allow non-square grids as input.
@@ -11,8 +13,8 @@
 # --------------------------------------------------------------------- #
 # On a rectangular grid, let each "cell" be either "living" or "dead."  #
 # Designate a living cell with a dot, and a dead one with a blank space.#
-#  Begin with an arbitrarily drawn dot-and-blank grid,                  #
-#+ and let this be the starting generation, "generation 0."             #
+#      Begin with an arbitrarily drawn dot-and-blank grid,              #
+#+     and let this be the starting generation: generation 0.           #
 # Determine each successive generation by the following rules:          #
 #   1) Each cell has 8 neighbors, the adjoining cells                   #
 #+     left, right, top, bottom, and the 4 diagonals.                   #
@@ -23,7 +25,7 @@
 #                                                                       #
 # 2) A living cell with either 2 or 3 living neighbors remains alive.   #
 SURVIVE=2                                                               #
-# 3) A dead cell with 3 living neighbors comes alive (a "birth").       #
+# 3) A dead cell with 3 living neighbors comes alive, a "birth."        #
 BIRTH=3                                                                 #
 # 4) All other cases result in a dead cell for the next generation.     #
 # ##################################################################### #
@@ -56,13 +58,13 @@ ALIVE1=.
 DEAD1=_
                  # Represent living and dead cells in the start-up file.
 
-#  ---------------------------------------------------------- #
+#  -----------------------------------------------------#
 #  This script uses a 10 x 10 grid (may be increased,
-#+ but a large grid will slow execution).
+#+ but a large grid will slow down execution).
 ROWS=10
 COLS=10
-#  Change above two variables to match grid size, as desired.
-#  ---------------------------------------------------------- #
+#  Change above two variables to match desired grid size.
+#  -----------------------------------------------------#
 
 GENERATIONS=10          #  How many generations to cycle through.
                         #  Adjust this upwards
@@ -70,7 +72,7 @@ GENERATIONS=10          #  How many generations to cycle through.
 
 NONE_ALIVE=85           #  Exit status on premature bailout,
                         #+ if no cells left alive.
-DELAY=2                 #  Pause between generations, etc.
+DELAY=2                 #  Pause between generations.
 TRUE=0
 FALSE=1
 ALIVE=0
@@ -127,7 +129,7 @@ return
 
 }
 
-IsValid ()                            # Test whether cell coordinate valid.
+IsValid ()                            # Test if cell coordinate valid.
 {
 
   if [ -z "$1"  -o -z "$2" ]          # Mandatory arguments missing?
@@ -179,7 +181,7 @@ IsAlive ()              #  Test whether cell is alive.
     return $ALIVE
   fi  
 
-  return $DEAD          # Dead, by default.
+  return $DEAD          # Defaults to dead.
 
 }  
 
@@ -232,7 +234,7 @@ GetCount ()             # Count live cells in passed cell's neighborhood.
     if [ $? -eq "$TRUE" ]
     then
       if [ ${array[$t_top]} = "$ALIVE1" ] # Redundancy here.
-      then                                # Can be optimized?
+      then                                # Can it be optimized?
         let "count += 1"
       fi	
     fi  
@@ -270,7 +272,7 @@ array=( `echo "$1"` )     # Convert passed arg to array.
 
 while [ "$i" -lt "$cells" ]
 do
-  IsAlive "$1" $i ${array[$i]}   # Is cell alive?
+  IsAlive "$1" $i ${array[$i]}   # Is the cell alive?
   if [ $? -eq "$ALIVE" ]
   then                           #  If alive, then
     array[$i]=.                  #+ represent the cell as a period.
@@ -281,8 +283,8 @@ do
 done   
 
 
-# let "generation += 1"          # Increment generation count.
-# Why was the above line commented out?
+#    let "generation += 1"       # Increment generation count.
+###  Why was the above line commented out?
 
 
 # Set variable to pass as parameter to "display" function.
@@ -304,6 +306,7 @@ fi                        #+ if no live cells.
 # =========================================================
 
 # main ()
+# {
 
 # Load initial array with contents of startup file.
 initial=( `cat "$startfile" | sed -e '/#/d' | tr -d '\n' |\
@@ -358,6 +361,7 @@ done
 # ==============================================================
 
 echo
+# }
 
 exit 0   # CEOF:EOF
 
@@ -381,4 +385,4 @@ exit 0   # CEOF:EOF
 #+          in the script for an altered grid size.
 #
 # Exercise: Optimize this script.
-#           It has some redundant code.
+#           It has redundant code.

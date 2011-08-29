@@ -3,9 +3,9 @@
 
 # View gzipped files with 'more' filter.
 
-E_NOARGS=65
-E_NOTFOUND=66
-E_NOTGZIP=67
+E_NOARGS=85
+E_NOTFOUND=86
+E_NOTGZIP=87
 
 if [ $# -eq 0 ] # same effect as:  if [ -z "$1" ]
 # $1 can exist, but be empty:  zmore "" arg2 arg3

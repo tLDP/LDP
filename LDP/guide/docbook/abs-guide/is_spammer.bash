@@ -102,7 +102,7 @@ Optional environment variables
 Additional documentation
     Download the archived set of scripts
     explaining and illustrating the function contained within this script.
-    http://bash.neuralshortcircuit.com/mszick_clf.tar.bz2
+    http://bash.webofcrafts.net/mszick_clf.tar.bz2
 
 
 Study notes

@@ -23,19 +23,20 @@ then                                #+ valid file argument.
 fi  
 
 
-# SORT="sort"                       #  No longer necessary to define options
-                                    #+ to sort. Changed from original script.
+# SORT="sort"                       #  No longer necessary to define
+                                    #+ options to sort. Changed from
+                                    #+ original script.
 
 cat $* |                            # Contents of specified files to stdout.
         tr A-Z a-z |                # Convert to lowercase.
         tr ' ' '\012' |             # New: change spaces to newlines.
-#       tr -cd '\012[a-z][0-9]' |   #  Get rid of everything non-alphanumeric
-                                    #+ (in original script).
-        tr -c '\012a-z'  '\012' |   #  Rather than deleting non-alpha chars,
-                                    #+ change them to newlines.
+#       tr -cd '\012[a-z][0-9]' |   #  Get rid of everything
+                                    #+ non-alphanumeric (in orig. script).
+        tr -c '\012a-z'  '\012' |   #  Rather than deleting non-alpha
+                                    #+ chars, change them to newlines.
         sort |                      # $SORT options unnecessary now.
         uniq |                      # Remove duplicates.
-        grep -v '^#' |              # Delete lines beginning with a hashmark.
+        grep -v '^#' |              # Delete lines starting with hashmark.
         grep -v '^$'                # Delete blank lines.
 
 exit 0

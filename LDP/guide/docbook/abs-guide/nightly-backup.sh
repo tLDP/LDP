@@ -8,6 +8,7 @@
 
 #  This does a backup from the host computer to a locally connected
 #+ firewire HDD using rsync and ssh.
+#  (Script should work with USB-connected device (see lines 40-43).
 #  It then rotates the backups.
 #  Run it via cron every night at 5am.
 #  This only backs up the home directory.
@@ -39,6 +40,7 @@ LOCAL_USER=rjn                # User whose home directory should be backed up.
 MOUNT_POINT=/backup           # Mountpoint of backup drive.
                               # NO trailing slash!
                               # This must be unique (eg using a udev symlink)
+# MOUNT_POINT=/media/disk     # For USB-connected device.
 SOURCE_DIR=/home/$LOCAL_USER  # NO trailing slash - it DOES matter to rsync.
 BACKUP_DEST_DIR=$MOUNT_POINT/backup/`hostname -s`.${LOCAL_USER}.nightly_backup
 DRY_RUN=false                 #If true, invoke rsync with -n, to do a dry run.

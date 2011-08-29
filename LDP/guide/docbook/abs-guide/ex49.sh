@@ -15,8 +15,13 @@ tr a-z A-Z <"$1"
 #        tr '[:lower:]' '[:upper:]' <"$1"
 # Thanks, S.C.
 
+#     Or even . . .
+#     cat "$1" | tr a-z A-Z
+#     Or dozens of other ways . . .
+
 exit 0
 
 #  Exercise:
 #  Rewrite this script to give the option of changing a file
 #+ to *either* upper or lowercase.
+#  Hint: Use either the "case" or "select" command.

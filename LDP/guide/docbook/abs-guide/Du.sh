@@ -1,7 +1,7 @@
 #!/bin/bash
 # Du.sh: DOS to UNIX text file converter.
 
-E_WRONGARGS=65
+E_WRONGARGS=85
 
 if [ -z "$1" ]
 then

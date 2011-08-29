@@ -11,7 +11,7 @@
 #  6) NUMBER &lt;-- result 
 #  7) Loop back to step 3 (for specified number of iterations).
 #
-#  The theory is that every sequence,
+#  The theory is that every such sequence,
 #+ no matter how large the initial value,
 #+ eventually settles down to repeating "4,2,1..." cycles,
 #+ even after fluctuating through a wide range of values.
@@ -29,7 +29,7 @@ h=${1:-$$}                      #  Seed.
                                 #+ if not specified as command-line arg.
 
 echo
-echo "C($h) --- $MAX_ITERATIONS Iterations"
+echo "C($h) -*- $MAX_ITERATIONS Iterations"
 echo
 
 for ((i=1; i<=MAX_ITERATIONS; i++))

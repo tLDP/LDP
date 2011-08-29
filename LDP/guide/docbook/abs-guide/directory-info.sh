@@ -274,7 +274,7 @@ IndexList()
 
 The key (no pun intended) to a Unified Content File System (UCFS)
 is to distinguish the files in the system based on their content.
-Distinguishing files by their name is just, so, 20th Century.
+Distinguishing files by their name is just so 20th Century.
 
 The content is distinguished by computing a checksum of that content.
 This version uses the md5sum program to generate a 128 bit checksum

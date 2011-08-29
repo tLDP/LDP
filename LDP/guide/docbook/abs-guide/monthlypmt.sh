@@ -6,8 +6,8 @@
 #+ "mcalc" (mortgage calculator) package,
 #+ by Jeff Schmidt
 #+ and
-#+ Mendel Cooper (yours truly, the author of the ABS Guide).
-#   http://www.ibiblio.org/pub/Linux/apps/financial/mcalc-1.6.tar.gz  [15k]
+#+ Mendel Cooper (yours truly, the ABS Guide author).
+#   http://www.ibiblio.org/pub/Linux/apps/financial/mcalc-1.6.tar.gz
 
 echo
 echo "Given the principal, interest rate, and term of a mortgage,"

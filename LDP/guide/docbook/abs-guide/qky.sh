@@ -13,7 +13,7 @@ WLIST=/usr/share/dict/word.lst
 #                     ^^^^^^^^  Word list file found here.
 #  ASCII word list, one word per line, UNIX format.
 #  A suggested list is the script author's "yawl" word list package.
-#  http://bash.neuralshortciruit.com/yawl-0.3.2.tar.gz
+#  http://bash.webofcrafts.net/yawl-0.3.2.tar.gz
 #    or
 #  http://ibiblio.org/pub/Linux/libs/yawl-0.3.2.tar.gz
 
@@ -462,4 +462,4 @@ exit $?
 # 7) Fix bugs!!!
 
 # Reference for more info:
-# http://bash.neuralshortcircuit.com/qky.README.html
+# http://bash.webofcrafts.net/qky.README.html

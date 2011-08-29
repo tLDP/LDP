@@ -5,7 +5,7 @@
 
 dereference ()
 {
-     y=\$"$1"   # Name of variable.
+     y=\$"$1"   # Name of variable (not value!).
      echo $y    # $Junk
 
      x=`eval "expr \"$y\" "`

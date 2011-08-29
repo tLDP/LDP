@@ -62,6 +62,9 @@ progname ()
   else
     echo "Error! No input."             # Mandatory input.
     exit $E_NOINPUT                     # Critical!
+    #  Exercise: The script-abort if no filename input is a bit clumsy.
+    #            Rewrite this section so a default filename is used
+    #+           if no input.
   fi
 
   echo -n "  \"$section\"">>$savefile   # Append, always append.
@@ -139,5 +142,6 @@ end    # ... exit not needed.
 #  Exercise (difficult): Fix this!
 
 #  This script is not nearly as elaborate as the
-#+ full-featured "manedit" package (http://wolfpack.twu.net),
+#+ full-featured "manedit" package
+#+ http://freshmeat.net/projects/manedit/
 #+ but it's much easier to use.

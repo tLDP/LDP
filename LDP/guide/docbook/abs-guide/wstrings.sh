@@ -31,7 +31,7 @@ WORDFILE=/usr/share/dict/linux.words  #  Dictionary file.
 #  May specify a different word list file
 #+ of one-word-per-line format.
 #  For example, the "yawl" word-list package,
-#  http://bash.neuralshortcircuit.com/yawl-0.3.2.tar.gz
+#  http://bash.webofcrafts.net/yawl-0.3.2.tar.gz
 
 
 wlist=`strings "$1" | tr A-Z a-z | tr '[:space:]' Z | \
@@ -49,10 +49,10 @@ tr -cs '[:alpha:]' Z | tr -s '\173-\377' Z | tr Z ' '`
 #  Finally, "tr Z ' '" converts all those Z's to whitespace,
 #+ which will be seen as word separators in the loop below.
 
-#  ****************************************************************
+#  ********************************************************************
 #  Note the technique of feeding the output of 'tr' back to itself,
-#+ but with different arguments and/or options on each pass.
-#  ****************************************************************
+#+ but with different arguments and/or options on each successive pass.
+#  ********************************************************************
 
 
 for word in $wlist                    # Important:
@@ -60,7 +60,6 @@ for word in $wlist                    # Important:
                                       # "$wlist" does not work.
                                       # Why not?
 do
-
   strlen=${#word}                     # String length.
   if [ "$strlen" -lt "$MINSTRLEN" ]   # Skip over short strings.
   then
@@ -70,8 +69,6 @@ do
   grep -Fw $word "$WORDFILE"          #  Match whole words only.
 #      ^^^                            #  "Fixed strings" and
                                       #+ "whole words" options. 
-
 done  
-
 
 exit $?

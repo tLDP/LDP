@@ -1,7 +1,7 @@
 #!/bin/bash
 # case-cmd.sh: Using command substitution to generate a "case" variable.
 
-case $( arch ) in   # "arch" returns machine architecture.
+case $( arch ) in   # $( arch ) returns machine architecture.
                     # Equivalent to 'uname -m' ...
   i386 ) echo "80386-based machine";;
   i486 ) echo "80486-based machine";;

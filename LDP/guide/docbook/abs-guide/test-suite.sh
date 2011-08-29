@@ -1,9 +1,18 @@
 #!/bin/bash
 # test-suite.sh
 # A partial Bash compatibility test suite.
+# Run this on your version of Bash, or some other shell.
 
+default_option=FAIL         # Tests below will fail unless . . .
 
-# Double brackets (test)
+echo
+echo -n "Testing "
+sleep 1; echo -n ". "
+sleep 1; echo -n ". "
+sleep 1; echo ". "
+echo
+
+# Double brackets
 String="Double brackets supported?"
 echo -n "Double brackets test: "
 if [[ "$String" = "Double brackets supported?" ]]
@@ -26,14 +35,26 @@ fi
 
 
 # Arrays
-test_arr=FAIL
+test_arr=$default_option     # FAIL
 Array=( If supports arrays will print PASS )
 test_arr=${Array[5]}
 echo "Array test: $test_arr"
 
 
+# Command Substitution
+csub_test ()
+{
+  echo "PASS"
+}
+
+test_csub=$default_option    # FAIL
+test_csub=$(csub_test)
+echo "Command substitution test: $test_csub"
+
+echo
+
 #  Completing this script is an exercise for the reader.
 #  Add to the above similar tests for double parentheses,
-#+ brace expansion, $() command substitution, etc.
+#+ brace expansion, process substitution, etc.
 
 exit $?

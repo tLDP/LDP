@@ -20,10 +20,10 @@ done
 # ...
 # USER #30 = bozo
 
-exit 0
+exit $?
 
-#  Exercise:
-#  --------
-#  How is it that an ordinary user (or a script run by same)
-#+ can read /etc/passwd?
+#  Discussion:
+#  ----------
+#  How is it that an ordinary user, or a script run by same,
+#+ can read /etc/passwd? (Hint: Check the /etc/passwd file permissions.)
 #  Isn't this a security hole? Why or why not?

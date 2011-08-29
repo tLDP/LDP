@@ -28,15 +28,15 @@
 #+ Then the ratio of SPLASHES to total shots will approximate
 #+ the value of PI/4.
 #
-#  The reason for this is that the cannon is actually shooting
-#+ only at the upper right-hand quadrant of the square,
+#  The simplified explanation is that the cannon is actually
+#+ shooting only at the upper right-hand quadrant of the square,
 #+ i.e., Quadrant I of the Cartesian coordinate plane.
-#  (The previous explanation was a simplification.)
+#
 #
 #  Theoretically, the more shots taken, the better the fit.
 #  However, a shell script, as opposed to a compiled language
-#+ with floating-point math built in, requires a few compromises.
-#  This tends to lower the accuracy of the simulation.
+#+ with floating-point math built in, requires some compromises.
+#  This decreases the accuracy of the simulation.
 
 
 DIMENSION=10000  # Length of each side of the plot.
@@ -44,7 +44,7 @@ DIMENSION=10000  # Length of each side of the plot.
 
 MAXSHOTS=1000    # Fire this many shots.
                  # 10000 or more would be better, but would take too long.
-PMULTIPLIER=4.0  # Scaling factor to approximate PI.
+PMULTIPLIER=4.0  # Scaling factor.
 
 declare -r M_PI=3.141592654
                  # Actual 9-place value of PI, for comparison purposes.
@@ -68,13 +68,13 @@ EOF
 )
 #  Setting "scale" to zero rounds down result to integer value,
 #+ a necessary compromise in this script.
-#  This decreases the accuracy of the simulation.
+#  It decreases the accuracy of this simulation.
 }
 
 
 # ==========================================================
 # main() {
-# "Main" code block, mimmicking a C-language main() function.
+# "Main" code block, mimicking a C-language main() function.
 
 # Initialize variables.
 shots=0
@@ -119,9 +119,9 @@ done
 echo
 echo "After $shots shots, PI looks like approximately   $Pi"
 #  Tends to run a bit high,
-#+ probably due to round-off error and imperfect randomness of $RANDOM.
+#+ possibly due to round-off error and imperfect randomness of $RANDOM.
 #  But still usually within plus-or-minus 5% . . .
-#+ a pretty good rough approximation.
+#+ a pretty fair rough approximation.
 error=$(echo "scale=9; $Pi - $M_PI" | bc)
 pct_error=$(echo "scale=2; 100.0 * $error / $M_PI" | bc)
 echo -n "Deviation from mathematical value of PI =        $error"
@@ -132,7 +132,7 @@ echo
 # }
 # ==========================================================
 
-exit
+exit 0
 
 #  One might well wonder whether a shell script is appropriate for
 #+ an application as complex and computation-intensive as a simulation.
