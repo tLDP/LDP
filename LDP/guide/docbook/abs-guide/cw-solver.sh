@@ -20,7 +20,7 @@ DICT=/usr/share/dict/word.lst
 #+ download the author's "yawl" word list package.
 #  http://ibiblio.org/pub/Linux/libs/yawl-0.3.2.tar.gz
 #  or
-#  http://bash.webofcrafts.net/yawl-0.3.2.tar.gz
+#  http://bash.deta.in/yawl-0.3.2.tar.gz
 
 
 if [ -z "$1" ]   #  If no word pattern specified

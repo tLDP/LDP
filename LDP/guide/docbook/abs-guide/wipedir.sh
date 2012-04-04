@@ -1,6 +1,6 @@
 #!/bin/bash
 
-E_WRONG_DIRECTORY=65
+E_WRONG_DIRECTORY=85
 
 clear # Clear the screen.
 

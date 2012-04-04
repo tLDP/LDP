@@ -21,7 +21,7 @@ while read i
 do
   echo $i
   global=3D": Available outside the loop."
-  # ... because it does *not* run in a subshell.
+  # ... because it does NOT run in a subshell.
 done < <( echo "random input" )
 #    ^ ^
 
@@ -57,7 +57,7 @@ while read line
 do
   outloop[$index]="$line"
   ((index++))
-  # It does *not* run in a subshell, so ...
+  # It does NOT run in a subshell, so ...
 done < <( cat $0 )
 echo "OUTPUT = "
 echo ${outloop[*]}          # ... the entire script echoes.

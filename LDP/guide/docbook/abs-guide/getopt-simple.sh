@@ -29,7 +29,7 @@ getopt_simple $*
 echo "test is '$test'"
 echo "test2 is '$test2'"
 
-exit 0  # See also, UseGetOpt.sh, a modified versio of this script.
+exit 0  # See also, UseGetOpt.sh, a modified version of this script.
 
 ---
 

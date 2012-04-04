@@ -5,7 +5,7 @@ RANDOM=$$       # Reseed the random number generator using script process ID.
 
 PIPS=6          # A die has 6 pips.
 MAXTHROWS=600   # Increase this if you have nothing better to do with your time.
-throw=0         # Throw count.
+throw=0         # Number of times the dice have been cast.
 
 ones=0          #  Must initialize counts to zero,
 twos=0          #+ since an uninitialized variable is null, not zero.
@@ -30,8 +30,8 @@ update_count()
 {
 case "$1" in
   0) let "ones += 1";;   # Since die has no "zero", this corresponds to 1.
-  1) let "twos += 1";;   # And this to 2, etc.
-  2) let "threes += 1";;
+  1) let "twos += 1";;   # And this to 2.
+  2) let "threes += 1";; # Etc.
   3) let "fours += 1";;
   4) let "fives += 1";;
   5) let "sixes += 1";;
@@ -65,4 +65,4 @@ exit 0
 # Exercise (easy):
 # ---------------
 # Rewrite this script to flip a coin 1000 times.
-# Choices are "HEADS" and "TAILS".
+# Choices are "HEADS" and "TAILS."

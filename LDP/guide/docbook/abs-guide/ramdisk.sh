@@ -4,7 +4,7 @@
 #  A "ramdisk" is a segment of system RAM memory
 #+ which acts as if it were a filesystem.
 #  Its advantage is very fast access (read/write time).
-#  Disadvantages: volatility, loss of data on reboot or powerdown.
+#  Disadvantages: volatility, loss of data on reboot or powerdown,
 #+                less RAM available to system.
 #
 #  Of what use is a ramdisk?
@@ -15,7 +15,7 @@
 E_NON_ROOT_USER=70             # Must run as root.
 ROOTUSER_NAME=root
 
-MOUNTPT=/mnt/ramdisk
+MOUNTPT=/mnt/ramdisk           # Create with mkdir /mnt/ramdisk.
 SIZE=2000                      # 2K blocks (change as appropriate)
 BLOCKSIZE=1024                 # 1K (1024 byte) block size
 DEVICE=/dev/ram0               # First ram device

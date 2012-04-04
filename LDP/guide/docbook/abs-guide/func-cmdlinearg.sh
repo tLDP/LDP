@@ -7,8 +7,8 @@
 func ()
 
 {
-echo "$1"
-}
+echo "$1"   # Echoes first arg passed to the function.
+}           # Does a command-line arg qualify?
 
 echo "First call to function: no arg passed."
 echo "See if command-line arg is seen."

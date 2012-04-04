@@ -17,7 +17,7 @@ then
   exit $E_BADARGS
 fi
 
-if [ ! -f "$1" ]       # Check if file exists.
+if [ ! -f "$1" ]       # Does file exist?
 then
   echo "File \"$1\" does not exist."
   exit $E_NOFILE

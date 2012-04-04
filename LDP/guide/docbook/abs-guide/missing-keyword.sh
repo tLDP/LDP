@@ -7,3 +7,7 @@ do
 # done     # Required keyword 'done' commented out in line 7.
 
 exit 0  
+
+# === #
+
+echo $?    # 2

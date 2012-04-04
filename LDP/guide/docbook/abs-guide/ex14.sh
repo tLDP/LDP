@@ -13,7 +13,7 @@ then
   echo "Usage: `basename $0` filename" >&2
   # Error message to stderr.
   exit $E_NOARGS
-  # Returns 65 as exit status of script (error code).
+  # Returns 85 as exit status of script (error code).
 fi  
 
 filename=$1

@@ -1,7 +1,7 @@
 #! /bin/sh
-# Strips off the header from a mail/News message i.e. till the first
-# empty line.
-# Author: Mark Moraes, University of Toronto
+#  Strips off the header from a mail/News message i.e. till the first
+#+ empty line.
+#  Author: Mark Moraes, University of Toronto
 
 # ==> These comments added by author of this document.
 

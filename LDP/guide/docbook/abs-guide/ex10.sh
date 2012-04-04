@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #  Tip:
-#  If you're unsure of how a certain condition would evaluate,
+#  If you're unsure how a certain condition might evaluate,
 #+ test it in an if-test.
 
 echo
@@ -95,7 +95,7 @@ echo
 # When is "false" true?
 
 echo "Testing \"false\""
-if [ "false" ]              #  It seems that "false" is just a string.
+if [ "false" ]              #  It seems that "false" is just a string ...
 then
   echo "\"false\" is true." #+ and it tests true.
 else

@@ -120,7 +120,7 @@ Primes=( '' $(seq $UPPER_LIMIT) )
 i=1
 until (( ( i += 1 ) > SPLIT ))  # Need check only halfway.
 do
-  if [[ -n $Primes[i] ]]
+  if [[ -n ${Primes[i]} ]]
   then
     t=$i
     until (( ( t += i ) > UPPER_LIMIT ))

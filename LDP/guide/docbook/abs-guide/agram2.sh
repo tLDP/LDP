@@ -5,10 +5,10 @@
 #  Uses "anagram" utility
 #+ that is part of the author's "yawl" word list package.
 #  http://ibiblio.org/pub/Linux/libs/yawl-0.3.2.tar.gz
-#  http://bash.webofcrafts.net/yawl-0.3.2.tar.gz
+#  http://bash.deta.in/yawl-0.3.2.tar.gz
 
-E_NOARGS=66
-E_BADARG=67
+E_NOARGS=86
+E_BADARG=87
 MINLEN=7
 
 if [ -z "$1" ]
@@ -38,9 +38,9 @@ echo ${Anagrams[1]}      # Second anagram.
 
 # echo "${Anagrams[*]}"  # To list all the anagrams in a single line . . .
 
-#  Look ahead to the "Arrays" chapter for enlightenment on
+#  Look ahead to the Arrays chapter for enlightenment on
 #+ what's going on here.
 
-# See also the agram.sh script for an example of anagram finding.
+# See also the agram.sh script for an exercise in anagram finding.
 
 exit $?

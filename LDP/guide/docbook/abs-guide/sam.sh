@@ -1,7 +1,7 @@
 #!/bin/bash
-# sam.sh, v. 01
+# sam.sh, v. .01a
 # Still Another Morse (code training script)
-# With apologies to Sam (F.B.) Morse.
+# With profuse apologies to Sam (F.B.) Morse.
 # Author: Mendel Cooper
 # License: GPL3
 # Reldate: 05/25/11
@@ -13,7 +13,7 @@
 
 
 # Get the wav files from the source tarball:
-# http://bash.webofcrafts.net/abs-guide-latest.tar.bz2
+# http://bash.deta.in/abs-guide-latest.tar.bz2
 DOT='soundfiles/dot.wav'
 DASH='soundfiles/dash.wav'
 # Maybe move soundfiles to /usr/local/sounds?
@@ -64,7 +64,7 @@ morse[5]="dot; dot; dot; dot; dot"
 morse[6]="dash; dot; dot; dot; dot"
 morse[7]="dash; dash; dot; dot; dot"
 morse[8]="dash; dash; dash; dot; dot"
-morse[8]="dash; dash; dash; dash; dot"
+morse[9]="dash; dash; dash; dash; dot"
 # The following must be escaped or quoted.
 morse[?]="dot; dot; dash; dash; dot; dot"
 morse[.]="dot; dash; dot; dash; dot; dash"

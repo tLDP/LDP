@@ -3,7 +3,7 @@
 filename=sys.log
 
 cat /dev/null > $filename; echo "Creating / cleaning out file."
-#  Creates file if it does not already exist,
+#  Creates the file if it does not already exist,
 #+ and truncates it to zero length if it does.
 #  : > filename   and   > filename also work.
 

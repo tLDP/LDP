@@ -3,7 +3,7 @@
 # Author: M. Cooper
 # License: GPL3
 
-# ---------------------------------
+# ----------algorithm--------------
 # Fibo(0) = 0
 # Fibo(1) = 1
 # else

@@ -4,7 +4,7 @@
 echo "This precedes the embedded Perl script within \"$0\"."
 echo "==============================================================="
 
-perl -e 'print "This is an embedded Perl script.\n";'
+perl -e 'print "This line prints from an embedded Perl script.\n";'
 # Like sed, Perl also uses the "-e" option.
 
 echo "==============================================================="

@@ -1,5 +1,5 @@
 #!/bin/bash
-# May need to be invoked with  #!/bin/bash2  on older machines.
+#
 #
 #  Random password generator for Bash 2.x +
 #+ by Antek Sawicki &lt;tenox@tenox.tc&gt;,

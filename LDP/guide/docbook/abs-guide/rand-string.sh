@@ -13,7 +13,8 @@ POS=2  # Starting from position 2 in the string.
 LEN=8  # Extract eight characters.
 
 str1=$( echo "$str0" | md5sum | md5sum )
-# Doubly scramble:     ^^^^^^   ^^^^^^
+#  Doubly scramble     ^^^^^^   ^^^^^^
+#+ by piping and repiping to md5sum.
 
 randstring="${str1:$POS:$LEN}"
 # Can parameterize ^^^^ ^^^^

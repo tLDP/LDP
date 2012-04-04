@@ -16,7 +16,7 @@ grep -v 'ed$'          # no past tense verbs
 #  Uses "anagram" utility
 #+ that is part of the author's "yawl" word list package.
 #  http://ibiblio.org/pub/Linux/libs/yawl-0.3.2.tar.gz
-#  http://bash.webofcrafts.net/yawl-0.3.2.tar.gz
+#  http://bash.deta.in/yawl-0.3.2.tar.gz
 
 exit 0                 # End of code.
 

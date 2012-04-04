@@ -4,11 +4,15 @@
 file=words.data  # Data file from which to read words to test.
 
 echo
+echo "Testing file $file"
+echo
 
 while [ "$word" != end ]  # Last word in data file.
 do               # ^^^
   read word      # From data file, because of redirection at end of loop.
   look $word > /dev/null  # Don't want to display lines in dictionary file.
+  #  Searches for words in the file /usr/share/dict/words
+  #+ (usually a link to linux.words).
   lookup=$?      # Exit status of 'look' command.
 
   if [ "$lookup" -eq 0 ]

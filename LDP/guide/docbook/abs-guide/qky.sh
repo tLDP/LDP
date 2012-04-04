@@ -13,7 +13,7 @@ WLIST=/usr/share/dict/word.lst
 #                     ^^^^^^^^  Word list file found here.
 #  ASCII word list, one word per line, UNIX format.
 #  A suggested list is the script author's "yawl" word list package.
-#  http://bash.webofcrafts.net/yawl-0.3.2.tar.gz
+#  http://bash.deta.in/yawl-0.3.2.tar.gz
 #    or
 #  http://ibiblio.org/pub/Linux/libs/yawl-0.3.2.tar.gz
 
@@ -32,7 +32,7 @@ E_DUP=70      # Duplicate word error.
 TIMEOUT=10    # Time for word input.
 
 NVLET=10      # 10 letters for non-vulnerable.
-VULET=13      # 13 letters for vulnerable (not yet implemented).
+VULET=13      # 13 letters for vulnerable (not yet implemented!).
 
 declare -a Words
 declare -a Status
@@ -70,7 +70,7 @@ but it is otherwise feature-complete.
 
 As the game begins, the player gets 10 letters.
 The object is to construct valid dictionary words
-of at least 3-letter-length from the letterset.
+of at least 3-letter length from the letterset.
 Each word-length category
 -- 3-letter, 4-letter, 5-letter, ... --
 fills up with the fifth word entered,
@@ -103,7 +103,7 @@ Category completion bonuses are:
 6-letter words   800
 7-letter words  2000
 8-letter words 10000
-This is a simplification of the absurdly complicated Perquackey bonus
+This is a simplification of the absurdly baroque Perquackey bonus
 scoring system.
 
 INSTRUCTION2
@@ -117,7 +117,7 @@ Hitting just ENTER for a word entry ends the game.
 
 Individual word entry is timed to a maximum of 10 seconds.
 *** Timing out on an entry ends the game. ***
-Other than that, the game is untimed.
+Aside from that, the game is untimed.
 
 --------------------------------------------------
 Game statistics are automatically saved to a file.
@@ -277,7 +277,7 @@ get_word ()
 }
 
 is_constructable ()
-{ # This was the most complex and difficult-to-write function.
+{ # This is the most complex and difficult-to-write function.
   local -a local_LS=( "${LS[@]}" )  # Local copy of letter set.
   local is_found=0
   local idx=0
@@ -305,7 +305,7 @@ is_constructable ()
 
 is_valid ()
 { # Surprisingly easy to check if word in dictionary ...
-  fgrep -qw "$1" "$WLIST"   # ... thanks to 'grep' ...
+  fgrep -qw "$1" "$WLIST"   # ... courtesy of 'grep' ...
   echo $?
 }
 
@@ -354,7 +354,7 @@ check_word ()
       return $NG
   fi
 
-  ### FIXME: Streamline the above code.
+  ### FIXME: Streamline the above code block.
 
 }
 
@@ -394,7 +394,7 @@ play ()
 {
   word="Start game"   # Dummy word, to start ...
 
-  while [ "$word" ]   #  If player just hits return (blank word),
+  while [ "$word" ]   #  If player just hits return (null word),
   do                  #+ then game ends.
     echo "$word: "${Status[@]}""
     echo -n "Last score: [${Score[0]}]   TOTAL score: [${Score[1]}]:     Next word: "
@@ -414,7 +414,7 @@ play ()
   done   # Exit game.
 
   ### FIXME: The play () function calls too many other functions.
-  ### This is perilously close to "spaghetti code" ...
+  ### This verges on "spaghetti code" !!!
 }
 
 end_of_game ()
@@ -457,9 +457,10 @@ exit $?
 # 3) Improve the time-out ... maybe change to untimed entry,
 #+   but with a time limit for the overall round.   
 # 4) An on-screen countdown timer would be nice.
-# 5) Implement "vulnerable" mode of play.
+# 5) Implement "vulnerable" mode of play for compatibility with classic
+#+   version of the game.
 # 6) Improve save-to-file capability (and maybe make it optional).
 # 7) Fix bugs!!!
 
-# Reference for more info:
-# http://bash.webofcrafts.net/qky.README.html
+# For more info, reference:
+# http://bash.deta.in/qky.README.html

@@ -31,7 +31,7 @@ WORDFILE=/usr/share/dict/linux.words  #  Dictionary file.
 #  May specify a different word list file
 #+ of one-word-per-line format.
 #  For example, the "yawl" word-list package,
-#  http://bash.webofcrafts.net/yawl-0.3.2.tar.gz
+#  http://bash.deta.in/yawl-0.3.2.tar.gz
 
 
 wlist=`strings "$1" | tr A-Z a-z | tr '[:space:]' Z | \

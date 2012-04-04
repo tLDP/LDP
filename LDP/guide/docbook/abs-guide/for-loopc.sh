@@ -38,10 +38,10 @@ echo; echo
 
 LIMIT=10
 
-for ((a=1; a <= LIMIT ; a++))  # Double parentheses, and "LIMIT" with no "$".
+for ((a=1; a <= LIMIT ; a++))  # Double parentheses, and naked "LIMIT"
 do
   echo -n "$a "
-done                           # A construct borrowed from 'ksh93'.
+done                           # A construct borrowed from ksh93.
 
 echo; echo
 
@@ -50,7 +50,7 @@ echo; echo
 # Let's use the C "comma operator" to increment two variables simultaneously.
 
 for ((a=1, b=1; a <= LIMIT ; a++, b++))
-do  # The comma chains together operations.
+do  # The comma concatenates operations.
   echo -n "$a-$b "
 done
 

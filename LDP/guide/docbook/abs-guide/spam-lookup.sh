@@ -4,7 +4,7 @@
 
 # Check for command-line arg.
 ARGCOUNT=1
-E_WRONGARGS=65
+E_WRONGARGS=85
 if [ $# -ne "$ARGCOUNT" ]
 then
   echo "Usage: `basename $0` domain-name"
