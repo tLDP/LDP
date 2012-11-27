@@ -27,6 +27,7 @@ rm .[A-Za-z0-9]*    # Delete dotfiles.
 #+ except "/".
 #  Deleting files beginning with weird characters, such as -
 #+ is left as an exercise. (Hint: rm ./-weirdname or rm -- -weirdname)
+result=$?   # Result of delete operations. If successful = 0.
 
 echo
 ls -al              # Any files left?
@@ -36,4 +37,4 @@ echo
 
 # Various other operations here, as necessary.
 
-exit $?
+exit $result

@@ -1,5 +1,6 @@
 #!/bin/bash
-# match-string.sh: Simple string matching.
+# match-string.sh: Simple string matching
+#                  using a 'case' construct.
 
 match_string ()
 { # Exact string match.

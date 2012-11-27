@@ -1,5 +1,5 @@
 #!/bin/bash
-# Global and local variables inside a function.
+# ex62.sh: Global and local variables inside a function.
 
 func ()
 {
@@ -7,13 +7,13 @@ func ()
   echo                   # Uses the 'local' builtin.
   echo "\"loc_var\" in function = $loc_var"
   global_var=999         # Not declared as local.
-                         # Defaults to global. 
+                         # Therefore, defaults to global. 
   echo "\"global_var\" in function = $global_var"
 }  
 
 func
 
-# Now, to see if local variable "loc_var" exists outside function.
+# Now, to see if local variable "loc_var" exists outside the function.
 
 echo
 echo "\"loc_var\" outside function = $loc_var"
@@ -26,4 +26,4 @@ echo
 
 exit 0
 #  In contrast to C, a Bash variable declared inside a function
-#+ is local *only* if declared as such.
+#+ is local ONLY if declared as such.

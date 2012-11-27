@@ -3,12 +3,12 @@
 trap 'echo "VARIABLE-TRACE> \$variable = \"$variable\""' DEBUG
 # Echoes the value of $variable after every command.
 
-variable=29
+variable=29; line=$LINENO
 
-echo "  Just initialized \$variable to $variable."
+echo "  Just initialized \$variable to $variable in line number $line."
 
-let "variable *= 3"
-echo "  Just multiplied \$variable by 3."
+let "variable *= 3"; line=$LINENO
+echo "  Just multiplied \$variable by 3 in line number $line."
 
 exit
 

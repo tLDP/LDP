@@ -19,17 +19,17 @@ echo; echo
 RANDOM=1          # Setting RANDOM seeds the random number generator.
 random_numbers
 
-echo; echo
+echo; echo "Trying again with same random seed ..."
 
-RANDOM=1          # Same seed for RANDOM...
-random_numbers    # ...reproduces the exact same number series.
+RANDOM=1          # Same seed for RANDOM . . .
+random_numbers    # . . . reproduces the exact same number series.
                   #
-                  # When is it useful to duplicate a "random" number series?
+                  # When is it useful to duplicate a "random" series?
 
 echo; echo
 
-RANDOM=2          # Trying again, but with a different seed...
-random_numbers    # gives a different number series.
+RANDOM=2          # Trying again, but with a different seed . . .
+random_numbers    # . . . gives a different number series.
 
 echo; echo
 

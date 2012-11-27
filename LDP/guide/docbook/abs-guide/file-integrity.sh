@@ -2,8 +2,8 @@
 # file-integrity.sh: Checking whether files in a given directory
 #                    have been tampered with.
 
-E_DIR_NOMATCH=70
-E_BAD_DBFILE=71
+E_DIR_NOMATCH=80
+E_BAD_DBFILE=81
 
 dbfile=File_record.md5
 # Filename for storing records (database file).
@@ -57,18 +57,18 @@ check_database ()
       then
         echo "${filename[n]} unchanged."
 
-      elif [ "`basename ${filename[n]}`" != "$dbfile" ]
-             #  Skip over checksum database file,
-             #+ as it will change with each invocation of script.
-	     #  ---
-	     #  This unfortunately means that when running
-	     #+ this script on $PWD, tampering with the
-	     #+ checksum database file will not be detected.
-	     #  Exercise: Fix this.
-	then
+        elif [ "`basename ${filename[n]}`" != "$dbfile" ]
+               #  Skip over checksum database file,
+               #+ as it will change with each invocation of script.
+               #  ---
+               #  This unfortunately means that when running
+               #+ this script on $PWD, tampering with the
+               #+ checksum database file will not be detected.
+               #  Exercise: Fix this.
+        then
           echo "${filename[n]} : CHECKSUM ERROR!"
         # File has been changed since last checked.
-      fi
+        fi
 
       fi
 
@@ -113,4 +113,3 @@ exit 0
 #  For a much more thorough file integrity check,
 #+ consider the "Tripwire" package,
 #+ http://sourceforge.net/projects/tripwire/.
-

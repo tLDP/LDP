@@ -1,5 +1,6 @@
 #!/bin/bash
 # unit-conversion.sh
+# Must have 'units' utility installed.
 
 
 convert_units ()  # Takes as arguments the units to convert.
@@ -22,3 +23,6 @@ echo "There are $result $Unit2 in $quantity $Unit1."
 #+ such as "acres" and "miles" to the function?
 
 exit 0
+
+# Exercise: Edit this script to accept command-line parameters,
+#           with appropriate error checking, of course.

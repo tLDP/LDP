@@ -1,6 +1,6 @@
 #!/bin/bash
 # usrmnt.sh, written by Anthony Richardson
-# Used with permission.
+# Used in ABS Guide with permission.
 
 # usage:       usrmnt.sh
 # description: mount device, invoking user must be listed in the

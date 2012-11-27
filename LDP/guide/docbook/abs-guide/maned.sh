@@ -37,6 +37,7 @@ echo "-----"
 echo
 echo "Simple man page creator"
 echo "Author: Mendel Cooper"
+echo "License: GPL3"
 echo; echo; echo
 }
 

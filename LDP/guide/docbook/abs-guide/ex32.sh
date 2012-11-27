@@ -17,7 +17,7 @@ do
 done
 }
 
-choice_of beans rice carrots radishes tomatoes spinach
+choice_of beans rice carrots radishes rutabaga spinach
 #         $1    $2   $3      $4       $5       $6
 #         passed to choice_of() function
 

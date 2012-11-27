@@ -19,7 +19,7 @@ tput sgr0                               # Reset colors to "normal."
 echo "vans, Roland"                     # "[E]vans, Roland"
 echo -en '\E[47;35m'"\033[1mJ\033[0m"   # Magenta
 tput sgr0
-echo "ones, Mildred"
+echo "ambalaya, Mildred"
 echo -en '\E[47;32m'"\033[1mS\033[0m"   # Green
 tput sgr0
 echo "mith, Julie"
@@ -47,7 +47,7 @@ case "$person" in
 
   "J" | "j" )
   echo
-  echo "Mildred Jones"
+  echo "Mildred Jambalaya"
   echo "249 E. 7th St., Apt. 19"
   echo "New York, NY 10009"
   echo "(212) 533-2814"

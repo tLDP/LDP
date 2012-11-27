@@ -11,4 +11,4 @@ then
   echo $a
 fi  
 
-exit 0
+exit $?   # 0! Why?

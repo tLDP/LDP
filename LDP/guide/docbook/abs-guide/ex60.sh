@@ -8,7 +8,7 @@ func2 () {
    then
      echo "-Parameter #1 is zero length.-"  # Or no parameter passed.
    else
-     echo "-Param #1 is \"$1\".-"
+     echo "-Parameter #1 is \"$1\".-"
    fi
 
    variable=${1-$DEFAULT}                   #  What does

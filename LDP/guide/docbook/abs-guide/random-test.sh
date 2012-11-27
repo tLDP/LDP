@@ -8,7 +8,7 @@ MAXTHROWS=600   # Increase this if you have nothing better to do with your time.
 throw=0         # Number of times the dice have been cast.
 
 ones=0          #  Must initialize counts to zero,
-twos=0          #+ since an uninitialized variable is null, not zero.
+twos=0          #+ since an uninitialized variable is null, NOT zero.
 threes=0
 fours=0
 fives=0
@@ -29,12 +29,12 @@ echo
 update_count()
 {
 case "$1" in
-  0) let "ones += 1";;   # Since die has no "zero", this corresponds to 1.
-  1) let "twos += 1";;   # And this to 2.
-  2) let "threes += 1";; # Etc.
-  3) let "fours += 1";;
-  4) let "fives += 1";;
-  5) let "sixes += 1";;
+  0) ((ones++));;   # Since a die has no "zero", this corresponds to 1.
+  1) ((twos++));;   # And this to 2.
+  2) ((threes++));; # And so forth.
+  3) ((fours++));;
+  4) ((fives++));;
+  5) ((sixes++));;
 esac
 }
 
@@ -50,12 +50,13 @@ done
 
 print_result
 
-exit 0
+exit $?
 
-#  The scores should distribute fairly evenly, assuming RANDOM is fairly random.
-#  With $MAXTHROWS at 600, all should cluster around 100, plus-or-minus 20 or so.
+#  The scores should distribute evenly, assuming RANDOM is random.
+#  With $MAXTHROWS at 600, all should cluster around 100,
+#+ plus-or-minus 20 or so.
 #
-#  Keep in mind that RANDOM is a pseudorandom generator,
+#  Keep in mind that RANDOM is a ***pseudorandom*** generator,
 #+ and not a spectacularly good one at that.
 
 #  Randomness is a deep and complex subject.

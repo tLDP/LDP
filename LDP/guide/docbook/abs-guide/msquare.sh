@@ -5,8 +5,8 @@
 # Author: mendel cooper
 # reldate: 19 Jan. 2009
 # License: Public Domain
-# A C-program by Kwon Young Shin inspired this script.
-# See http://user.chollian.net/~brainstm/MagicSquare.htm ...
+# A C-program by the very talented Kwon Young Shin inspired this script.
+#     http://user.chollian.net/~brainstm/MagicSquare.htm
 
 # Definition: A "magic square" is a two-dimensional array
 #             of integers in which all the rows, columns,
@@ -17,7 +17,7 @@
 #   8  1  6   
 #   3  5  7   
 #   4  9  2   
-# All the rows, columns, and long diagonals add up to 15.
+# All the rows, columns, and the two long diagonals add up to 15.
 
 
 # Globals

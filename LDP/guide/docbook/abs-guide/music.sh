@@ -1,10 +1,10 @@
 #!/bin/bash
 # music.sh
 
-# MUSIC WITHOUT EXTERNAL FILES
+# Music without external files
 
 # Author: Antonio Macchi
-# Used in ABS Guide with permission
+# Used in ABS Guide with permission.
 
 
 #  /dev/dsp default = 8000 frames per second, 8 bits per frame (1 byte),
@@ -37,4 +37,4 @@ echo -n "$g$e2$d$c$d$c$a$g$n$g$e$n$g$e2$d$c$c$b$c$cis$n$cis$d \
 $n$g$e2$d$c$d$c$a$g$n$g$e$n$g$a$d$c$b$a$b$c" > /dev/dsp
 # dsp = Digital Signal Processor
 
-exit      # A "bonny" example of a shell script!
+exit      # A "bonny" example of an elegant shell script!

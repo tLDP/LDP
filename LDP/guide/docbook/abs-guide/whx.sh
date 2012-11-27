@@ -9,10 +9,11 @@
 
 
 
-E_BADARGS=65        # Missing command-line arg.
-E_NOHOST=66         # Host not found.
-E_TIMEOUT=67        # Host lookup timed out.
-E_UNDEF=68          # Some other (undefined) error.
+E_BADARGS=85        # Missing command-line arg.
+E_NOHOST=86         # Host not found.
+E_TIMEOUT=87        # Host lookup timed out.
+E_UNDEF=88          # Some other (undefined) error.
+
 HOSTWAIT=10         # Specify up to 10 seconds for host query reply.
                     # The actual wait may be a bit longer.
 OUTFILE=whois.txt   # Output file.
@@ -26,13 +27,15 @@ then
 fi
 
 
-if [[ "$1" =~ "[a-zA-Z][a-zA-Z]$" ]]  # Ends in two alpha chars?
-then                                  # It's a domain name && must do host lookup.
+if [[ "$1" =~ "[a-zA-Z][a-zA-Z]$" ]]  #  Ends in two alpha chars?
+then                                  #  It's a domain name &&
+                                      #+ must do host lookup.
   IPADDR=$(host -W $HOSTWAIT $1 | awk '{print $4}')
-                                      # Doing host lookup to get IP address.
-				      # Extract final field.
+                                      #  Doing host lookup
+                                      #+ to get IP address.
+				      #  Extract final field.
 else
-  IPADDR="$1"                         # Command-line arg was IP address.
+  IPADDR="$1"                         #  Command-line arg was IP address.
 fi
 
 echo; echo "IP Address is: "$IPADDR""; echo
@@ -55,7 +58,7 @@ then
 fi
 
 if [[ "$IPADDR" =~ "^[;;]" ]]
-#  ;; connection timed out; no servers could be reached
+#  ;; Connection timed out; no servers could be reached.
 then
   echo "Host lookup timed out!"
   exit $E_TIMEOUT   # Bail out.
@@ -95,7 +98,8 @@ AFRINICquery() {
     echo " " >> $OUTFILE
     echo "***" >> $OUTFILE
     echo "***" >> $OUTFILE
-    echo "Warning: rwhois.infosat.net was not working as of 2005/02/02" >> $OUTFILE
+    echo "Warning: rwhois.infosat.net was not working \
+      as of 2005/02/02" >> $OUTFILE
     echo "         when this script was written." >> $OUTFILE
     echo "***" >> $OUTFILE
     echo "***" >> $OUTFILE
@@ -168,8 +172,8 @@ LACNICquery() {
   echo "Searching for $IPADDR in whois.lacnic.net"
   whois -h whois.lacnic.net "$IPADDR" > $OUTFILE
 
-#  The  following if statement checks $OUTFILE (whois.txt) for the presence of
-#+ "BR" (Brasil) in the country field.
+#  The  following if statement checks $OUTFILE (whois.txt) for
+#+ the presence of "BR" (Brasil) in the country field.
 #  If it is found, the query is re-run against whois.registro.br.
 
   if grep -E "^country:[ ]+BR$" "$OUTFILE"

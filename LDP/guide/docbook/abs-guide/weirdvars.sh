@@ -26,4 +26,21 @@ var3='\\\\'
 echo "$var3"     # \\\\
 # Strong quoting works, though.
 
-exit
+
+# ************************************************************ #
+# As the first example above shows, nesting quotes is permitted.
+
+echo "$(echo '"')"           # "
+#    ^           ^
+
+
+# At times this comes in useful.
+
+var1="Two bits"
+echo "\$var1 = "$var1""      # $var1 = Two bits
+#    ^                ^
+
+# Or, as Chris Hiestand points out ...
+
+if [[ "$(du "$My_File1")" -gt "$(du "$My_File2")" ]]; then ...
+# ************************************************************ #

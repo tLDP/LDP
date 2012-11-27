@@ -5,6 +5,7 @@
 
 a=375
 hello=$a
+#   ^ ^
 
 #-------------------------------------------------------------------------
 # No space permitted on either side of = sign when initializing variables.
@@ -22,12 +23,12 @@ hello=$a
 
 
 echo hello    # hello
-# Not a variable reference, just the string "hello" . . .
+# Not a variable reference, just the string "hello" ...
 
 echo $hello   # 375
 #    ^          This *is* a variable reference.
 echo ${hello} # 375
-# Also a variable reference, as above.
+#               Likewise a variable reference, as above.
 
 # Quoting . . .
 echo "$hello"    # 375
@@ -38,8 +39,7 @@ echo
 hello="A B  C   D"
 echo $hello   # A B C D
 echo "$hello" # A B  C   D
-# As you see, echo $hello   and   echo "$hello"   give different results.
-# Why?
+# As we see, echo $hello   and   echo "$hello"   give different results.
 # =======================================
 # Quoting a variable preserves whitespace.
 # =======================================
@@ -55,7 +55,7 @@ echo '$hello'  # $hello
 
 
 hello=    # Setting it to a null value.
-echo "\$hello (null value) = $hello"
+echo "\$hello (null value) = $hello"      # $hello (null value) =
 #  Note that setting a variable to a null value is not the same as
 #+ unsetting it, although the end result is the same (see below).
 
@@ -69,7 +69,7 @@ var1=21  var2=22  var3=$V3
 echo
 echo "var1=$var1   var2=$var2   var3=$var3"
 
-# May cause problems with older versions of "sh" . . .
+# May cause problems with legacy versions of "sh" . . .
 
 # --------------------------------------------------------------
 
@@ -102,6 +102,7 @@ echo "uninitialized_variable = $uninitialized_variable"
 uninitialized_variable=23       # Set it.
 unset uninitialized_variable    # Unset it.
 echo "uninitialized_variable = $uninitialized_variable"
+                                # uninitialized_variable =
                                 # It still has a null value.
 echo
 

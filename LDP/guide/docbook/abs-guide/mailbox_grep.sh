@@ -3,10 +3,10 @@
 #+ and slightly modified and commented by ABS Guide author.
 #  Used in ABS Guide with permission. (Thank you!)
 
-# This script will not run under Bash versions < 3.0.
+# This script will not run under Bash versions -lt 3.0.
 
 
-E_MISSING_ARG=67
+E_MISSING_ARG=87
 if [ -z "$1" ]
 then
   echo "Usage: $0 mailbox-file"
@@ -34,23 +34,24 @@ mbox_grep()  # Parse mailbox file.
        elif (( body ))
        then
             (( match ))
-            # echo "$mail"
-            # Uncomment above line if you want entire body of message to display.
+            #  echo "$mail"
+            #  Uncomment above line if you want entire body
+            #+ of message to display.
 
-       elif [[ $mail ]]; then
-          IFS=: read -r header value <<< "$mail"
-          #                          ^^^  "here string"
+   elif [[ $mail ]]; then
+      IFS=: read -r header value <<< "$mail"
+      #                          ^^^  "here string"
 
-          case "$header" in
-          [Ff][Rr][Oo][Mm] ) [[ $value =~ "$2" ]] && (( match++ )) ;;
-          # Match "From" line.
-          [Dd][Aa][Tt][Ee] ) read -r -a date <<< "$value" ;;
-          #                                  ^^^
-          # Match "Date" line.
-          [Rr][Ee][Cc][Ee][Ii][Vv][Ee][Dd] ) read -r -a sender <<< "$value" ;;
-          #                                                    ^^^
-          # Match IP Address (may be spoofed).
-          esac
+      case "$header" in
+      [Ff][Rr][Oo][Mm] ) [[ $value =~ "$2" ]] && (( match++ )) ;;
+      # Match "From" line.
+      [Dd][Aa][Tt][Ee] ) read -r -a date <<< "$value" ;;
+      #                                  ^^^
+      # Match "Date" line.
+      [Rr][Ee][Cc][Ee][Ii][Vv][Ee][Dd] ) read -r -a sender <<< "$value" ;;
+      #                                                    ^^^
+      # Match IP Address (may be spoofed).
+      esac
 
        else
           (( body++ ))

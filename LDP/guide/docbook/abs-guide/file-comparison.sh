@@ -1,8 +1,9 @@
 #!/bin/bash
+# file-comparison.sh
 
 ARGS=2  # Two args to script expected.
-E_BADARGS=65
-E_UNREADABLE=66
+E_BADARGS=85
+E_UNREADABLE=86
 
 if [ $# -ne "$ARGS" ]
 then
@@ -16,11 +17,13 @@ then
   exit $E_UNREADABLE
 fi
 
-cmp $1 $2 &> /dev/null  # /dev/null buries the output of the "cmp" command.
+cmp $1 $2 &> /dev/null
+#   Redirection to /dev/null buries the output of the "cmp" command.
 #   cmp -s $1 $2  has same result ("-s" silent flag to "cmp")
 #   Thank you  Anders Gustavsson for pointing this out.
 #
-# Also works with 'diff', i.e.,   diff $1 $2 &> /dev/null
+#  Also works with 'diff', i.e.,
+#+ diff $1 $2 &> /dev/null
 
 if [ $? -eq 0 ]         # Test exit status of "cmp" command.
 then

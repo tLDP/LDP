@@ -12,7 +12,7 @@ do
   echo
 done  
 
-# ------------------------------------------- #
+#                     ---                        #
 
 #  As with "for" and "while" loops,
 #+ an "until" loop permits C-like test constructs.

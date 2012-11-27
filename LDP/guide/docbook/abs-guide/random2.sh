@@ -1,9 +1,10 @@
 #!/bin/bash
-# random2.sh: Returns a pseudorandom number in the range 0 - 1.
-# Uses the awk rand() function.
+#  random2.sh: Returns a pseudorandom number in the range 0 - 1,
+#+ to 6 decimal places. For example: 0.822725
+#  Uses the awk rand() function.
 
 AWKSCRIPT=' { srand(); print rand() } '
-#            Command(s) / parameters passed to awk
+#           Command(s)/parameters passed to awk
 # Note that srand() reseeds awk's random number generator.
 
 
@@ -19,10 +20,10 @@ exit 0
 # ---------
 
 # 1) Using a loop construct, print out 10 different random numbers.
-#      (Hint: you must reseed the "srand()" function with a different seed
-#+     in each pass through the loop. What happens if you fail to do this?)
+#      (Hint: you must reseed the srand() function with a different seed
+#+     in each pass through the loop. What happens if you omit this?)
 
 # 2) Using an integer multiplier as a scaling factor, generate random numbers 
-#+   in the range between 10 and 100.
+#+   in the range of 10 to 100.
 
 # 3) Same as exercise #2, above, but generate random integers this time.

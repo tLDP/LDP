@@ -8,7 +8,7 @@ echo "Hit Control-C to exit before $TIME_LIMIT seconds."
 echo
 
 while [ "$SECONDS" -le "$TIME_LIMIT" ]
-do
+do   #   $SECONDS is an internal shell variable.
   if [ "$SECONDS" -eq 1 ]
   then
     units=second

@@ -1,5 +1,6 @@
 #!/bin/bash
-# list-glob.sh: Generating [list] in a for-loop, using "globbing"
+# list-glob.sh: Generating [list] in a for-loop, using "globbing" ...
+# Globbing = filename expansion.
 
 echo
 

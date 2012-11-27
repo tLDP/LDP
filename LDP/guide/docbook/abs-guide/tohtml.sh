@@ -1,5 +1,5 @@
 #!/bin/bash
-# tohtml.sh [v. 0.2, reldate: 06/26/08, still buggy]
+# tohtml.sh [v. 0.2.01, reldate: 04/13/12, a teeny bit less buggy]
 
 # Convert a text file to HTML format.
 # Author: Mendel Cooper
@@ -108,9 +108,10 @@ process_text ()
 
 
    
-    echo
+#   echo
     echo "$line"
-    echo
+#   echo
+#   Don't want extra blank lines in generated text!
     } # End while
   done
   }   # End process_text ()

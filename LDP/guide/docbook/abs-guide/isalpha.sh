@@ -2,7 +2,8 @@
 # isalpha.sh: Using a "case" structure to filter a string.
 
 SUCCESS=0
-FAILURE=-1
+FAILURE=1   #  Was FAILURE=-1,
+            #+ but Bash no longer allows negative return value.
 
 isalpha ()  # Tests whether *first character* of input string is alphabetic.
 {
@@ -77,7 +78,7 @@ a=23skidoo
 b=H3llo
 c=-What?
 d=What?
-e=`echo $b`   # Command substitution.
+e=$(echo $b)   # Command substitution.
 f=AbcDef
 g=27234
 h=27a34

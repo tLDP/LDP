@@ -7,7 +7,7 @@ while echo "previous-variable = $previous"
       echo
       previous=$var1
       [ "$var1" != end ] # Keeps track of what $var1 was previously.
-      # Four conditions on "while", but only last one controls loop.
+      # Four conditions on *while*, but only the final one controls loop.
       # The *last* exit status is the one that counts.
 do
 echo "Input variable #1 (end to exit) "

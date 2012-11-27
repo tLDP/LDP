@@ -1,12 +1,12 @@
 #!/bin/bash
 
 #  Erratic behavior of the "$*" and "$@" internal Bash variables,
-#+ depending on whether they are quoted or not.
-#  Inconsistent handling of word splitting and linefeeds.
+#+ depending on whether or not they are quoted.
+#  Demonstrates inconsistent handling of word splitting and linefeeds.
 
 
 set -- "First one" "second" "third:one" "" "Fifth: :one"
-# Setting the script arguments, $1, $2, etc.
+# Setting the script arguments, $1, $2, $3, etc.
 
 echo
 
@@ -133,5 +133,5 @@ echo
 
 exit 0
 
-# This example script by Stephane Chazelas,
-# and slightly modified by the document author.
+#  This example script written by Stephane Chazelas,
+#+ and slightly modified by the document author.

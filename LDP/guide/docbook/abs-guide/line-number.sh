@@ -3,8 +3,9 @@
 
 # This script echoes itself twice to stdout with its lines numbered.
 
-# 'nl' sees this as line 4 since it does not number blank lines.
-# 'cat -n' sees the above line as number 6.
+echo "     line number = $LINENO" # 'nl' sees this as line 4
+#                                   (nl does not number blank lines).
+#                                   'cat -n' sees it correctly as line #6.
 
 nl `basename $0`
 

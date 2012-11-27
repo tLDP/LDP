@@ -17,15 +17,16 @@ echo $?                # Returns 255.
 return_test 257        # Error!
 echo $?                # Returns 1 (return code for miscellaneous error).
 
-# ======================================================
+# =========================================================
 return_test -151896    # Do large negative numbers work?
 echo $?                # Will this return -151896?
                        # No! It returns 168.
 #  Version of Bash before 2.05b permitted
 #+ large negative integer return values.
-#  Newer versions of Bash plug this loophole.
+#  It happened to be a useful feature.
+#  Newer versions of Bash unfortunately plug this loophole.
 #  This may break older scripts.
 #  Caution!
-# ======================================================
+# =========================================================
 
 exit 0

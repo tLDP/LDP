@@ -1,7 +1,7 @@
 #!/bin/bash
 # symlinks.sh: Lists symbolic links in a directory.
 
-OUTFILE=symlinks.list                         # save file
+OUTFILE=symlinks.list                         # save-file
 
 directory=${1-`pwd`}
 #  Defaults to current working directory,
@@ -17,4 +17,6 @@ do
 done | sort >> "$OUTFILE"                     # stdout of loop
 #           ^^^^^^^^^^^^^                       redirected to save file.
 
-exit 0
+# echo "Output file = $OUTFILE"
+
+exit $?

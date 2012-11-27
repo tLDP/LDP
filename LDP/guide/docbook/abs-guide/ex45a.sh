@@ -16,7 +16,7 @@ echo "The string being operated upon is \"`expr "$a" : '\(.*\)'`\"."
 #       ***************************
 
 
-#  If no escaped parentheses...
+#  If no escaped parentheses ...
 #+ then 'expr' converts the string operand to an integer.
 
 echo "Length of \"$a\" is `expr "$a" : '.*'`."   # Length of string
@@ -35,8 +35,8 @@ echo "The first 7 characters of \"$a\" are `expr "$a" : '\(.......\)'`."
 #
 echo "The last 7 characters of \"$a\" are `expr "$a" : '.*\(.......\)'`."
 #         ====                  end of string operator  ^^
-#  (actually means skip over one or more of any characters until specified
-#+  substring)
+#  (In fact, means skip over one or more of any characters until specified
+#+  substring found.)
 
 echo
 

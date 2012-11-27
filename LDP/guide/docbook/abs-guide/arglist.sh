@@ -1,8 +1,8 @@
 #!/bin/bash
 # arglist.sh
-# Invoke this script with several arguments, such as "one two three".
+# Invoke this script with several arguments, such as "one two three" ...
 
-E_BADARGS=65
+E_BADARGS=85
 
 if [ ! -n "$1" ]
 then

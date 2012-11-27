@@ -1,4 +1,5 @@
 #!/bin/bash
+# ex59.sh: Exercising functions (simple).
 
 JUST_A_SECOND=1
 
@@ -34,4 +35,4 @@ fun ()
 funky
 fun
 
-exit 0
+exit $?
