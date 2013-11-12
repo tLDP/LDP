@@ -199,7 +199,7 @@ create_html_multipage() {
 create_html_singlepage() {
 	echo "INFO  : Create HTML singlepage '$file_html'"
 	[ $loglevel -ge 7 ] && set -x
-	$JADE -t sgml -i html -V nochunks -d "${file_ldpdsl}#html" $file_input >$file_html
+	$JADE -t sgml -i html -V nochunks -d "${file_ldpdsl}#html" -o $file_html $file_input >/dev/null
 	local retval=$?
 	[ $loglevel -ge 7 ] && set +x
 
