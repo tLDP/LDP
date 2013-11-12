@@ -7,6 +7,7 @@
 # 20060822/PB: major improvement, add support for persistent XML database
 # 20081109/PB: enhancement to detect URLs in newer lyx file format
 # 20090214/PB: detect IPv6 addresses in brackets and remove brackets, otherwise it won't work
+# 20131112/PB: support newer Perl
 
 use strict;
 use Net::HTTP;
@@ -15,8 +16,7 @@ use Net::NNTP;
 use Crypt::SSLeay;
 use LWP::UserAgent;
 use XML::Dumper;
-use Socket;
-use Socket6;
+use Socket qw(NI_NUMERICSERV NI_NUMERICHOST getaddrinfo inet_pton);
 
 my $debug = 0xffff & ~(0x20);
 
@@ -142,48 +142,61 @@ sub cleanup_old_urls() {
 
 sub check_ipv6only($$) {
 	print STDERR "DEBUG/check_ipv6only: begin\n" if ($debug & 0x10);
-	print STDERR "DEBUG/check_ipv6only: check: " . $_[0] . "\n" if ($debug & 0x10);
+	print STDERR "DEBUG/check_ipv6only: check: " . $_[0] . " on port " . $_[1] . "\n" if ($debug & 0x10);
 
-	my ($family, $socktype, $proto, $saddr, $canonname, @res);
+	my ($family, $socktype, $proto, $saddr, $canonname, @res, $err);
 	my ($host, $port);
 
 	$family = -1;
 
 	if ($_[0] =~ /^\[([0-9a-fA-F:]+)\]$/) {
 		# Strip [...]
-		$_[0] = $1;
-	};
+		$host = $1;
+		$port = $_[1];
 
-	@res = getaddrinfo($_[0], $_[1], AF_INET6, SOCK_STREAM);
+		print STDERR "DEBUG/check_ipv6only: host: " . $host . "\n" if ($debug & 0x10);
 
-	if (scalar(@res) < 5) {
-		print STDERR "DEBUG/check_ipv6only: getaddrinfo fails\n" if ($debug & 0x10);
-		return 1;
-	};
-
-	$family = -1;
-
-	while (scalar(@res) >= 5) {
-		($family, $socktype, $proto, $saddr, $canonname, @res) = @res;
-
-		($host, $port) = getnameinfo($saddr, NI_NUMERICHOST | NI_NUMERICSERV);
-
-		print STDERR "Trying to connect to $host port port $port...\n";
-
-		socket(Socket_Handle, $family, $socktype, $proto) || next;
-		connect(Socket_Handle, $saddr) && last;
-
+		socket(Socket_Handle, PF_INET6, SOCK_STREAM, 0) || return 1;
+		$saddr = pack_sockaddr_in6($port, inet_pton(AF_INET6, $host));
+		connect(Socket_Handle, $saddr) && return 0;
 		close(Socket_Handle);
-		$family = -1;
-	};
-
-	if ($family != -1) {
-		print STDERR "connected to $host port $port\n";
-		close(Socket_Handle);
-		return 0;
 	} else {
-		warn "connect attempt failed\n";
-		return 1;
+		my %hints = ( socktype => SOCK_STREAM, family => AF_INET6);
+		($err, @res) = getaddrinfo($_[0], "echo", \%hints);
+
+		if (defined $err) {
+			print STDERR "ERROR/check_ipv6only: getaddrinfo fails: $err\n" if ($debug & 0x10);
+			return 1;
+		};
+		if (scalar(@res) < 5) {
+			print STDERR "ERROR/check_ipv6only: getaddrinfo fails\n" if ($debug & 0x10);
+			return 1;
+		};
+
+		$family = -1;
+
+		while (scalar(@res) >= 5) {
+			($family, $socktype, $proto, $saddr, $canonname, @res) = @res;
+
+			($host, $port) = getnameinfo($saddr, NI_NUMERICHOST | NI_NUMERICSERV);
+
+			print STDERR "Trying to connect to $host port $port...\n";
+
+			socket(Socket_Handle, $family, $socktype, $proto) || next;
+			connect(Socket_Handle, $saddr) && last;
+
+			close(Socket_Handle);
+			$family = -1;
+		};
+
+		if ($family != -1) {
+			print STDERR "connected to $host port $port\n";
+			close(Socket_Handle);
+			return 0;
+		} else {
+			warn "connect attempt failed\n";
+			return 1;
+		};
 	};
 };
 
@@ -321,6 +334,7 @@ LABEL_PRINT:
 		if ($status ne "ok") {
 			print "desc='$desc' URL=$url proto=$proto host=$host port=$port uri='$uri'";
 			print " status=$status\n\n";
+			die;
 		};
 LABEL_END:
 		$$p_urls{$url}->{'checktime'} = $time;
