@@ -12,6 +12,9 @@ echo && echo  # Two line-feeds in an "and list."
 
 
 stty -echo    # Turns off screen echo.
+#   May also be done with
+#   read -sp passwd
+#   A big Thank You to Leigh James for pointing this out.
 
 echo -n "Enter password again "
 read passwd

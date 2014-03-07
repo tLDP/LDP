@@ -12,7 +12,7 @@
 #             of integers in which all the rows, columns,
 #             and *long* diagonals add up to the same number.
 #             Being "square," the array has the same number
-#             of rows and columns.
+#             of rows and columns. That number is the "order."
 # An example of a magic square of order 3 is:
 #   8  1  6   
 #   3  5  7   
@@ -29,8 +29,8 @@ declare -i square
 
 usage_message ()
 {
-  echo "Usage: $0 square-size"
-  echo "   ... where \"square-size\" is an ODD integer"
+  echo "Usage: $0 order"
+  echo "   ... where \"order\" (square size) is an ODD integer"
   echo "       in the range 3 - 31."
   #  Actually works for squares up to order 159,
   #+ but large squares will not display pretty-printed in a term window.
@@ -57,7 +57,7 @@ calculate ()       # Here's where the actual work gets done.
       square[$index]=cell_val; ((cell_val++))
     done
   done
-}     # Plain math, no visualization required.
+}     # Plain math, visualization not required.
 
 
 print_square ()               # Output square, one row at a time.
@@ -72,7 +72,7 @@ print_square ()               # Output square, one row at a time.
     do
       let "idx = $row * $dimension + $col"
       printf "%3d " "${square[idx]}"; echo -n "  "
-    done   # Displays up to 13-order neatly in 80-column term window.
+    done   # Displays up to 13th order neatly in 80-column term window.
 
     echo   # Newline after each row.
   done

@@ -27,7 +27,7 @@ then
 fi
 
 
-if [[ "$1" =~ "[a-zA-Z][a-zA-Z]$" ]]  #  Ends in two alpha chars?
+if [[ "$1" =~ [a-zA-Z][a-zA-Z]$ ]]  #  Ends in two alpha chars?
 then                                  #  It's a domain name &&
                                       #+ must do host lookup.
   IPADDR=$(host -W $HOSTWAIT $1 | awk '{print $4}')
@@ -57,21 +57,21 @@ then
   exit $E_NOHOST    # Bail out.
 fi
 
-if [[ "$IPADDR" =~ "^[;;]" ]]
+if [[ "$IPADDR" =~ ^[;;] ]]
 #  ;; Connection timed out; no servers could be reached.
 then
   echo "Host lookup timed out!"
   exit $E_TIMEOUT   # Bail out.
 fi
 
-if [[ "$IPADDR" =~ "[(NXDOMAIN)]$" ]]
+if [[ "$IPADDR" =~ [(NXDOMAIN)]$ ]]
 #  Host xxxxxxxxx.xxx not found: 3(NXDOMAIN)
 then
   echo "Host not found!"
   exit $E_NOHOST    # Bail out.
 fi
 
-if [[ "$IPADDR" =~ "[(SERVFAIL)]$" ]]
+if [[ "$IPADDR" =~ [(SERVFAIL)]$ ]]
 #  Host xxxxxxxxx.xxx not found: 2(SERVFAIL)
 then
   echo "Host not found!"

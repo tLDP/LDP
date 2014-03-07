@@ -5,11 +5,13 @@
 
 
 ARGCOUNT=1       # Expect one arg.
-E_WRONGARGS=65
+OFF=0            # Flag states.
+ON=1
+E_WRONGARGS=85
 
 file="$1"        # Target filename.
 lineno=1         # Line number. Start at 1.
-Flag=0           # Blank line flag.
+Flag=$OFF        # Blank line flag.
 
 if [ $# -ne "$ARGCOUNT" ]
 then
@@ -22,18 +24,18 @@ file_read ()     # Scan file for pattern, then print line.
 while read line
 do
 
-  if [[ "$line" =~ ^[a-z] && $Flag -eq 1 ]]
-     then  # Line begins with lc character, following blank line.
+  if [[ "$line" =~ ^[a-z] && $Flag -eq $ON ]]
+     then  # Line begins with lowercase character, following blank line.
      echo -n "$lineno::   "
      echo "$line"
   fi
 
 
-  if [[ "$line" =~ "^$" ]]
-     then     #  If blank line,
-     Flag=1   #+ set flag.
+  if [[ "$line" =~ ^$ ]]
+     then       #  If blank line,
+     Flag=$ON   #+ set flag.
   else
-     Flag=0
+     Flag=$OFF
   fi
 
   ((lineno++))

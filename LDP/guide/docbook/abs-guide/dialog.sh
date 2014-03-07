@@ -12,7 +12,7 @@
 
 
 # Input error in dialog box.
-E_INPUT=65
+E_INPUT=85
 # Dimensions of display, input widgets.
 HEIGHT=50
 WIDTH=60

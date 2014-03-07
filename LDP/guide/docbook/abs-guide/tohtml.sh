@@ -79,7 +79,7 @@ process_text ()
       continue        # Skip the underscore test.
     else              # Otherwise . . .
 
-      if [[ "$line" =~ "\[*jpg\]" ]]  # Is a graphic?
+      if [[ "$line" =~ \[*jpg\] ]]    # Is a graphic?
       then                            # Strip away brackets.
         temp=$( echo "$line" | sed -e 's/\[//' -e 's/\]//' )
         line=""$CENTER" &lt;img src="\"$IMGDIR"/$temp\"&gt; "$END_CENTER" "

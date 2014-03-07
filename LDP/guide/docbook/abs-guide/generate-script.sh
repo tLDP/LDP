@@ -43,7 +43,7 @@ else
   echo "Problem in creating file: \"$OUTFILE\""
 fi
 
-#  This method can also be used for generating
+#  This method also works for generating
 #+ C programs, Perl programs, Python programs, Makefiles,
 #+ and the like.
 

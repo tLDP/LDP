@@ -76,9 +76,7 @@ seed_random ()  # Seed random number generator.
 seed=`eval date +%s`
 let "seed %= 32766"
 RANDOM=$seed
-#  What are some other methods
-#+ of seeding the random number generator?
-}
+} # Consider other methods of seeding the random number generator.
 
 deal_cards ()
 {
@@ -95,7 +93,7 @@ do
     parse_card $t
 
     u=$cards_picked+1
-    # Change back to 1-based indexing (temporarily). Why?
+    # Change back to 1-based indexing, temporarily. Why?
     let "u %= $CARDS_IN_SUIT"
     if [ "$u" -eq 0 ]   # Nested if/then condition test.
     then

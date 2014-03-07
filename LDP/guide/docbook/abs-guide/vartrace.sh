@@ -10,7 +10,7 @@ echo "  Just initialized \$variable to $variable in line number $line."
 let "variable *= 3"; line=$LINENO
 echo "  Just multiplied \$variable by 3 in line number $line."
 
-exit
+exit 0
 
 #  The "trap 'command1 . . . command2 . . .' DEBUG" construct is
 #+ more appropriate in the context of a complex script,

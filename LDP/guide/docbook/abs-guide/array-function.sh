@@ -73,3 +73,6 @@ echo ${arr[@]}                # 11 12 13 14 15 16 17 18 19 20
 echo
 
 exit 0
+
+#  Nathan Coulter points out that passing arrays with elements containing
+#+ whitespace breaks this example.

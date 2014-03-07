@@ -25,7 +25,7 @@ mbox_grep()  # Parse mailbox file.
 #  Otherwise "read" will strip leading & trailing space from its input.
 
    do
-       if [[ $mail =~ "^From " ]]   # Match "From" field in message.
+       if [[ $mail =~ ^From  ]]   # Match "From" field in message.
        then
           (( body  = 0 ))           # "Zero out" variables.
           (( match = 0 ))
