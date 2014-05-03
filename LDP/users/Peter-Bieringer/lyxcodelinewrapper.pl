@@ -26,7 +26,7 @@
 # Known limitations:
 #  * Code lines containing LyX tags are currently not supported and skipped
 
-my $lyx_format_supported = "345";
+my $lyx_format_supported = "474";
 
 sub print_long_line ($);
 
