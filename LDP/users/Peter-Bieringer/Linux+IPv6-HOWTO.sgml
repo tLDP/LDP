@@ -1983,73 +1983,103 @@ Chain intOUT (1 references)
 <![CDATA[# ip6tables -t nat -A PREROUTING -i sixxs -p tcp --dport 8080 -j DNAT --to-destination [fec0::1234]:80
 ]]></screen></sect2></sect1><sect1>
 <title>Firewalling using nftables</title>
-<para>nftables adds support for a IPv4/IPv6 aware table named &ldquo;inet&rdquo;, here only one rule matches both protocols</para><sect2>
+<para>nftables adds in addition to protocol specific tables &ldquo;ip&rdquo; (IPv4) and &ldquo;ip6&rdquo; (IPv6) support for a IPv4/IPv6 aware table named &ldquo;inet&rdquo;. Using this table it's possible to add only one rule and match both protocols (in case of UDP and TCP).</para>
+<para>Take care if rules are contained in more than one table, because the tables are checked in sequence:</para><screen>
+<![CDATA[IPv4-Packet --> table "ip"  --> table "inet" --> further checks
+IPv6-Packet --> table "ip6" --> table "inet" --> further checks
+]]></screen><para>If table &ldquo;ip6&rdquo; accepts the packet, also table &ldquo;inet&rdquo; must accept the packet, otherwise it can be dropped by a later drop rule.</para><sect2>
 <title>Preparation for nftables usage</title>
 <para>Install a Linux distribution which has nftables support already included. At time of writing (May 2014) at least Fedora Rawhide (upcoming version 21) has support in conjunction with nftables version 0.2.0.</para></sect2><sect2>
 <title>Basic nftables configuration</title>
-<para>Load kernel modules</para><screen>
+<para>Load kernel modules:</para><screen>
 <![CDATA[# modprobe nf_tables
 # modprobe nf_tables_ipv4
 # modprobe nf_tables_ipv6
 # modprobe nf_tables_inet 
-]]></screen><para>Create filter tables</para><screen>
-<![CDATA[# nft add table ip   filter
-# nft add table ip6  filter
-# nft add table inet filter 
-]]></screen><para>Create input chain in each filter table</para><screen>
-<![CDATA[# nft add chain ip   filter input { type filter hook input priority 1 \; }
-# nft add chain ip6  filter input { type filter hook input priority 1 \; } 
-# nft add chain inet filter input { type filter hook input priority 0 \; }
+]]></screen><para>Flush iptables and ip6tables to avoid interferences:</para><screen>
+<![CDATA[# iptables -F
+# ip6tables -F
+]]></screen><para>Create filter table:</para><screen>
+<![CDATA[# nft add table inet filter 
+]]></screen><para>Create input chain:</para><screen>
+<![CDATA[# nft add chain inet filter input { type filter hook input priority 0 \; }
 ]]></screen></sect2><sect2>
-<title>Simple filter policy with nftables</title>
+<title>Simple filter policy with nftables using only table &ldquo;inet&rdquo;</title>
 <sect3>
 <title>Configuration</title>
 <para>Allow packets which are related to existing connection tracking entries</para><screen>
-<![CDATA[# nft add rule inet filter input ct state established,related counter accept 
+<![CDATA[# nft add rule inet filter input ct state established,related counter accept
 ]]></screen><para>Allow IPv4 and IPv6 ICMP echo-request (aka ping)</para><screen>
-<![CDATA[# nft add rule ip filter input icmp type { echo-request } counter accept 
-# nft add rule ip6 filter input icmpv6 type echo-request counter accept 
+<![CDATA[# nft add rule inet filter input meta nfproto ipv4 icmp type { echo-request } counter accept
+# nft add rule inet filter input meta nfproto ipv6 icmpv6 type echo-request counter accept 
 ]]></screen><para>Allow some important IPv6 ICMP traffic, without counter, but checking hop-limit for security</para><screen>
-<![CDATA[# nft add rule ip6 filter input icmpv6 type
-¬  { nd-neighbor-solicit, nd-router-advert, nd-neighbor-advert }
-¬  ip6 hoplimit 1 accept
-# nft add rule ip6 filter input icmpv6 type
-¬  { nd-neighbor-solicit, nd-router-advert, nd-neighbor-advert }
-¬  ip6 hoplimit 255 accept
-]]></screen><para>Allow incoming SSH for IPv4 and IPv6, using therefore the IP version aware table &ldquo;inet&rdquo;</para><screen>
+<![CDATA[# nft add rule inet filter input meta nfproto ipv6
+¬  icmpv6 type { nd-neighbor-advert, nd-neighbor-solicit, nd-router-advert} ip6 hoplimit 1 accept
+# nft add rule inet filter input meta nfproto ipv6
+¬  icmpv6 type { nd-neighbor-advert, nd-neighbor-solicit, nd-router-advert} ip6 hoplimit 255 counter accept
+]]></screen><para>Allow incoming SSH for IPv4 and IPv6</para><screen>
 <![CDATA[# nft add rule inet filter input tcp dport 22 ct state new tcp flags \& \(syn \| ack\) == syn counter accept
+]]></screen><para>Reject/drop others</para><screen>
+<![CDATA[# nft add rule inet filter input tcp dport 0-65535 reject
+# nft add rule inet filter input udp dport 0-65535 counter drop
+# nft add rule inet filter input counter drop
 ]]></screen></sect3><sect3>
 <title>Result</title>
-<para>Table for IPv4 filter</para><screen>
-<![CDATA[# nft list table ip filter
+<para>Table for IP version aware filter</para><screen>
+<![CDATA[table inet filter {
+	chain input {
+		 type filter hook input priority 0;
+		 ct state established,related counter packets 0 bytes 0 accept
+		 ip protocol icmp icmp type { echo-request} counter packets 0 bytes 0 accept
+		 ip6 nexthdr ipv6-icmp icmpv6 type echo-request counter packets 0 bytes 0 accept
+		 ip6 nexthdr ipv6-icmp ip6 hoplimit 1 icmpv6 type { nd-neighbor-advert, nd-neighbor-solicit, nd-router-advert} accept
+		 ip6 nexthdr ipv6-icmp ip6 hoplimit 255 icmpv6 type { nd-neighbor-advert, nd-neighbor-solicit, nd-router-advert} accept
+		 tcp dport ssh ct state new tcp flags & (syn | ack) == syn counter packets 0 bytes 0 accept
+		 tcp dport >= 0 tcp dport <= 65535 counter packets 0 bytes 0 reject
+		 udp dport >= 0 udp dport <= 65535 counter packets 0 bytes 0 drop
+		 log prefix counter packets 0 bytes 0 drop
+	}
+}
+]]></screen></sect3><sect3>
+<title>Hints for logging</title>
+<para>To enable logging, an additonal kernel module must be loaded</para><screen>
+<![CDATA[# modprobe xt_LOG
+]]></screen><para>BUT TAKE CARE, IT LOOKS LIKE THAT NO LOG LEVEL CAN BE SPEFICIED CURRENTLY IN nftables, resulting that events are logged with kern.emerg - POSSIBILITY OF FLODDING THE CONSOLE WITH LOG ENTRIES!</para>
+<para>Fir initial test with logging it can be useful to disable kernel console logging in e.g. /etc/rsyslog.conf by putting a &ldquo;#&rdquo; in front of the related entry and restart logging daemon</para><screen>
+<![CDATA[#*.emerg    :omusrmsg:* 
+]]></screen><para>Rule from above accepting SSH on port 22, but now with logging:</para><screen>
+<![CDATA[# nft add rule inet filter input tcp dport 22 ct state new tcp flags \& \(syn \| ack\) == syn log prefix \"inet/input/accept: \" counter accept
+]]></screen></sect3></sect2><sect2>
+<title>Filter policy with nftables using tables &ldquo;ip&rdquo;, &ldquo;ip6&rdquo; and &ldquo;inet&rdquo;</title>
+<para>As written above, if rules should be stored in related tables, it must be assured that earlier accepts are not discarded in the further table. This can be done using &ldquo;meta mark set xxxx&rdquo; on every accept rule and generic rules which accepts packets with &ldquo;mark xxxx&rdquo;. A resulting filter set would look like the following:</para><screen>
+<![CDATA[# for table in ip ip6 inet; do nft list table $table filter; done
 table ip filter {
 	chain input {
-		 type filter hook input priority 1;
-		 icmp type { echo-request} counter packets 0 bytes 0 accept
+		 type filter hook input priority 0;
+		 ct state established,related counter packets 241 bytes 25193 accept
+		 counter packets 2 bytes 120 mark 0x00000100 accept
+		 icmp type { echo-request} counter packets 0 bytes 0 meta mark set 0x00000100 accept
 	}
 }
-]]></screen><para>Table for IPv6 filter</para><screen>
-<![CDATA[# nft list table ip6 filter
 table ip6 filter {
 	chain input {
-		 type filter hook input priority 1;
-		 icmpv6 type echo-request counter packets 0 bytes 0 accept
-		 ip6 hoplimit 1 icmpv6 type
-¬		 { nd-neighbor-advert, nd-neighbor-solicit, nd-router-advert} accept
-		 ip6 hoplimit 255 icmpv6 type
-¬		 { nd-neighbor-advert, nd-neighbor-solicit, nd-router-advert} accept
+		 type filter hook input priority 0;
+		 ct state established,related counter packets 14 bytes 4077 accept
+		 counter packets 4 bytes 408 mark 0x00000100 accept
+		 icmpv6 type echo-request counter packets 1 bytes 104 meta mark set 0x00000100
+		 icmpv6 type { nd-neighbor-advert, nd-neighbor-solicit, nd-router-advert} counter packets 2 bytes 224 meta mark set 0x00000100 accept
 	}
 }
-]]></screen><para>Table for IP version aware filter</para><screen>
-<![CDATA[# nft list table inet filter
 table inet filter {
 	chain input {
 		 type filter hook input priority 0;
-		 ct state established,related counter packets 44 bytes 2288 accept
-		 tcp dport ssh ct state new tcp flags & (syn | ack) == syn counter packets 0 bytes 0 accept
+		 ct state established,related counter packets 307 bytes 31974 accept
+		 counter packets 6 bytes 528 mark 0x00000100 accept
+		 tcp dport ssh ct state new tcp flags & (syn | ack) == syn log prefix "inet/input/accept: " meta mark set 0x00000100 counter packets 3 bytes 200 accept
+		 log prefix "inet/input/reject: " counter packets 0 bytes 0 reject
 	}
-} 
-]]></screen></sect3></sect2></sect1></chapter><chapter id='chapter-security' >
+}
+]]></screen></sect2></sect1></chapter><chapter id='chapter-security' >
 <title><!-- anchor id="chapter-security" -->Security</title>
 <sect1>
 <title>Node security</title>

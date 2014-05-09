@@ -1980,19 +1980,18 @@ Chain intOUT (1 references)
 <title>Präparation zur Nutzung von nftables</title>
 <para>Installieren einer Linux-Distribution, welche die Unterstützung für nftables bereits eingebaut hat. Beim Schreiben dieses Absatzes (Mai 2014) war mindestens Fedora Rawhide (Vorläufer der Version 21) mit entsprechendem Support und nftables version 0.2.0 versehen.</para></sect2><sect2>
 <title>Basis-nftables Konfiguration</title>
-<para>Laden der Kernel-Module</para><screen>
+<para>Laden der Kernel-Module:</para><screen>
 <![CDATA[# modprobe nf_tables
 # modprobe nf_tables_ipv4
 # modprobe nf_tables_ipv6
 # modprobe nf_tables_inet 
-]]></screen><para>Erzeugen der Filter-Tabellen</para><screen>
-<![CDATA[# nft add table ip   filter
-# nft add table ip6  filter
-# nft add table inet filter 
-]]></screen><para>Erzeugen einer input chain in jeder Filter-Tabelle</para><screen>
-<![CDATA[# nft add chain ip   filter input { type filter hook input priority 1 \; }
-# nft add chain ip6  filter input { type filter hook input priority 1 \; } 
-# nft add chain inet filter input { type filter hook input priority 0 \; }
+]]></screen><para>Löschen der Regeln in iptables and ip6tables um Interferenzen zu vermeiden:</para><screen>
+<![CDATA[# iptables -F
+# ip6tables -F
+]]></screen><para>Erzeugen der Filter-Tabelle:</para><screen>
+<![CDATA[# nft add table inet filter 
+]]></screen><para>Erzeugen einer input chain in der Filter-Tabelle:</para><screen>
+<![CDATA[# nft add chain inet filter input { type filter hook input priority 0 \; }
 ]]></screen></sect2><sect2>
 <title>Einfache Filter-Policy mit nftables</title>
 <sect3>
@@ -2000,49 +1999,76 @@ Chain intOUT (1 references)
 <para>Erlauben von Paketen, die zu existierenden Einträgen in der Connection-Tracking-Tabelle gehören</para><screen>
 <![CDATA[# nft add rule inet filter input ct state established,related counter accept 
 ]]></screen><para>Erlauben von IPv4 und IPv6 ICMP echo-request (aka ping)</para><screen>
-<![CDATA[# nft add rule ip filter input icmp type { echo-request } counter accept 
-# nft add rule ip6 filter input icmpv6 type echo-request counter accept 
+<![CDATA[# nft add rule inet filter input meta nfproto ipv4 icmp type { echo-request } counter accept
+# nft add rule inet filter input meta nfproto ipv6 icmpv6 type echo-request counter accept 
 ]]></screen><para>Erlauben einiger wichtiger IPv6 ICMP Pakete, ohne Zähler, dafür mit Hop-Limit-Prüfung (erhöht die Sicherheit)</para><screen>
-<![CDATA[# nft add rule ip6 filter input icmpv6 type
-¬  { nd-neighbor-solicit, nd-router-advert, nd-neighbor-advert }
-¬  ip6 hoplimit 1 accept
-# nft add rule ip6 filter input icmpv6 type
-¬  { nd-neighbor-solicit, nd-router-advert, nd-neighbor-advert }
-¬  ip6 hoplimit 255 accept
-]]></screen><para>Erlauben von eingehenden SSH-Verbindungen für IPv4 und IPv6 unter Nutzung der IP-Version unabhängigen Tabelle &ldquo;inet&rdquo;</para><screen>
+<![CDATA[# nft add rule inet filter input meta nfproto ipv6
+¬  icmpv6 type { nd-neighbor-advert, nd-neighbor-solicit, nd-router-advert} ip6 hoplimit 1 accept
+# nft add rule inet filter input meta nfproto ipv6
+¬  icmpv6 type { nd-neighbor-advert, nd-neighbor-solicit, nd-router-advert} ip6 hoplimit 255 counter accept
+]]></screen><para>Erlauben von eingehenden SSH-Verbindungen für IPv4 und IPv6</para><screen>
 <![CDATA[# nft add rule inet filter input tcp dport 22 ct state new tcp flags \& \(syn \| ack\) == syn counter accept
+]]></screen><para>Reject/drop anderer Pakete</para><screen>
+<![CDATA[# nft add rule inet filter input tcp dport 0-65535 reject
+# nft add rule inet filter input udp dport 0-65535 counter drop
+# nft add rule inet filter input counter drop
 ]]></screen></sect3><sect3>
 <title>Ergebnis</title>
-<para>Tabelle für IPv4 Filter</para><screen>
-<![CDATA[# nft list table ip filter
+<para>Tabelle für IP unabhängigen Filter</para><screen>
+<![CDATA[table inet filter {
+	chain input {
+		 type filter hook input priority 0;
+		 ct state established,related counter packets 0 bytes 0 accept
+		 ip protocol icmp icmp type { echo-request} counter packets 0 bytes 0 accept
+		 ip6 nexthdr ipv6-icmp icmpv6 type echo-request counter packets 0 bytes 0 accept
+		 ip6 nexthdr ipv6-icmp ip6 hoplimit 1 icmpv6 type { nd-neighbor-advert, nd-neighbor-solicit, nd-router-advert} accept
+		 ip6 nexthdr ipv6-icmp ip6 hoplimit 255 icmpv6 type { nd-neighbor-advert, nd-neighbor-solicit, nd-router-advert} accept
+		 tcp dport ssh ct state new tcp flags & (syn | ack) == syn counter packets 0 bytes 0 accept
+		 tcp dport >= 0 tcp dport <= 65535 counter packets 0 bytes 0 reject
+		 udp dport >= 0 udp dport <= 65535 counter packets 0 bytes 0 drop
+		 log prefix counter packets 0 bytes 0 drop
+	}
+} 
+]]></screen></sect3><sect3>
+<title>Tipps für's Loggen</title>
+<para>Für Logging wird ein zusätzliches Kernelmodul benötigt:</para><screen>
+<![CDATA[# modprobe xt_LOG
+]]></screen><para>ACHTUNG, MOMENTAN KANN DER LOG-LEVEL NICHT ANGEGEBEN WERDEN, dadurch werden nftables-Ereignisse mit Log-Level kern.emerg ausgegeben - ES BESTEHT DIE GEFAHR, DASS DIE KONSOLE DADURCH ÜBERFLUTET WIRD!</para>
+<para>Für erste Tests mit der Log-Option kann es nützlich sein, das Loggens für emergency-Ereignisse in z.B. /etc/rsyslog.conf zu deaktivieren mit Hilfe eines &ldquo;#&rdquo; am Anfang der Zeile und Neustart des logging-Daemons</para><screen>
+<![CDATA[#*.emerg    :omusrmsg:* 
+]]></screen><para>Regel von oben, welche SSH auf Port 22 erlaubt, nun mit Logging:</para><screen>
+<![CDATA[# nft add rule inet filter input tcp dport 22 ct state new tcp flags \& \(syn \| ack\) == syn log prefix \"inet/input/accept: \" counter accept
+]]></screen></sect3></sect2><sect2>
+<title>Filter-Policy mit nftables unter Benutzung der Tablellen &ldquo;ip&rdquo;, &ldquo;ip6&rdquo; und &ldquo;inet&rdquo;</title>
+<para>Wie oben schon beschrieben, wenn die Regeln in den einzelnen Tabellen konfiguriert werden, muss gesichert sein, dass frühere &ldquo;accepts&rdquo; nicht aufgehoben werden. Eine einfache Lösung ist die Benutzung von Markierungen. Regeln, die Pakete erlauben, setzen die Marke mit &ldquo;meta mark set xxxx&rdquo;. Eine generische Regel erlaubt Pakete mit gesetzter Marke &ldquo;mark xxxx&rdquo;. Beispiel für ein resultierendes Filter-Regelwerk:</para><screen>
+<![CDATA[# for table in ip ip6 inet; do nft list table $table filter; done
 table ip filter {
 	chain input {
-		 type filter hook input priority 1;
-		 icmp type { echo-request} counter packets 0 bytes 0 accept
+		 type filter hook input priority 0;
+		 ct state established,related counter packets 241 bytes 25193 accept
+		 counter packets 2 bytes 120 mark 0x00000100 accept
+		 icmp type { echo-request} counter packets 0 bytes 0 meta mark set 0x00000100 accept
 	}
 }
-]]></screen><para>Tabelle für IPv6 Filter</para><screen>
-<![CDATA[# nft list table ip6 filter
 table ip6 filter {
 	chain input {
-		 type filter hook input priority 1;
-		 icmpv6 type echo-request counter packets 0 bytes 0 accept
-		 ip6 hoplimit 1 icmpv6 type
-¬		 { nd-neighbor-advert, nd-neighbor-solicit, nd-router-advert} accept
-		 ip6 hoplimit 255 icmpv6 type
-¬		 { nd-neighbor-advert, nd-neighbor-solicit, nd-router-advert} accept
+		 type filter hook input priority 0;
+		 ct state established,related counter packets 14 bytes 4077 accept
+		 counter packets 4 bytes 408 mark 0x00000100 accept
+		 icmpv6 type echo-request counter packets 1 bytes 104 meta mark set 0x00000100
+		 icmpv6 type { nd-neighbor-advert, nd-neighbor-solicit, nd-router-advert} counter packets 2 bytes 224 meta mark set 0x00000100 accept
 	}
 }
-]]></screen><para>Tabelle für IP unabhängigen Filter</para><screen>
-<![CDATA[# nft list table inet filter
 table inet filter {
 	chain input {
 		 type filter hook input priority 0;
-		 ct state established,related counter packets 44 bytes 2288 accept
-		 tcp dport ssh ct state new tcp flags & (syn | ack) == syn counter packets 0 bytes 0 accept
+		 ct state established,related counter packets 307 bytes 31974 accept
+		 counter packets 6 bytes 528 mark 0x00000100 accept
+		 tcp dport ssh ct state new tcp flags & (syn | ack) == syn log prefix "inet/input/accept: " meta mark set 0x00000100 counter packets 3 bytes 200 accept
+		 log prefix "inet/input/reject: " counter packets 0 bytes 0 reject
 	}
-} 
-]]></screen></sect3></sect2></sect1></chapter><chapter id='chapter-security' >
+}
+]]></screen></sect2></sect1></chapter><chapter id='chapter-security' >
 <title><!-- anchor id="chapter-security" -->Sicherheit</title>
 <sect1>
 <title>Sicherheit des Knoten</title>
