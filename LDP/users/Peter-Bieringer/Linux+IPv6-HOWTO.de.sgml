@@ -14,7 +14,7 @@
 <title>Linux IPv6 HOWTO (de)</title>
 <author><firstname>Peter</firstname><surname>Bieringer</surname><affiliation><address>pb at bieringer dot de</address></affiliation></author>
 <revhistory> 
-<revision> <revnumber>0.66wip.de.1</revnumber> <date>2014-05-10</date> <authorinitials>PB</authorinitials></revision>
+<revision> <revnumber>0.66wip.de.1</revnumber> <date>2014-05-13</date> <authorinitials>PB</authorinitials></revision>
 <revision> <revnumber>0.65.de.1</revnumber> <date>2009-12-13</date> <authorinitials>PB</authorinitials></revision>
 <revision> <revnumber>0.64.de.1</revnumber> <date>2009-06-11</date> <authorinitials>PB</authorinitials></revision>
 <revision> <revnumber>0.61.de.1</revnumber> <date>2007-10-06</date> <authorinitials>PB</authorinitials></revision>
@@ -1384,11 +1384,107 @@ FRAG6: inuse 0 memory 0
 <title><!-- anchor id="netlink" -->Netlink-Interface zum Kernel</title>
 <para>Mehr Infos hierzu in späteren Versionen... der Autor hat hiermit keine Erfahrung...</para></chapter><chapter id='resolver' >
 <title><!-- anchor id="resolver" -->Adress-Auflösung</title>
-<para>Die Auflösung von Namen zu einer IPv4- bzw. IPv6-Adresse wird üblicherweise durch die Benutzung einer libc resolver Bibliothek durchgeführt. Es sind einige Seltsamkeiten bekannt bei der Nutzung der Funktion <emphasis>getaddrinfo</emphasis>.</para>
-<para>Mehr Information kann dazu aktuell gefunden werden unter <ulink url="http://www.bieringer.de/linux/IPv6/getaddrinfo/">Linux & IPv6: getaddrinfo and search domains - Research</ulink> and <ulink url="http://people.redhat.com/drepper/linux-rfc3484.html">RFC 3484 on Linux</ulink>.</para>
 <para>
 </para>
-<para>Mehr Infos hierzu in späteren Versionen...</para></chapter><chapter id='network-debugging' >
+<para>Zusätzliche Informationen sind hier zu finden</para><itemizedlist>
+<listitem><para><ulink url="http://www.bieringer.de/linux/IPv6/getaddrinfo/">Linux & IPv6: getaddrinfo and search domains - Research</ulink></para></listitem><listitem><para><ulink url="http://people.redhat.com/drepper/linux-rfc3484.html">RFC 3484 on Linux</ulink> </para></listitem><listitem><para>Karl Auer's Blog: <ulink url="http://biplane.com.au/blog/?p=30">Controlling IPv6 source address selection</ulink> , <ulink url="http://biplane.com.au/blog/?p=22">IPv6 Source Address Selection - what, why, how</ulink></para></listitem><listitem><para>Into6: <ulink url="http://into6.com.au/?p=288">/etc/gai.conf - it ain't what you think it is</ulink></para></listitem></itemizedlist><bridgehead renderas="sect1">Address-Auflösung &amp; Ziel-Adressen-Auswahl</bridgehead>
+<para>Die Auflösung von Namen zu einer IPv4- bzw. IPv6-Adresse wird üblicherweise durch die Benutzung einer libc resolver Bibliothek durchgeführt. Dazu wird normalerweise die Funktion <emphasis>getaddrinfo</emphasis> benutzt. Im Fall, dass mehr als eine IPv6-Adresse zurückgegeben wird, soll nach <ulink url="http://www.faqs.org/rfcs/rfc3484.html">RFC 3484 / Default Address Selection for Internet Protocol version 6</ulink> eine Sortierung angewandt werden, die optional auch konfiguriert werden kann.</para>
+<para>Die &ldquo;Magie&rdquo; ist durch die Datei /etc/gai.conf konfigurierbar (welche fehlt oder leer ist, solange Standardwerte gelten sollen). Die vorgegebene Sortierung ist üblicherweise in der Dokumentation (z.B. /usr/share/doc/glibc-common/gai.conf) oder im Manual &ldquo;man gai.conf&rdquo; zu sehen.</para>
+<para>Für die Kontrolle der Sortierung via benutzerdefinierter Konfiguration ist für Tests folgendes notwendig:</para><itemizedlist>
+<listitem><para>Ein Hostname im DNS, der mehr als eine IPv6-Adresse zurückgibt, z.B.</para></listitem></itemizedlist><screen>
+<![CDATA[$ dig +short aaaa st1.bieringer.de
+2001:4dd0:ff00:834::2
+2a01:238:423d:8800:85b3:9e6b:3019:8909 
+]]></screen><itemizedlist>
+<listitem><para>Lookup via DNS (mit /etc/hosts klappt es nicht)</para></listitem><listitem><para>/etc/gai.conf mit einer passenden Konfiguration, e.g.</para></listitem></itemizedlist><screen>
+<![CDATA[precedence  ::1/128       50            # default
+precedence  ::/0          40            # default
+precedence  2002::/16     30            # default
+precedence ::/96          20            # default
+precedence ::ffff:0:0/96  10            # default
+precedence 2001:4dd0:ff00:834::/64  80  # dst-A
+precedence 2a01:238:423d:8800::/64  90  # dst-B
+]]></screen><itemizedlist>
+<listitem><para>Für Tests kann dann ein Telnet-Client benutzt werden:</para></listitem></itemizedlist><screen>
+<![CDATA[$ telnet st1.bieringer.de
+Trying 2a01:238:423d:8800:85b3:9e6b:3019:8909...    (dst-B)
+...
+Trying 2001:4dd0:ff00:834::2...                     (dst-A)
+...
+]]></screen><itemizedlist>
+<listitem><para>Wenn nun die precedence geändert wird in der Konfiguration:</para></listitem></itemizedlist><screen>
+<![CDATA[precedence 2001:4dd0:ff00:834::/64  90  # dst-A ex 80
+precedence 2a01:238:423d:8800::/64  80  # dst-B ex 90
+]]></screen><itemizedlist>
+<listitem><para>Dann ändert sich die Reihenfolge entsprechend</para></listitem></itemizedlist><screen>
+<![CDATA[$ telnet st1.bieringer.de
+Trying 2001:4dd0:ff00:834::2...                     (dst-A)
+...
+Trying 2a01:238:423d:8800:85b3:9e6b:3019:8909...    (dst-B)
+...
+]]></screen><bridgehead renderas="sect1">Quell-Addressen-Auswahl</bridgehead>
+<para>Source address selection in Linux wird automatisch vom Kernel vorgenommen, üblicherweise abhängig von den Routing-Tabellen und unter der Vorgabe, den Scope einer Adresse beizubehalten.</para>
+<bridgehead renderas="sect2">Quell-Adressen-Auswahl mit &ldquo;ip addrlabel&rdquo;</bridgehead>
+<para>Mit einer Erweiterung der internen &ldquo;ip addrlabel&rdquo; Tabelle kann eine Quell-Adresse zu einer Ziel-Adresse gebunden werden. Bindung wird hier durch die Angabe des gleichen Labels (einer Nummer) konfiguriert.</para><itemizedlist>
+<listitem><para>Standard von &ldquo;ip addrlabel&rdquo; (hier von CentOS 6):</para></listitem></itemizedlist><screen>
+<![CDATA[# ip addrlabel
+prefix ::1/128 label 0 
+prefix ::/96 label 3 
+prefix ::ffff:0.0.0.0/96 label 4 
+prefix 2001::/32 label 6 
+prefix 2001:10::/28 label 7 
+prefix 2002::/16 label 2 
+prefix fc00::/7 label 5 
+prefix ::/0 label 1 
+]]></screen><itemizedlist>
+<listitem><para>Das System ist multihomed (hier an einem Interface), der Router verteilt 2 Präfixe mit Hilfe von radvd:</para></listitem></itemizedlist><screen>
+<![CDATA[# ip -6 addr show dev eth1 | grep -w inet6 |grep -w global
+    inet6 2001:6f8:12d8:2:5054:ff:fefb:6582/64 scope global dynamic     (src-A)
+    inet6 2001:6f8:900:8cbc:5054:ff:fefb:6582/64 scope global dynamic   (src-B)
+]]></screen><itemizedlist>
+<listitem><para>Eine Verbindung zum Server zeigt nun:</para></listitem></itemizedlist><screen>
+<![CDATA[$ telnet st1.bieringer.de
+Trying 2001:4dd0:ff00:834::2...                     (dst-A)
+...
+Trying 2a01:238:423d:8800:85b3:9e6b:3019:8909...    (dst-B)
+...
+]]></screen><itemizedlist>
+<listitem><para>Ein tcpdump mit filter &ldquo;tcp and dst port 23&rdquo; zeigt nur die Benutzung der oberen lokalen Quell-IPv6-Adresse</para></listitem></itemizedlist><screen>
+<![CDATA[IP6 2001:6f8:12d8:2:5054:ff:fefb:6582.37762 > 2001:4dd0:ff00:834::2.telnet:                  (src-A -> dst-A)
+IP6 2001:6f8:12d8:2:5054:ff:fefb:6582.45754 > 2a01:238:423d:8800:85b3:9e6b:3019:8909.telnet: (src-A -> dst-B)
+]]></screen><itemizedlist>
+<listitem><para>Wenn nun Quelle und Ziel mit Hilfe von &ldquo;ip addrlabel&rdquo; zusammengebunden werden:</para></listitem></itemizedlist><screen>
+<![CDATA[# ip addrlabel add prefix 2001:6f8:12d8:2::/64 label 200
+# ip addrlabel add prefix 2001:6f8:900:8cbc::/64 label 300
+# ip addrlabel add prefix 2001:4dd0:ff00:834::/64 label 200
+# ip addrlabel add prefix 2a01:238:423d:8800::/64 label 300
+]]></screen><itemizedlist>
+<listitem><para>Was in folgender &ldquo;ip addrlabel&rdquo;resultiert:</para></listitem></itemizedlist><screen>
+<![CDATA[# ip addrlabel
+prefix ::1/128 label 0 
+prefix ::/96 label 3 
+prefix ::ffff:0.0.0.0/96 label 4 
+prefix 2a01:238:423d:8800::/64 label 300   # dst-B
+prefix 2001:4dd0:ff00:834::/64 label 200   # dst-A
+prefix 2001:6f8:900:8cbc::/64 label 300    # src-B
+prefix 2001:6f8:12d8:2::/64 label 200      # src-A
+prefix 2001::/32 label 6 
+prefix 2001:10::/28 label 7 
+prefix 2002::/16 label 2 
+prefix fc00::/7 label 5 
+prefix ::/0 label 1 
+]]></screen><itemizedlist>
+<listitem><para>Und dann nochmal eine Verbindung zum Server versucht wird</para></listitem></itemizedlist><screen>
+<![CDATA[$ telnet st1.bieringer.de
+Trying 2001:4dd0:ff00:834::2...                     (dst-A)
+...
+Trying 2a01:238:423d:8800:85b3:9e6b:3019:8909...    (dst-B)
+...
+]]></screen><itemizedlist>
+<listitem><para>tcpdump mit filter &ldquo;tcp and dst port 23&rdquo; zeigt nun die Benutzung beider Quell-IPv6-Adressen wie konfiguriert</para></listitem></itemizedlist><screen>
+<![CDATA[IP6 2001:6f8:12d8:2:5054:ff:fefb:6582.37765   > 2001:4dd0:ff00:834::2.telnet:                  (src-A -> dst-A)
+IP6 2001:6f8:900:8cbc:5054:ff:fefb:6582.39632 > 2a01:238:423d:8800:85b3:9e6b:3019:8909.telnet: (src-B -> dst-B)
+]]></screen><para>Persistente Konfiguration von &ldquo;ip addrtable&rdquo; ist wahrscheinlich in aktuellen Linux-Distributionen nicht unterstützt, somit wäre eine Erweiterung der Netzwerk-Init-Scripts oder rc.local notwendig. Ein Skript, welches Informationen aus /etc/gai.conf in entsprechendes &ldquo;ip addrtable&rdquo; umwandelt, gibt es hier: <ulink url="http://into6.com.au/?p=288">/etc/gai.conf - it ain't what you think it is</ulink></para></chapter><chapter id='network-debugging' >
 <title><!-- anchor id="network-debugging" -->Netzwerk-Fehlersuche</title>
 <sect1>
 <title>Server Socket-Anbindung</title>
