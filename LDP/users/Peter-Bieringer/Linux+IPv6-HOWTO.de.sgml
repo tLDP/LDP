@@ -14,7 +14,7 @@
 <title>Linux IPv6 HOWTO (de)</title>
 <author><firstname>Peter</firstname><surname>Bieringer</surname><affiliation><address>pb at bieringer dot de</address></affiliation></author>
 <revhistory> 
-<revision> <revnumber>0.66wip.de.1</revnumber> <date>2014-05-13</date> <authorinitials>PB</authorinitials></revision>
+<revision> <revnumber>0.66.de.1</revnumber> <date>2014-05-15</date> <authorinitials>PB</authorinitials></revision>
 <revision> <revnumber>0.65.de.1</revnumber> <date>2009-12-13</date> <authorinitials>PB</authorinitials></revision>
 <revision> <revnumber>0.64.de.1</revnumber> <date>2009-06-11</date> <authorinitials>PB</authorinitials></revision>
 <revision> <revnumber>0.61.de.1</revnumber> <date>2007-10-06</date> <authorinitials>PB</authorinitials></revision>
@@ -733,7 +733,60 @@ inet6 addr: fec0:0:0:f101::1/64 Scope:Site
 <![CDATA[# /sbin/ifconfig <interface> inet6 del <ipv6address>/<prefixlength>
 ]]></screen><para>Beispiel:</para><screen>
 <![CDATA[# /sbin/ifconfig eth0 inet6 del 2001:0db8:0:f101::1/64
-]]></screen></sect2></sect1></chapter><chapter id='chapter-configuration-route' >
+]]></screen></sect2></sect1><sect1>
+<title>Automatische IPv6-Adress-Konfiguration</title>
+<para>Im Fall, dass ein Endgerät ein Router Advertisement empfängt und der Host kein Router ist, konfiguriert sich das Endgerät selbst eine IPv6-Adresse entsprechend dem Präfix aus dem Router Advertisement (siehe auch <xref linkend="hints-daemons-radvd">).</para></sect1><sect1>
+<title>Aktivieren der Privacy Extension</title>
+<para>Privacy Extension wie beschrieben in <ulink url="http://www.faqs.org/rfcs/rfc4941.html">RFC 4941 / Privacy Extensions for Stateless Address Autoconfiguration in IPv6</ulink> (Nachfolger von <ulink url="http://www.faqs.org/rfcs/rfc3041.html">RFC 3041</ulink>) ersetzt die statische Interface ID (mostly basierend auf der weltweit eindeutigen MAC-Adresse), die bei der Autokonfiguration benutzt wird, durch eine pseudo-random und von Zeit zu Zeit neu generierte.</para><sect2>
+<title>Aktivieren von Privacy Extension mit Hilfe von sysctl</title>
+<bridgehead renderas="sect2">Temporäre Aktivierung</bridgehead>
+<para>Einschalten der Privacy Extension für z.B. Interface &ldquo;eth0&rdquo; und zudem Präferieren dieser Adresse:</para><screen>
+<![CDATA[# sysctl -w net.ipv6.conf.eth0.use_tempaddr=2
+]]></screen><para>Zur Aktivierung ist der Restart des Interfaces notwendig</para><screen>
+<![CDATA[# ip link set dev eth0 down
+# ip link set dev eth0 up
+]]></screen><para>Nach Empfang eines Router Advertisement sollte das Interface eine entsprechende Adresse sich selbst konfiguriert haben</para><screen>
+<![CDATA[# ip -6 addr show dev eth0
+2: eth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qlen 1000
+    inet6 2001:db8:0:1:8992:3c03:d6e2:ed72/64 scope global secondary dynamic   <- pseudo-random IID
+       valid_lft 604711sec preferred_lft 86311sec
+    inet6 2001:db8:0:1::224:21ff:fe01:2345/64 scope global     <- IID based on MAC
+       valid_lft 604711sec preferred_lft 86311sec
+    ...
+]]></screen><bridgehead renderas="sect2">Permanente Aktivierung</bridgehead>
+<para>Für eine permanente Aktivierung muss entweder ein spezieller Initscript-Wert pro Interface gesetzt sein oder ein entsprechender Wert in /etc/sysctl.conf definiert werden:</para><screen>
+<![CDATA[net.ipv6.conf.eth0.use_tempaddr=2
+]]></screen><para>Achtung: das Interface muss zu diesem Zeitpunkt bereits existieren. Wenn das nicht der Fall ist (z.B. nach einem Reboot) musses für alle Interfaces konfiguriert werden:</para><screen>
+<![CDATA[net.ipv6.conf.all.use_tempaddr=2
+net.ipv6.conf.default.use_tempaddr=2
+]]></screen><para>Die Änderungen in /etc/sysctl.conf können im laufenden Betrieb geändert werden, aber zur wirklichen Aktivierung wird mindestens wird ein Interface-Restart (down/up) oder ein Reboot benötigt.</para><screen>
+<![CDATA[# sysctl -p
+]]></screen></sect2><sect2>
+<title>Aktivieren von Privacy Extension mit Hilfe des NetworkManager</title>
+<para>Moderne (Client-) Systeme nutzen NetworkManager zur Interface-Konfiguration. Ein Kommandozeilen-Werkzeug ist eingebaut welches auch Parameter ändern kann, die in der GUI nicht verfügbar (oder sichtbar) sind.</para>
+<para>Beispiele basieren auf Version 0.9.9.1-5.git20140319.fc21</para>
+<para>Prüfen existierender Interfaces mit:</para><screen>
+<![CDATA[# nmcli connection 
+NAME UUID TYPE DEVICE
+ens4v1 d0fc2b2e-5fa0-4675-96b5-b723ca5c46db 802-3-ethernet ens4v1 
+]]></screen><para>Menge von IPv6-Adressen mit Privacy Extension:</para><screen>
+<![CDATA[# ip -o addr show dev ens4v1 | grep temporary | wc -l
+0
+]]></screen><para>Aktuelle Einstellung der IPv6 Privacy Extension für ein Interface:</para><screen>
+<![CDATA[# nmcli connection show ens4v1 |grep ip6-privacy
+ipv6.ip6-privacy: -1 (unknown)
+]]></screen><para>Aktivieren der IPv6 Privacy Extension und Restart des Interfaces;</para><screen>
+<![CDATA[# nmcli connection modify ens4v1 ipv6.ip6-privacy 2
+# nmcli connection down ens4v1; nmcli connection up ens4v1
+]]></screen><para>Neuer Wert der IPv6 Privacy Extension prüfen:</para><screen>
+<![CDATA[# nmcli connection show ens4v1 |grep ip6-privacy
+ipv6.ip6-privacy: 2 (active, prefer temporary IP)
+]]></screen><para>Nun sollten auch IPv6 Privacy Extension Adressen automatisch konfiguriert sein</para><screen>
+<![CDATA[# ip -o addr show dev ens4v1 | grep temporary | wc -l
+2
+]]></screen></sect2><sect2>
+<title>Test zur Benutzung von Privacy Extension IPv6-Adressen</title>
+<para>Ob die IPv6-Adresss mit einer durch die Privacy Extension generierte Interface ID für ausgehende Verbindungen wirklich benutzt wird, kann z.B. mit Hilfe eines Web-Browers durch Aufruf von <ulink url="http://ip.bieringer.de/">http://ip.bieringer.de/</ulink> durchgeführt werden. Wenn EUI64_SCOPE als Ausgabe &ldquo;iid-privacy&rdquo; zeigt, dann funktioniert alles richtig.</para></sect2></sect1></chapter><chapter id='chapter-configuration-route' >
 <title><!-- anchor id="chapter-configuration-route" -->Konfiguration normaler IPv6-Routen</title>
 <para>Wenn Sie Ihren lokalen Link verlassen und Pakete in das weltweite IPv6-Internet versenden wollen, dann benötigen Sie Routing. Wenn sich bereits ein IPv6 fähiger Router an Ihrem Link befindet, dann reicht eventuell das Hinzufügen von IPv6 Routen.</para>
 <para>Achtung: Adressen beginnend mit &ldquo;fec0&rdquo; sind obsolet, hier aber noch der Vollständigheit wegen gezeigt!</para><sect1>
