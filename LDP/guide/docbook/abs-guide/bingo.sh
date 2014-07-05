@@ -61,7 +61,7 @@ local pre2=0                #  Prefix a zero, so columns will align
 
 echo "Number Stats"
 
-for (( index=1; index<=MAX; index++))
+for (( index=1; index&lt;=MAX; index++))
 do
   count=${Numbers[index]}
   let "t = $index - 1"      # Normalize, since array begins with index 0.

@@ -4,9 +4,9 @@
 
 for filename in *
 do
-  badname=`echo "$filename" | sed -n /[\+\{\;\"\\\=\?~\(\)\<\>\&\*\|\$]/p`
-# badname=`echo "$filename" | sed -n '/[+{;"\=?~()&lt;&gt;&*|$]/p'`  also works.
-# Deletes files containing these nasties:     + { ; " \ = ? ~ ( ) < > & * | $
+  badname=`echo "$filename" | sed -n /[\+\{\;\"\\\=\?~\(\)\&lt;\>\&amp;\*\|\$]/p`
+# badname=`echo "$filename" | sed -n '/[+{;"\=?~()&lt;&gt;&amp;*|$]/p'`  also works.
+# Deletes files containing these nasties:     + { ; " \ = ? ~ ( ) &lt; > &amp; * | $
 #
   rm $badname 2>/dev/null
 #             ^^^^^^^^^^^ Error messages deep-sixed.
@@ -23,7 +23,7 @@ exit 0
 # Commands below this line will not execute because of _exit_ command.
 
 # An alternative to the above script:
-find . -name '*[+{;"\\=?~()&lt;&gt;&*|$ ]*' -maxdepth 0 \
+find . -name '*[+{;"\\=?~()&lt;&gt;&amp;*|$ ]*' -maxdepth 0 \
 -exec rm -f '{}' \;
 #  The "-maxdepth 0" option ensures that _find_ will not search
 #+ subdirectories below $PWD.

@@ -39,7 +39,7 @@ echo
 { # Code block.
 read            # Line 1, to be discarded.
 read line2      # Line 2, saved in variable.
-  } <$0
+  } &lt;$0
 echo "Line 2 of this script is:"
 echo "$line2"   #   # read-novar.sh
 echo            #   #!/bin/bash  line discarded.

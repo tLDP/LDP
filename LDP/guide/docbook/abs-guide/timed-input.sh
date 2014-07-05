@@ -24,7 +24,7 @@ PrintAnswer()
 
 TimerOn()
 {
-  sleep $TIMELIMIT && kill -s 14 $$ &
+  sleep $TIMELIMIT &amp;&amp; kill -s 14 $$ &amp;
   # Waits 3 seconds, then sends sigalarm to script.
 }  
 

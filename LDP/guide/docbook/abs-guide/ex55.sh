@@ -15,7 +15,7 @@ for i in /var/lock/subsys/*; do
         # --> Standard for/in loop, but since "do" is on same line,
         # --> it is necessary to add ";".
         # Check if the script is there.
-        [ ! -f $i ] && continue
+        [ ! -f $i ] &amp;&amp; continue
         # --> This is a clever use of an "and list", equivalent to:
         # --> if [ ! -f "$i" ]; then continue
 

@@ -7,7 +7,7 @@ END=127    # Will not work for unprintable characters (> 127).
 echo " Decimal   Hex     Character"   # Header.
 echo " -------   ---     ---------"
 
-for ((i=START; i<=END; i++))
+for ((i=START; i&lt;=END; i++))
 do
   echo $i | awk '{printf("  %3d       %2x         %c\n", $1, $1, $1)}'
 # The Bash printf builtin will not work in this context:

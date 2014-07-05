@@ -3,7 +3,7 @@
 
 LOGFILE=logfile.txt
 
-exec 6>&1           # Link file descriptor #6 with stdout.
+exec 6>&amp;1           # Link file descriptor #6 with stdout.
                     # Saves stdout.
 
 exec > $LOGFILE     # stdout replaced with file "logfile.txt".
@@ -26,7 +26,7 @@ df
 
 # ----------------------------------------------------------- #
 
-exec 1>&6 6>&-      # Restore stdout and close file descriptor #6.
+exec 1>&amp;6 6>&amp;-      # Restore stdout and close file descriptor #6.
 
 echo
 echo "== stdout now restored to default == "

@@ -61,7 +61,7 @@ fi  # Doublecheck if in right directory before messing with log file.
 # Far more efficient is:
 #
 # cd /var/log || {
-#   echo "Cannot change to necessary directory." >&2
+#   echo "Cannot change to necessary directory." >&amp;2
 #   exit $E_XCD;
 # }
 

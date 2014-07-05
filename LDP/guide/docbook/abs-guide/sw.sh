@@ -39,7 +39,7 @@ export LANG=C
 
 ulimit -c 0   # No coredumps from SIGQUIT.
 trap '' TSTP  # Ignore Ctrl-Z just in case.
-save_tty=`stty -g` && trap "stty $save_tty" EXIT  # Restore tty on exit.
+save_tty=`stty -g` &amp;&amp; trap "stty $save_tty" EXIT  # Restore tty on exit.
 stty quit ' ' # Space for laps rather than Ctrl-\.
 stty eof  '?' # ? for splits rather than Ctrl-D.
 stty -echo    # Don't echo input.
@@ -47,17 +47,17 @@ stty -echo    # Don't echo input.
 cache_progs() {
     stty > /dev/null
     date > /dev/null
-    grep . < /dev/null
+    grep . &lt; /dev/null
     (echo "import time" | python) 2> /dev/null
-    bc < /dev/null
-    sed '' < /dev/null
+    bc &lt; /dev/null
+    sed '' &lt; /dev/null
     printf '1' > /dev/null
     /usr/bin/time false 2> /dev/null
-    cat < /dev/null
+    cat &lt; /dev/null
 }
 cache_progs   # To minimise startup delay.
 
-date +%s.%N | grep -qF 'N' && use_python=1 # If `date` lacks nanoseconds.
+date +%s.%N | grep -qF 'N' &amp;&amp; use_python=1 # If `date` lacks nanoseconds.
 now() {
     if [ "$use_python" ]; then
         echo "import time; print time.time()" 2>/dev/null | python
@@ -84,14 +84,14 @@ total() {
 }
 
 stop() {
-    [ "$lapped" ] && lap "$laptime" "display"
+    [ "$lapped" ] &amp;&amp; lap "$laptime" "display"
     total
     exit
 }
 
 lap() {
     laptime=`echo "$1" | sed -n 's/.*real[^0-9.]*\(.*\)/\1/p'`
-    [ ! "$laptime" -o "$laptime" = "0.00" ] && return
+    [ ! "$laptime" -o "$laptime" = "0.00" ] &amp;&amp; return
     # Signals too frequent.
     laptotal=`echo $laptime+0$laptotal | bc`
     if [ "$2" = "display" ]; then
@@ -103,25 +103,25 @@ lap() {
     fi
 }
 
-echo -n "Space for lap | ? for split | Ctrl-C to stop | Space to start...">&2
+echo -n "Space for lap | ? for split | Ctrl-C to stop | Space to start...">&amp;2
 
 while true; do
     trap true INT QUIT  # Set signal handlers.
-    laptime=`/usr/bin/time -p 2>&1 cat >/dev/null`
+    laptime=`/usr/bin/time -p 2>&amp;1 cat >/dev/null`
     ret=$?
     trap '' INT QUIT    # Ignore signals within this script.
     if [ $ret -eq 1 -o $ret -eq 2 -o $ret -eq 130 ]; then # SIGINT = stop
-        [ ! "$start" ] && { echo >&2; exit; }
+        [ ! "$start" ] &amp;&amp; { echo >&amp;2; exit; }
         stop
     elif [ $ret -eq 3 -o $ret -eq 131 ]; then             # SIGQUIT = lap
         if [ ! "$start" ]; then
             start=`now` || exit 1
-            echo >&2
+            echo >&amp;2
             continue
         fi
         lap "$laptime" "display"
     else                # eof = split
-        [ ! "$start" ] && continue
+        [ ! "$start" ] &amp;&amp; continue
         total
         lap "$laptime"  # Update laptotal.
     fi

@@ -21,10 +21,10 @@ then
 fi
 
 
-exec 4<&0
-exec < $1            # Will read from input file.
+exec 4&lt;&amp;0
+exec &lt; $1            # Will read from input file.
 
-exec 7>&1
+exec 7>&amp;1
 exec > $2            # Will write to output file.
                      # Assumes output file writable (add check?).
 
@@ -36,8 +36,8 @@ exec > $2            # Will write to output file.
 # Note that the 'cat' can be omitted.
 # -----------------------------------------------
 
-exec 1>&7 7>&-       # Restore stout.
-exec 0<&4 4<&-       # Restore stdin.
+exec 1>&amp;7 7>&amp;-       # Restore stout.
+exec 0&lt;&amp;4 4&lt;&amp;-       # Restore stdin.
 
 # After restoration, the following line prints to stdout as expected.
 echo "File \"$1\" written to \"$2\" as uppercase conversion."

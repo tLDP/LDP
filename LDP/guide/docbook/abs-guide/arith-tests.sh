@@ -27,7 +27,7 @@ echo "Exit status of \"(( 5 - 5 ))\" is $?."     # 1
 (( 5 / 4 ))                                      # Division o.k.
 echo "Exit status of \"(( 5 / 4 ))\" is $?."     # 0
 
-(( 1 / 2 ))                                      # Division result < 1.
+(( 1 / 2 ))                                      # Division result &lt; 1.
 echo "Exit status of \"(( 1 / 2 ))\" is $?."     # Rounded off to 0.
                                                  # 1
 

@@ -28,7 +28,7 @@ FD_DEBUG3=5
 
 log()  # Writes time and date to log file.
 {
-echo "$(date)  $*" &gt;&7     # This *appends* the date to the file.
+echo "$(date)  $*" &gt;&amp;7     # This *appends* the date to the file.
 #     ^^^^^^^  command substitution
                            # See below.
 }
@@ -36,9 +36,9 @@ echo "$(date)  $*" &gt;&7     # This *appends* the date to the file.
 
 
 case $LOG_LEVEL in
- 1) exec 3&gt;&2         4&gt; /dev/null 5&gt; /dev/null;;
- 2) exec 3&gt;&2         4&gt;&2         5&gt; /dev/null;;
- 3) exec 3&gt;&2         4&gt;&2         5&gt;&2;;
+ 1) exec 3&gt;&amp;2         4&gt; /dev/null 5&gt; /dev/null;;
+ 2) exec 3&gt;&amp;2         4&gt;&amp;2         5&gt; /dev/null;;
+ 3) exec 3&gt;&amp;2         4&gt;&amp;2         5&gt;&amp;2;;
  *) exec 3&gt; /dev/null 4&gt; /dev/null 5&gt; /dev/null;;
 esac
 
@@ -58,13 +58,13 @@ then
 else exec 7&gt; /dev/null                     # Bury output.
 fi
 
-echo "DEBUG3: beginning" &gt;&${FD_DEBUG3}
+echo "DEBUG3: beginning" &gt;&amp;${FD_DEBUG3}
 
-ls -l &gt;&5 2&gt;&4                             # command1 &gt;&5 2&gt;&4
+ls -l &gt;&amp;5 2&gt;&amp;4                             # command1 &gt;&amp;5 2&gt;&amp;4
 
 echo "Done"                                # command2 
 
-echo "sending mail" &gt;&${FD_LOGEVENTS}
+echo "sending mail" &gt;&amp;${FD_LOGEVENTS}
 # Writes "sending mail" to file descriptor #7.
 
 

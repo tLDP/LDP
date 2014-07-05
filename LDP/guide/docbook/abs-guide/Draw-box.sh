@@ -18,9 +18,9 @@
 #  ROW and COLUMN must be greater than 0
 #+ and less than current terminal dimension.
 #  HEIGHT is the number of rows of the box, and must be > 0. 
-#  HEIGHT + ROW must be <= than current terminal height. 
+#  HEIGHT + ROW must be &lt;= than current terminal height. 
 #  WIDTH is the number of columns of the box and must be > 0.
-#  WIDTH + COLUMN must be <= than current terminal width.
+#  WIDTH + COLUMN must be &lt;= than current terminal width.
 #
 # E.g.: If your terminal dimension is 20x80,
 #  draw_box 2 3 10 45 is good
@@ -59,7 +59,7 @@ fi
 
 # Looking for non digit chars in arguments.
 # Probably it could be done better (exercise for the reader?).
-if echo $@ | tr -d [:blank:] | tr -d [:digit:] | grep . &> /dev/null; then
+if echo $@ | tr -d [:blank:] | tr -d [:digit:] | grep . &amp;> /dev/null; then
    exit $E_BADARGS
 fi
 
@@ -93,27 +93,27 @@ echo -ne "\E[3${5}m"               # Set box frame color, if defined.
 # start drawing the box
 
 count=1                                         #  Draw vertical lines using
-for (( r=$1; count<=$BOX_HEIGHT; r++)); do      #+ plot_char function.
+for (( r=$1; count&lt;=$BOX_HEIGHT; r++)); do      #+ plot_char function.
   plot_char $r $2 $VERT
   let count=count+1
 done 
 
 count=1
 c=`expr $2 + $BOX_WIDTH`
-for (( r=$1; count<=$BOX_HEIGHT; r++)); do
+for (( r=$1; count&lt;=$BOX_HEIGHT; r++)); do
   plot_char $r $c $VERT
   let count=count+1
 done 
 
 count=1                                        #  Draw horizontal lines using
-for (( c=$2; count<=$BOX_WIDTH; c++)); do      #+ plot_char function.
+for (( c=$2; count&lt;=$BOX_WIDTH; c++)); do      #+ plot_char function.
   plot_char $1 $c $HORZ
   let count=count+1
 done 
 
 count=1
 r=`expr $1 + $BOX_HEIGHT`
-for (( c=$2; count<=$BOX_WIDTH; c++)); do
+for (( c=$2; count&lt;=$BOX_WIDTH; c++)); do
   plot_char $r $c $HORZ
   let count=count+1
 done 

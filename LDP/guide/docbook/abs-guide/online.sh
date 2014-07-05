@@ -62,7 +62,7 @@ exit 0
 # Nick Drage suggests an alternate method:
 
 while true
-  do ifconfig ppp0 | grep UP 1> /dev/null && echo "connected" && exit 0
+  do ifconfig ppp0 | grep UP 1> /dev/null &amp;&amp; echo "connected" &amp;&amp; exit 0
   echo -n "."   # Prints dots (.....) until connected.
   sleep 2
 done

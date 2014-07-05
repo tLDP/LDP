@@ -508,7 +508,7 @@ ListArray() # ListArray Name
 	echo "-*-*- List of Array -*-*-"
 	echo "Size of array $1: ${#Ta[*]}"
 	echo "Contents of array $1:"
-	for (( i=0 ; i<${#Ta[*]} ; i++ ))
+	for (( i=0 ; i&lt;${#Ta[*]} ; i++ ))
 	do
 	    echo -e "\tElement $i: ${Ta[$i]}"
 	done
@@ -537,8 +537,8 @@ declare -a IDX_DIG
 # BIG-DIR # DIR_ENT=( $(cat /tmpfs/junk2) )
 # BIG-DIR # DigestFile -if /tmpfs/junk2 IDX_DIG
 DigestFile DIR_ENT IDX_DIG
-# Small (should) be able to parallize IndexList & DigestFile
-# Large (should) be able to parallize IndexList & DigestFile & the assignment
+# Small (should) be able to parallize IndexList &amp; DigestFile
+# Large (should) be able to parallize IndexList &amp; DigestFile &amp; the assignment
 echo "The \"name\" (checksum) for the contents of ${PWD} is ${IDX_DIG[0]}"
 
 declare -a FILE_LOC

@@ -46,7 +46,7 @@ randomBetween() {
    local spread
 
    # Let's make sure the divisibleBy value is positive.
-   [ ${divisibleBy} -lt 0 ] && divisibleBy=$((0-divisibleBy))
+   [ ${divisibleBy} -lt 0 ] &amp;&amp; divisibleBy=$((0-divisibleBy))
 
    # Sanity check.
    if [ $# -gt 3 -o ${divisibleBy} -eq 0 -o  ${min} -eq ${max} ]; then 
@@ -101,7 +101,7 @@ randomBetween() {
    spread=$((max-min))
    #  Omair Eshkenazi points out that this test is unnecessary,
    #+ since max and min have already been switched around.
-   [ ${spread} -lt 0 ] && spread=$((0-spread))
+   [ ${spread} -lt 0 ] &amp;&amp; spread=$((0-spread))
    let spread+=divisibleBy
    randomBetweenAnswer=$(((RANDOM%spread)/divisibleBy*divisibleBy+min))   
 
@@ -154,7 +154,7 @@ maximum=${max}
 #+ positive results.
 
 disp=$((0-minimum))
-for ((i=${minimum}; i<=${maximum}; i+=divisibleBy)); do
+for ((i=${minimum}; i&lt;=${maximum}; i+=divisibleBy)); do
    answer[i+disp]=0
 done
 
@@ -163,7 +163,7 @@ done
 loopIt=1000   #  The script author suggests 100000,
               #+ but that takes a good long while.
 
-for ((i=0; i<${loopIt}; ++i)); do
+for ((i=0; i&lt;${loopIt}; ++i)); do
 
    #  Note that we are specifying min and max in reversed order here to
    #+ make the function correct for this case.
@@ -172,9 +172,9 @@ for ((i=0; i<${loopIt}; ++i)); do
 
    # Report an error if an answer is unexpected.
    [ ${randomBetweenAnswer} -lt ${min} -o ${randomBetweenAnswer} -gt ${max} ] \
-   && echo MIN or MAX error - ${randomBetweenAnswer}!
+   &amp;&amp; echo MIN or MAX error - ${randomBetweenAnswer}!
    [ $((randomBetweenAnswer%${divisibleBy})) -ne 0 ] \
-   && echo DIVISIBLE BY error - ${randomBetweenAnswer}!
+   &amp;&amp; echo DIVISIBLE BY error - ${randomBetweenAnswer}!
 
    # Store the answer away statistically.
    answer[randomBetweenAnswer+disp]=$((answer[randomBetweenAnswer+disp]+1))
@@ -184,9 +184,9 @@ done
 
 # Let's check the results
 
-for ((i=${minimum}; i<=${maximum}; i+=divisibleBy)); do
+for ((i=${minimum}; i&lt;=${maximum}; i+=divisibleBy)); do
    [ ${answer[i+disp]} -eq 0 ] \
-   && echo "We never got an answer of $i." \
+   &amp;&amp; echo "We never got an answer of $i." \
    || echo "${i} occurred ${answer[i+disp]} times."
 done
 

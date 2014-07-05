@@ -15,7 +15,7 @@
   
   # ==> 'su xyz' runs commands as user "xyz".
   # ==> 'ssh' invokes secure shell (remote login client).
-  su xyz -c "ssh $THERE \"cat > /home/xyz/backup/${HERE}-daily.tar.gz\" < /pipe"&
+  su xyz -c "ssh $THERE \"cat > /home/xyz/backup/${HERE}-daily.tar.gz\" &lt; /pipe"&amp;
   cd /
   tar -czf - bin boot dev etc home info lib man root sbin share usr var > /pipe
   # ==> Uses named pipe, /pipe, to communicate between processes:

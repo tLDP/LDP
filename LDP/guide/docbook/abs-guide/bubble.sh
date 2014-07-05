@@ -74,10 +74,10 @@ do
 # for (( last = $number_of_elements - 1 ; last > 0 ; last-- ))
 ##                     Fix by C.Y. Hunt          ^   (Thanks!)
 # do
-#     for (( i = 0 ; i < last ; i++ ))
+#     for (( i = 0 ; i &lt; last ; i++ ))
 #     do
 #         [[ "${Countries[$i]}" > "${Countries[$((i+1))]}" ]] \
-#             && exchange $i $((i+1))
+#             &amp;&amp; exchange $i $((i+1))
 #     done
 # done
 # ----------------------------------------------------------------------

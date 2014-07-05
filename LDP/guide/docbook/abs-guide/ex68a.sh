@@ -10,7 +10,7 @@
 # Check results against http://primes.utm.edu/lists/small/1000.txt
 
 # Necessary but not sufficient would be, e.g.,
-#     (($(sieve 7919 | wc -w) == 1000)) && echo "7919 is the 1000th prime"
+#     (($(sieve 7919 | wc -w) == 1000)) &amp;&amp; echo "7919 is the 1000th prime"
 
 UPPER_LIMIT=${1:?"Need an upper limit of primes to search."}
 

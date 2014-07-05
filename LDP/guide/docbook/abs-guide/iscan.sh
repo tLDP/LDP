@@ -39,10 +39,10 @@ TRG="$1"
 shift
 
 while test "$1" ; do
-  nc -v -w $TIMEOUT1 -p ${RP} "$TRG" ${1} < /dev/null > /dev/null &
+  nc -v -w $TIMEOUT1 -p ${RP} "$TRG" ${1} &lt; /dev/null > /dev/null &amp;
   PROC=$!
   sleep $THREE_WINKS
-  echo "${1},${RP}" | nc -w $TIMEOUT2 -r "$TRG" $IDPORT 2>&1
+  echo "${1},${RP}" | nc -w $TIMEOUT2 -r "$TRG" $IDPORT 2>&amp;1
   sleep $TWO_WINKS
 
 # Does this look like a lamer script or what . . . ?

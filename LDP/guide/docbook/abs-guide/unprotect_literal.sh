@@ -3,7 +3,7 @@
 
 # set -vx
 
-:<<-'_UnProtect_Literal_String_Doc'
+:&lt;&lt;-'_UnProtect_Literal_String_Doc'
 
     Copyright (c) Michael S. Zick, 2003; All Rights Reserved
     License: Unrestricted reuse in any form, for any purpose.
@@ -42,7 +42,7 @@ _upls() {
     eval echo $@                    # Substitution on the glob.
 }
 
-# :<<-'_UnProtect_Literal_String_Test'
+# :&lt;&lt;-'_UnProtect_Literal_String_Test'
 # # # Remove the above "# " to disable this code. # # #
 
 

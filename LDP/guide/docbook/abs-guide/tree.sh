@@ -25,7 +25,7 @@ do
   while [ $zz != $1 ]     # Keep track of inner nested loop.
     do
       echo -n "| "        # ==> Display vertical connector symbol,
-                          # ==> with 2 spaces & no line feed
+                          # ==> with 2 spaces &amp; no line feed
                           #     in order to indent.
       zz=`expr $zz + 1`   # ==> Increment zz.
     done

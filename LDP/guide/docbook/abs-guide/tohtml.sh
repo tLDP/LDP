@@ -4,7 +4,7 @@
 # Convert a text file to HTML format.
 # Author: Mendel Cooper
 # License: GPL3
-# Usage: sh tohtml.sh < textfile > htmlfile
+# Usage: sh tohtml.sh &lt; textfile > htmlfile
 # Script can easily be modified to accept source and target filenames.
 
 #    Assumptions:

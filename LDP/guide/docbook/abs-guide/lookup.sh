@@ -22,7 +22,7 @@ do               # ^^^
     echo "\"$word\" is invalid."
   fi  
 
-done <"$file"    # Redirects stdin to $file, so "reads" come from there.
+done &lt;"$file"    # Redirects stdin to $file, so "reads" come from there.
 
 echo
 
@@ -34,11 +34,11 @@ exit 0
 
 # Stephane Chazelas proposes the following, more concise alternative:
 
-while read word && [[ $word != end ]]
+while read word &amp;&amp; [[ $word != end ]]
 do if look "$word" > /dev/null
    then echo "\"$word\" is valid."
    else echo "\"$word\" is invalid."
    fi
-done <"$file"
+done &lt;"$file"
 
 exit 0

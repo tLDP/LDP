@@ -17,7 +17,7 @@ echo
 
 set -r
 # set --restricted    has same effect.
-echo "==> Now in restricted mode. <=="
+echo "==> Now in restricted mode. &lt;=="
 
 echo
 echo

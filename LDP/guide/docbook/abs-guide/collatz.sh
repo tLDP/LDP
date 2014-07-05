@@ -32,7 +32,7 @@ echo
 echo "C($h) -*- $MAX_ITERATIONS Iterations"
 echo
 
-for ((i=1; i<=MAX_ITERATIONS; i++))
+for ((i=1; i&lt;=MAX_ITERATIONS; i++))
 do
 
 # echo -n "$h	"

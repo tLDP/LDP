@@ -22,7 +22,7 @@ echo "------------------------"
 
 
 exec 3&lt;&gt; myfile.txt
-while read line &lt;&3
+while read line &lt;&amp;3
 do {
   echo "$line"
   (( Lines++ ));                   #  Incremented values of this variable
@@ -30,7 +30,7 @@ do {
                                    #  No subshell, no problem.
 }
 done
-exec 3&gt;&-
+exec 3&gt;&amp;-
 
 echo "Number of lines read = $Lines"     # 8
 

@@ -31,12 +31,12 @@
 E_RUNERR=65
 
 # Check if md5sum and bc are installed. 
-if ! which bc &> /dev/null; then
+if ! which bc &amp;> /dev/null; then
    echo bc is not installed.  
    echo "Can\'t run . . . "
    exit $E_RUNERR
 fi
-if ! which md5sum &> /dev/null; then
+if ! which md5sum &amp;> /dev/null; then
    echo md5sum is not installed.  
    echo "Can\'t run . . . "
    exit $E_RUNERR
@@ -197,7 +197,7 @@ for HN in `seq 9`; do
       # Define a random handicap for horse.
        HANDICAP=`random_1_9`
       # Check if the random_1_9 function returned a good value.
-      while ! echo $HANDICAP | grep [1-9] &> /dev/null; do
+      while ! echo $HANDICAP | grep [1-9] &amp;> /dev/null; do
                 HANDICAP=`random_1_9`
       done
       # Define last handicap position for horse. 
@@ -284,7 +284,7 @@ while [ $COL -lt $WINNING_POS ]; do
           MOVE_HORSE=0     
           
           # Check if the random_1_9 function has returned a good value.
-          while ! echo $MOVE_HORSE | grep [1-9] &> /dev/null; do
+          while ! echo $MOVE_HORSE | grep [1-9] &amp;> /dev/null; do
                 MOVE_HORSE=`random_1_9`
           done
           
@@ -294,8 +294,8 @@ while [ $COL -lt $WINNING_POS ]; do
           
           ADD_POS=1
           # Check if the current position is an handicap position. 
-          if seq 10 7 68 | grep -w $COL &> /dev/null; then
-                if grep -w $MOVE_HORSE $COL &> /dev/null; then
+          if seq 10 7 68 | grep -w $COL &amp;> /dev/null; then
+                if grep -w $MOVE_HORSE $COL &amp;> /dev/null; then
                       ADD_POS=0
                       grep -v -w  $MOVE_HORSE $COL > ${COL}_new
                       rm -f $COL

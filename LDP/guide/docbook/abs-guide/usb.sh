@@ -54,7 +54,7 @@ function scsiDevFromScsiUsb {
   print "/dev/sd" substr("abcdefghijklmnopqrstuvwxyz", n+1, 1) }'
 }
 
-if [ "${ACTION}" = "add" ] && [ -f "${DEVICE}" ]; then
+if [ "${ACTION}" = "add" ] &amp;&amp; [ -f "${DEVICE}" ]; then
     ##
     # lifted from usbcam code.
     #

@@ -28,7 +28,7 @@ fi
 
 
 if [[ "$1" =~ [a-zA-Z][a-zA-Z]$ ]]  #  Ends in two alpha chars?
-then                                  #  It's a domain name &&
+then                                  #  It's a domain name &amp;&amp;
                                       #+ must do host lookup.
   IPADDR=$(host -W $HOSTWAIT $1 | awk '{print $4}')
                                       #  Doing host lookup
@@ -230,16 +230,16 @@ elif [ $slash8 == 127 ]; then
   echo $IPADDR is loopback space\; Not querying
 elif [ $slash16 == 169.254 ]; then
   echo $IPADDR is link-local space\; Not querying
-elif [ $slash8 == 172 ] && [ $octet2 -ge 16 ] && [ $octet2 -le 31 ];then
+elif [ $slash8 == 172 ] &amp;&amp; [ $octet2 -ge 16 ] &amp;&amp; [ $octet2 -le 31 ];then
   echo $IPADDR is RFC1918 space\; Not querying
 elif [ $slash16 == 192.168 ]; then
   echo $IPADDR is RFC1918 space\; Not querying
 elif [ $slash8 -ge 224 ]; then
   echo $IPADDR is either Multicast or reserved space\; Not querying
-elif [ $slash8 -ge 200 ] && [ $slash8 -le 201 ]; then LACNICquery "$IPADDR"
-elif [ $slash8 -ge 202 ] && [ $slash8 -le 203 ]; then APNICquery "$IPADDR"
-elif [ $slash8 -ge 210 ] && [ $slash8 -le 211 ]; then APNICquery "$IPADDR"
-elif [ $slash8 -ge 218 ] && [ $slash8 -le 223 ]; then APNICquery "$IPADDR"
+elif [ $slash8 -ge 200 ] &amp;&amp; [ $slash8 -le 201 ]; then LACNICquery "$IPADDR"
+elif [ $slash8 -ge 202 ] &amp;&amp; [ $slash8 -le 203 ]; then APNICquery "$IPADDR"
+elif [ $slash8 -ge 210 ] &amp;&amp; [ $slash8 -le 211 ]; then APNICquery "$IPADDR"
+elif [ $slash8 -ge 218 ] &amp;&amp; [ $slash8 -le 223 ]; then APNICquery "$IPADDR"
 
 #  If we got this far without making a decision, query ARIN.
 #  If a reference is found in $OUTFILE to APNIC, AFRINIC, LACNIC, or RIPE,

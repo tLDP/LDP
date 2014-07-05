@@ -15,7 +15,7 @@
 #-- For more detail, man ascii . . .
 #-------------------------------------------------------------------------
 
-[ -n "$BASH_VERSION" ] && shopt -s extglob
+[ -n "$BASH_VERSION" ] &amp;&amp; shopt -s extglob
 
 case "$1" in
    oct|[Oo]?([Cc][Tt])|8)       Obase=Octal;  Numy=3o;;
@@ -34,8 +34,8 @@ for TOK in $AB $AD; do ABR[$((LD+=1))]=$TOK; done;
 ABR[127]=del
 
 IDX=0
-while [ $IDX -le 127 ] && CHR="${ABR[$IDX]}"
-   do ((${#CHR}))&& FM2='%-3s'|| FM2=`printf '\\\\%o  ' $IDX`
+while [ $IDX -le 127 ] &amp;&amp; CHR="${ABR[$IDX]}"
+   do ((${#CHR}))&amp;&amp; FM2='%-3s'|| FM2=`printf '\\\\%o  ' $IDX`
       printf "$FM1 $FM2" "$IDX" $CHR; (( (IDX+=1)%8))||echo '|'
    done
 

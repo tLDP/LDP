@@ -22,7 +22,7 @@ fi
 echo "Factors of $1:"
 # -------------------------------------------------------
 echo  "$1[p]s2[lip/dli%0=1dvsr]s12sid2%0=13sidvsr[dli%0=\
-1lrli2+dsi!>.]ds.xd1<2" | dc
+1lrli2+dsi!>.]ds.xd1&lt;2" | dc
 # -------------------------------------------------------
 #  Above code written by Michel Charpentier &lt;charpov@cs.unh.edu&gt;
 #  (as a one-liner, here broken into two lines for display purposes).

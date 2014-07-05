@@ -75,7 +75,7 @@ check_database ()
 
 
     let "n+=1"
-  done <"$dbfile"       # Read from checksum database file. 
+  done &lt;"$dbfile"       # Read from checksum database file. 
 
 }  
 

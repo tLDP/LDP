@@ -17,7 +17,7 @@ my_read () {
 # eval echo -n "[\$$1] "     #  Easier to understand,
                              #+ but loses trailing space in user prompt.
   read local_var
-  [ -n "$local_var" ] && eval $1=\$local_var
+  [ -n "$local_var" ] &amp;&amp; eval $1=\$local_var
 
   # "And-list": if "local_var" then set "$1" to its value.
 }

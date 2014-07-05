@@ -138,7 +138,7 @@ if [ -z "$cFlag" ]; then # If we haven't already done this . . .
       Cookies[$n]=$REPLY # Put the cookie files we found into an array.
       echo "$n) ${Cookies[$n]}"  # Create a menu.
       n=$(( n + 1 ))     # Increment the counter.
-   done < $Cookie_List   # Feed the read statement.
+   done &lt; $Cookie_List   # Feed the read statement.
    echo "Enter the number of the cookie file you want to use."
    echo "If you won't be using cookies, just press RETURN."
    echo
@@ -248,7 +248,7 @@ while [ 1 ]; do
    echo "Enter the name of the file containing URL's (press q to change
 your mind)."
    read urlfile
-   if [ ! -e "$urlfile" ] && [ "$urlfile" != q ]; then
+   if [ ! -e "$urlfile" ] &amp;&amp; [ "$urlfile" != q ]; then
        # Look for a file, or the quit option.
        echo "That file does not exist!"
    elif [ "$urlfile" = q ]; then # Check quit option.
@@ -345,7 +345,7 @@ echo "Using: $filePath"
 while read; do
     eval $REPLY
     echo "Completed: $REPLY"
-done < $filePath  # Feed the actual file we are using into a 'while' loop.
+done &lt; $filePath  # Feed the actual file we are using into a 'while' loop.
 
 exit
 }
@@ -373,7 +373,7 @@ done
 shift $((OPTIND - 1))     # Do funky magic stuff with $#.
 
 
-if [ -z "$1" ] && [ -z "$lister" ]; then
+if [ -z "$1" ] &amp;&amp; [ -z "$lister" ]; then
                           #  We should be left with at least one URL
                           #+ on the command-line, unless a list is 
 			  #+ being used -- catch empty CL's.
@@ -435,7 +435,7 @@ ${CookiesON}${lister}${Woptions}${URLS}"
    #  They are in the individual elements so that if any are empty,
    #+ we don't get an extra space.
 
-   if [ -z "${CookiesON}" ] && [ "$cFlag" = "1" ] ; then
+   if [ -z "${CookiesON}" ] &amp;&amp; [ "$cFlag" = "1" ] ; then
        echo "Warning -- can't find cookie file"
        #  This should be changed,
        #+ in case the user has opted to not use cookies.

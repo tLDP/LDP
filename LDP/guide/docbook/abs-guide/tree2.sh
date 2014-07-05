@@ -45,7 +45,7 @@ function tree {
 # Get ($TOP) biggest subdirs/subfiles from TMP file.
   LIST=`egrep "[[:space:]]${dirname}/[^/]*$" "$TMP" |
         awk '{if($1>'$minsize') print;}' | sort -nr | head -$TOP`
-  [ -z "$LIST" ] && return        # Empty list, then go back.
+  [ -z "$LIST" ] &amp;&amp; return        # Empty list, then go back.
 
   cnt=0
   num=`echo "$LIST" | wc -l`      # How many entries in the list.
@@ -54,7 +54,7 @@ function tree {
   echo "$LIST" | while read size name; do
     ((cnt+=1))		          # Count entry number.
     bname=`basename "$name"`      # We only need a basename of the entry.
-    [ -d "$name" ] && bname="$bname/"
+    [ -d "$name" ] &amp;&amp; bname="$bname/"
                                   # If it's a directory, append a slash.
     echo "`dot $size`$prefix +-$bname"
                                   # Display the result.
@@ -69,11 +69,11 @@ function tree {
     if [ -d "$name" -a $recurs -lt $MAXRECURS ]; then
       [ $cnt -lt $num ] \
         || (tree $((recurs+1)) "$prefix  " $((size/10)) "$name") \
-        && (tree $((recurs+1)) "$prefix |" $((size/10)) "$name")
+        &amp;&amp; (tree $((recurs+1)) "$prefix |" $((size/10)) "$name")
     fi
   done
 
-  [ $? -eq 0 ] && echo "           $prefix"
+  [ $? -eq 0 ] &amp;&amp; echo "           $prefix"
   # Every time we jump back add a 'blank' line.
   return $E_BL
   # We return 80 to tell we added a blank line already.
@@ -85,7 +85,7 @@ function tree {
 
 rootdir="$@"
 [ -d "$rootdir" ] ||
-  { echo "$SELF: Usage: $SELF &lt;directory&gt;" &gt;&2; exit $E_DIR; }
+  { echo "$SELF: Usage: $SELF &lt;directory&gt;" &gt;&amp;2; exit $E_DIR; }
   # We should be called with a directory name.
 
 echo "Building inventory list, please wait ..."

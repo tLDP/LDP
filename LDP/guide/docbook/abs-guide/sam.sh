@@ -97,8 +97,8 @@ extract_letters ()
 }
 
 ######### Play the sounds ############
-dot()  { aplay "$DOT" 2&>/dev/null;  }
-dash() { aplay "$DASH" 2&>/dev/null; }
+dot()  { aplay "$DOT" 2&amp;>/dev/null;  }
+dash() { aplay "$DASH" 2&amp;>/dev/null; }
 ######################################
 
 no_args ()

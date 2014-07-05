@@ -51,7 +51,7 @@ read term
 #  Rick Boivie pointed out a more efficient implementation
 #+ of the above loop, which decreases computation time by 2/3.
 
-# for ((x=1; x <= $months; x++))
+# for ((x=1; x &lt;= $months; x++))
 # do
 #   bottom=$(echo "scale=9; $bottom * $interest_rate + 1" | bc)
 # done
@@ -62,7 +62,7 @@ read term
 
 # bottom=`{
 #     echo "scale=9; bottom=$bottom; interest_rate=$interest_rate"
-#     for ((x=1; x <= $months; x++))
+#     for ((x=1; x &lt;= $months; x++))
 #     do
 #          echo 'bottom = bottom * interest_rate + 1'
 #     done

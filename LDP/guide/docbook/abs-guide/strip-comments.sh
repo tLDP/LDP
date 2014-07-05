@@ -7,7 +7,7 @@ E_WRONG_FILE_TYPE=67
 
 if [ $# -eq "$E_NOARGS" ]
 then
-  echo "Usage: `basename $0` C-program-file" >&2 # Error message to stderr.
+  echo "Usage: `basename $0` C-program-file" >&amp;2 # Error message to stderr.
   exit $E_ARGERROR
 fi  
 
@@ -53,7 +53,7 @@ exit 0
 # Stephane Chazelas suggests the following alternative:
 
 usage() {
-  echo "Usage: `basename $0` C-program-file" >&2
+  echo "Usage: `basename $0` C-program-file" >&amp;2
   exit 1
 }
 

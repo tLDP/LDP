@@ -26,8 +26,8 @@
 
 for dev in /sys/bus/pnp/devices/*
 do
-  grep CSC0100 $dev/id > /dev/null && WSSDEV=$dev
-  grep CSC0110 $dev/id > /dev/null && CTLDEV=$dev
+  grep CSC0100 $dev/id > /dev/null &amp;&amp; WSSDEV=$dev
+  grep CSC0110 $dev/id > /dev/null &amp;&amp; CTLDEV=$dev
 done
 # On 770x:
 # WSSDEV = /sys/bus/pnp/devices/00:07
@@ -74,7 +74,7 @@ echo activate > $CTLDEV/resources
    port=${port3%%-*}
    oplport=${port1%%-*}
  fi
- } < $WSSDEV/resources
+ } &lt; $WSSDEV/resources
 # To see what's going on here:
 # ---------------------------
 #   cat /sys/devices/pnp0/00:07/resources
@@ -94,7 +94,7 @@ echo activate > $CTLDEV/resources
   cport=${port1%%-*}
   #            ^^^^
   # Just want _start_ address of port.
-} < $CTLDEV/resources
+} &lt; $CTLDEV/resources
 
 
 # Load the module:

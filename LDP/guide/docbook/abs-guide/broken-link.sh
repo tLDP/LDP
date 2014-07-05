@@ -24,7 +24,7 @@
 #+ to the args passed.
 ######################
 
-[ $# -eq 0 ] && directorys=`pwd` || directorys=$@
+[ $# -eq 0 ] &amp;&amp; directorys=`pwd` || directorys=$@
 
 
 #  Setup the function linkchk to check the directory it is passed 
@@ -35,8 +35,8 @@
 
 linkchk () {
     for element in $1/*; do
-      [ -h "$element" -a ! -e "$element" ] && echo \"$element\"
-      [ -d "$element" ] && linkchk $element
+      [ -h "$element" -a ! -e "$element" ] &amp;&amp; echo \"$element\"
+      [ -d "$element" ] &amp;&amp; linkchk $element
     # Of course, '-h' tests for symbolic link, '-d' for directory.
     done
 }

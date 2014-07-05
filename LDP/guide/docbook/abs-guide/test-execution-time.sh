@@ -7,19 +7,19 @@
 count=50000
 echo "Math tests"
 echo "Math via \$(( ))"
-time for (( i=0; i< $count; i++))
+time for (( i=0; i&lt; $count; i++))
 do
   result=$(( $i%2 ))
 done
 
 echo "Math via *expr*:"
-time for (( i=0; i< $count; i++))
+time for (( i=0; i&lt; $count; i++))
 do
   result=`expr "$i%2"`
 done
 
 echo "Math via *let*:"
-time for (( i=0; i< $count; i++))
+time for (( i=0; i&lt; $count; i++))
 do
   let result=$i%2
 done
@@ -28,7 +28,7 @@ echo
 echo "Conditional testing tests"
 
 echo "Test via case:"
-time for (( i=0; i< $count; i++))
+time for (( i=0; i&lt; $count; i++))
 do
   case $(( $i%2 )) in
     0) : ;;
@@ -37,7 +37,7 @@ do
 done
 
 echo "Test with if [], no quotes:"
-time for (( i=0; i< $count; i++))
+time for (( i=0; i&lt; $count; i++))
 do
   if [ $(( $i%2 )) = 0 ]; then
      :
@@ -47,7 +47,7 @@ do
 done
 
 echo "Test with if [], quotes:"
-time for (( i=0; i< $count; i++))
+time for (( i=0; i&lt; $count; i++))
 do
   if [ "$(( $i%2 ))" = "0" ]; then
      :
@@ -57,7 +57,7 @@ do
 done
 
 echo "Test with if [], using -eq:"
-time for (( i=0; i< $count; i++))
+time for (( i=0; i&lt; $count; i++))
 do
   if [ $(( $i%2 )) -eq 0 ]; then
      :

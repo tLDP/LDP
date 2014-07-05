@@ -11,7 +11,7 @@ PROCFILE=exe
 
 if [ $# -ne $ARGNO ]
 then
-  echo "Usage: `basename $0` PID-number" >&2  # Error message >stderr.
+  echo "Usage: `basename $0` PID-number" >&amp;2  # Error message >stderr.
   exit $E_WRONGARGS
 fi  
 
@@ -30,7 +30,7 @@ then                #+ no running process corresponds to the pid given.
 fi  
 
 # Alternatively:
-#   if ! ps $1 > /dev/null 2>&1
+#   if ! ps $1 > /dev/null 2>&amp;1
 #   then                # no running process corresponds to the pid given.
 #     echo "No such process running."
 #     exit $E_NOSUCHPROCESS
@@ -47,10 +47,10 @@ then
 fi  
 
 # The last two tests may be replaced by:
-#    if ! kill -0 $1 > /dev/null 2>&1 # '0' is not a signal, but
+#    if ! kill -0 $1 > /dev/null 2>&amp;1 # '0' is not a signal, but
                                       # this will test whether it is possible
                                       # to send a signal to the process.
-#    then echo "PID doesn't exist or you're not its owner" >&2
+#    then echo "PID doesn't exist or you're not its owner" >&amp;2
 #    exit $E_BADPID
 #    fi
 

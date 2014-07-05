@@ -29,13 +29,13 @@ A number may be
     binary (base 2)		starting with 0b (i.e. 0b1100)
     octal (base 8)		starting with 0  (i.e. 014)
     hexadecimal (base 16)	starting with 0x (i.e. 0xc)
-    decimal			otherwise (i.e. 12)" >&2
+    decimal			otherwise (i.e. 12)" >&amp;2
     exit $NOARGS 
 }   # ==> Prints usage message.
 
 Msg () {
     for i   # ==> in [list] missing. Why?
-    do echo "$PN: $i" >&2
+    do echo "$PN: $i" >&amp;2
     done
 }
 
@@ -68,7 +68,7 @@ PrintBases () {
 
 	# Print all conversions in one line.
 	# ==> 'here document' feeds command list to 'bc'.
-	echo `bc <<!
+	echo `bc &lt;&lt;!
 	    obase=16; "hex="; $dec
 	    obase=10; "dec="; $dec
 	    obase=8;  "oct="; $dec

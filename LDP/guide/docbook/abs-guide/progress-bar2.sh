@@ -15,7 +15,7 @@ long_interval=10
      do
        echo -n '.'     # Use dots.
        sleep $interval
-     done; } &         # Start a progress bar as a background process.
+     done; } &amp;         # Start a progress bar as a background process.
 
 pid=$!
 trap "echo !; kill -USR1 $pid; wait $pid"  EXIT        # To handle ^C.

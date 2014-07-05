@@ -33,8 +33,8 @@ while [ "$i" -lt "$MAXNUM" ]; do  # We don't have to count past 400 octal.
         fi
         ((i++, o++))
         # The octal notation for 8 is 10, and 64 decimal is 100 octal.
-        (( i % $OCT == 0))    && ((o+=2))
-        (( i % $OCTSQU == 0)) && ((o+=20))
+        (( i % $OCT == 0))    &amp;&amp; ((o+=2))
+        (( i % $OCTSQU == 0)) &amp;&amp; ((o+=20))
 done
 
 exit $?

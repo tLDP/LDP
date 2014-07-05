@@ -103,7 +103,7 @@ element_count=${#arr[*]}
 local i
 local rowcheck
 
-for ((i=0; i<$element_count; i++))
+for ((i=0; i&lt;$element_count; i++))
 do
 
   # Insert newline at end of each row.
@@ -212,7 +212,7 @@ GetCount ()             # Count live cells in passed cell's neighborhood.
   let "bottom = $cell_number + $COLS - 1"
   let "r = $cell_number / $COLS"
 
-  for ((i=0; i<$ROW_NHBD; i++))           # Traverse from left to right. 
+  for ((i=0; i&lt;$ROW_NHBD; i++))           # Traverse from left to right. 
   do
     let "t_top = $top + $i"
     let "t_cen = $center + $i"
@@ -344,7 +344,7 @@ echo
 
 # ------- Display second generation. -------
 Cur=`echo ${initial[@]}`
-next_gen "$Cur"          # Update & display.
+next_gen "$Cur"          # Update &amp; display.
 sleep $DELAY
 # ------------------------------------------
 

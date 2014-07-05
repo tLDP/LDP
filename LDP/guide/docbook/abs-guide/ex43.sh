@@ -18,7 +18,7 @@ echo
 echo "==========================================================="
 echo
 
-eval "`seq 3 | sed -e 's/.*/echo var&=ABCDEFGHIJ/'`"
+eval "`seq 3 | sed -e 's/.*/echo var&amp;=ABCDEFGHIJ/'`"
 # var1=ABCDEFGHIJ
 # var2=ABCDEFGHIJ
 # var3=ABCDEFGHIJ

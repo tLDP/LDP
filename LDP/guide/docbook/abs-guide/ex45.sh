@@ -48,14 +48,14 @@ echo "If a > 10, b = 0 (false)"
 echo "b = $b"            # 0  ( 3 ! -gt 10 )
 echo
 
-b=`expr $a \< 10`
-echo "If a < 10, b = 1 (true)"
+b=`expr $a \&lt; 10`
+echo "If a &lt; 10, b = 1 (true)"
 echo "b = $b"            # 1  ( 3 -lt 10 )
 echo
 # Note escaping of operators.
 
-b=`expr $a \<= 3`
-echo "If a <= 3, b = 1 (true)"
+b=`expr $a \&lt;= 3`
+echo "If a &lt;= 3, b = 1 (true)"
 echo "b = $b"            # 1  ( 3 -le 3 )
 # There is also a "\>=" operator (greater than or equal to).
 
@@ -83,7 +83,7 @@ echo "Length of \"$a\" is $b."
 b=`expr index $a 23`
 echo "Numerical position of first \"2\" in \"$a\" is \"$b\"."
 
-# substr: extract substring, starting position & length specified
+# substr: extract substring, starting position &amp; length specified
 b=`expr substr $a 2 6`
 echo "Substring of \"$a\", starting at position 2,\
 and 6 chars long is \"$b\"."

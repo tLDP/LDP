@@ -4,7 +4,7 @@
 PASSWORD_FILE=/etc/passwd
 n=1           # User number
 
-for name in $(awk 'BEGIN{FS=":"}{print $1}' < "$PASSWORD_FILE" )
+for name in $(awk 'BEGIN{FS=":"}{print $1}' &lt; "$PASSWORD_FILE" )
 # Field separator = :    ^^^^^^
 # Print first field              ^^^^^^^^
 # Get input from password file  /etc/passwd  ^^^^^^^^^^^^^^^^^

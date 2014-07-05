@@ -19,7 +19,7 @@ echo; echo
 ((a = 1))      # a=1
 # Double parentheses permit space when setting a variable, as in C.
 
-while (( a <= LIMIT ))   #  Double parentheses,
+while (( a &lt;= LIMIT ))   #  Double parentheses,
 do                       #+ and no "$" preceding variables.
   echo -n "$a "
   ((a += 1))             # let "a+=1"
