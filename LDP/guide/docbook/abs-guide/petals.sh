@@ -157,7 +157,7 @@ do
           echo "You have unraveled the mystery of the Rose Petals!"
           echo "Welcome to the Fellowship of the Rose!!!"
           echo "(You are herewith sworn to secrecy.)"; echo
-          echo -e "\033[0m"    # Turn off red & bold.
+          echo -e "\033[0m"    # Turn off red &amp; bold.
           break                # Exit!
         else echo "You have $hits correct so far."; echo
 

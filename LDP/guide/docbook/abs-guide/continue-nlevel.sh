@@ -9,7 +9,7 @@ do
   for inner in 1 2 3 4 5 6 7 8 9 10  # inner loop
   do
 
-    if [[ "$inner" -eq 7 && "$outer" = "III" ]]
+    if [[ "$inner" -eq 7 &amp;&amp; "$outer" = "III" ]]
     then
       continue 2  # Continue at loop on 2nd level, that is "outer loop".
                   # Replace above line with a simple "continue"

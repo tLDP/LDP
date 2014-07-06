@@ -9,10 +9,10 @@ then
   exit $E_BADARGS
 fi  
 
-tr a-z A-Z <"$1"
+tr a-z A-Z &lt;"$1"
 
 # Same effect as above, but using POSIX character set notation:
-#        tr '[:lower:]' '[:upper:]' <"$1"
+#        tr '[:lower:]' '[:upper:]' &lt;"$1"
 # Thanks, S.C.
 
 #     Or even . . .

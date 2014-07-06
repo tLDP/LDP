@@ -10,9 +10,9 @@
 #    Usage:
 #
 #    Encode
-#    $ ./base64.sh < binary-file > binary-file.base64
+#    $ ./base64.sh &lt; binary-file > binary-file.base64
 #    Decode
-#    $ ./base64.sh -d < binary-file.base64 > binary-file
+#    $ ./base64.sh -d &lt; binary-file.base64 > binary-file
 #
 # Reference:
 #
@@ -37,7 +37,7 @@ function display_base64_char {
 #  Convert a 6-bit number (between 0 and 63) into its corresponding values
 #+ in Base64, then display the result with the specified text width.
   printf "${base64_charset[$1]}"; (( width++ ))
-  (( width % text_width == 0 )) && printf "\n"
+  (( width % text_width == 0 )) &amp;&amp; printf "\n"
 }
 
 function encode_base64 {
@@ -53,13 +53,13 @@ function encode_base64 {
   #  Let's play with bitwise operators
   #+ (3x8-bit into 4x6-bits conversion).
   (( c6[0] = c8[0] >> 2 ))
-  (( c6[1] = ((c8[0] &  3) << 4) | (c8[1] >> 4) ))
+  (( c6[1] = ((c8[0] &amp;  3) &lt;&lt; 4) | (c8[1] >> 4) ))
 
   # The following operations depend on the c8 element number.
   case ${#c8[*]} in 
-    3) (( c6[2] = ((c8[1] & 15) << 2) | (c8[2] >> 6) ))
-       (( c6[3] = c8[2] & 63 )) ;;
-    2) (( c6[2] = (c8[1] & 15) << 2 ))
+    3) (( c6[2] = ((c8[1] &amp; 15) &lt;&lt; 2) | (c8[2] >> 6) ))
+       (( c6[3] = c8[2] &amp; 63 )) ;;
+    2) (( c6[2] = (c8[1] &amp; 15) &lt;&lt; 2 ))
        (( c6[3] = 64 )) ;;
     1) (( c6[2] = c6[3] = 64 )) ;;
   esac
@@ -77,7 +77,7 @@ function decode_base64 {
 
   # Find decimal value corresponding to the current base64 character.
   for current_char in ${1:0:1} ${1:1:1} ${1:2:1} ${1:3:1}; do
-     [ "${current_char}" = "=" ] && break
+     [ "${current_char}" = "=" ] &amp;&amp; break
 
      position=0
      while [ "${current_char}" != "${base64_charset[${position}]}" ]; do
@@ -89,14 +89,14 @@ function decode_base64 {
 
   #  Let's play with bitwise operators
   #+ (4x8-bit into 3x6-bits conversion).
-  (( c8[0] = (c6[0] << 2) | (c6[1] >> 4) ))
+  (( c8[0] = (c6[0] &lt;&lt; 2) | (c6[1] >> 4) ))
 
   # The next operations depends on the c6 elements number.
   case ${#c6[*]} in
-    3) (( c8[1] = ( (c6[1] & 15) << 4) | (c6[2] >> 2) ))
-       (( c8[2] = (c6[2] & 3) << 6 )); unset c8[2] ;;
-    4) (( c8[1] = ( (c6[1] & 15) << 4) | (c6[2] >> 2) ))
-       (( c8[2] = ( (c6[2] &  3) << 6) |  c6[3] )) ;;
+    3) (( c8[1] = ( (c6[1] &amp; 15) &lt;&lt; 4) | (c6[2] >> 2) ))
+       (( c8[2] = (c6[2] &amp; 3) &lt;&lt; 6 )); unset c8[2] ;;
+    4) (( c8[1] = ( (c6[1] &amp; 15) &lt;&lt; 4) | (c6[2] >> 2) ))
+       (( c8[2] = ( (c6[2] &amp;  3) &lt;&lt; 6) |  c6[3] )) ;;
   esac
 
   for char in ${c8[*]}; do

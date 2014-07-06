@@ -57,7 +57,7 @@ echo CONTENT_LENGTH = $CONTENT_LENGTH
 exit 0
 
 # Here document to give short instructions.
-:<<-'_test_CGI_'
+:&lt;&lt;-'_test_CGI_'
 
 1) Drop this in your http://domain.name/cgi-bin directory.
 2) Then, open http://domain.name/cgi-bin/test-cgi.sh.

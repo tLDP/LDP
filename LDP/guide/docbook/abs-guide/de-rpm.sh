@@ -8,7 +8,7 @@
 TEMPFILE=$$.cpio                         #  Tempfile with "unique" name.
                                          #  $$ is process ID of script.
 
-rpm2cpio < $1 > $TEMPFILE                #  Converts rpm archive into
+rpm2cpio &lt; $1 > $TEMPFILE                #  Converts rpm archive into
                                          #+ cpio archive.
 cpio --make-directories -F $TEMPFILE -i  #  Unpacks cpio archive.
 rm -f $TEMPFILE                          #  Deletes cpio archive.

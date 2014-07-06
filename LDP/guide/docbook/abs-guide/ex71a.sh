@@ -1,7 +1,7 @@
 #!/bin/bash
 # Same as previous example, but...
 
-#  The - option to a here document <<-
+#  The - option to a here document &lt;&lt;-
 #+ suppresses leading tabs in the body of the document,
 #+ but *not* spaces.
 
@@ -16,7 +16,7 @@ ENDOFMESSAGE
 # Leading tab in each line will not show.
 
 # Above 5 lines of "message" prefaced by a tab, not spaces.
-# Spaces not affected by   <<-  .
+# Spaces not affected by   &lt;&lt;-  .
 
 # Note that this option has no effect on *embedded* tabs.
 

@@ -24,7 +24,7 @@ file_read ()     # Scan file for pattern, then print line.
 while read line
 do
 
-  if [[ "$line" =~ ^[a-z] && $Flag -eq $ON ]]
+  if [[ "$line" =~ ^[a-z] &amp;&amp; $Flag -eq $ON ]]
      then  # Line begins with lowercase character, following blank line.
      echo -n "$lineno::   "
      echo "$line"
@@ -41,7 +41,7 @@ do
   ((lineno++))
 
 done
-} < $file  # Redirect file into function's stdin.
+} &lt; $file  # Redirect file into function's stdin.
 
 file_read
 

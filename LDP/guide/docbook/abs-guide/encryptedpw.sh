@@ -21,7 +21,7 @@ pword=/home/bozo/secret/password_encrypted.file
 Filename=`basename $1`  # Strips pathname out of file name.
 
 Server="XXX"
-Directory="YYY"         # Change above to actual server name & directory.
+Directory="YYY"         # Change above to actual server name &amp; directory.
 
 
 Password=`cruft &lt;$pword`          # Decrypt password.

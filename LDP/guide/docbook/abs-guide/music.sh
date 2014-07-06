@@ -18,7 +18,7 @@ function mknote ()  # $1=Note Hz in bytes (e.g. A = 440Hz ::
 {                   #+ 8000 fps / 440 = 16 :: A = 16 bytes per second)
   for t in `seq 0 $duration`
   do
-    test $(( $t % $1 )) = 0 && echo -n $volume || echo -n $mute
+    test $(( $t % $1 )) = 0 &amp;&amp; echo -n $volume || echo -n $mute
   done
 }
 

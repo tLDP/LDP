@@ -14,8 +14,8 @@ do
   echo "$line"   # Output the line itself.
 
   len=${#line}
-  if [[ "$len" -lt "$MINLEN" && "$line" =~ [*{\.}]$ ]]
-# if [[ "$len" -lt "$MINLEN" && "$line" =~ \[*\.\] ]]
+  if [[ "$len" -lt "$MINLEN" &amp;&amp; "$line" =~ [*{\.}]$ ]]
+# if [[ "$len" -lt "$MINLEN" &amp;&amp; "$line" =~ \[*\.\] ]]
 # An update to Bash broke the previous version of this script. Ouch!
 # Thank you, Halim Srama, for pointing this out and suggesting a fix.
     then echo    #  Add a blank line immediately

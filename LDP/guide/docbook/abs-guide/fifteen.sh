@@ -93,8 +93,8 @@ function GetNum
 	  echo "Moves: $moves" # Also counts invalid moves.
     read -p "Number to move: " puznum garbage
       if [ "$puznum" = "quit" ]; then echo; exit $E_PREMATURE_EXIT; fi
-    test -z "$puznum" -o -n "${puznum//[0-9]/}" && continue
-    test $puznum -gt 0 -a $puznum -lt $SQUARES && break
+    test -z "$puznum" -o -n "${puznum//[0-9]/}" &amp;&amp; continue
+    test $puznum -gt 0 -a $puznum -lt $SQUARES &amp;&amp; break
   done
   return $puznum
 }
@@ -106,7 +106,7 @@ function GetPosFromNum
 
   for puzpos in {0..15}
   do
-    test "${Puzzle[$puzpos]}" = "$1" && break
+    test "${Puzzle[$puzpos]}" = "$1" &amp;&amp; break
   done
   return $puzpos
 }
@@ -114,14 +114,14 @@ function GetPosFromNum
 
 function Move
 { # $1=Puzzle-pos
-  test $1 -gt 3 && test "${Puzzle[$(( $1 - 4 ))]}" = " "\
-       && swap $1 $(( $1 - 4 )) && return 0
-  test $(( $1%4 )) -ne 3 && test "${Puzzle[$(( $1 + 1 ))]}" = " "\
-       && swap $1 $(( $1 + 1 )) && return 0
-  test $1 -lt 12 && test "${Puzzle[$(( $1 + 4 ))]}" = " "\
-       && swap $1 $(( $1 + 4 )) && return 0
-  test $(( $1%4 )) -ne 0 && test "${Puzzle[$(( $1 - 1 ))]}" = " " &&\
-       swap $1 $(( $1 - 1 )) && return 0
+  test $1 -gt 3 &amp;&amp; test "${Puzzle[$(( $1 - 4 ))]}" = " "\
+       &amp;&amp; swap $1 $(( $1 - 4 )) &amp;&amp; return 0
+  test $(( $1%4 )) -ne 3 &amp;&amp; test "${Puzzle[$(( $1 + 1 ))]}" = " "\
+       &amp;&amp; swap $1 $(( $1 + 1 )) &amp;&amp; return 0
+  test $1 -lt 12 &amp;&amp; test "${Puzzle[$(( $1 + 4 ))]}" = " "\
+       &amp;&amp; swap $1 $(( $1 + 4 )) &amp;&amp; return 0
+  test $(( $1%4 )) -ne 0 &amp;&amp; test "${Puzzle[$(( $1 - 1 ))]}" = " " &amp;&amp;\
+       swap $1 $(( $1 - 1 )) &amp;&amp; return 0
   return 1
 }
 
@@ -155,9 +155,9 @@ do
     GetPosFromNum $puznum
     puzpos=$?
     ((moves++))
-    Move $puzpos && break
+    Move $puzpos &amp;&amp; break
   done
-  Solved && break
+  Solved &amp;&amp; break
 done
 
 echo;echo

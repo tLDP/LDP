@@ -4,7 +4,7 @@
 for i in 1 2 3 4 5 6 7 8 9 10            # First loop.
 do
   echo -n "$i "
-done & # Run this loop in background.
+done &amp; # Run this loop in background.
        # Will sometimes execute after second loop.
 
 echo   # This 'echo' sometimes will not display.

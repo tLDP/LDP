@@ -38,7 +38,7 @@ print_progress_bar()
 
 # Here is a sample of code that uses it.
 MAX_PERCENT=100
-for ((i=0; i<=MAX_PERCENT; i++)); do
+for ((i=0; i&lt;=MAX_PERCENT; i++)); do
         #
         usleep 10000
         # ... Or run some other commands ...

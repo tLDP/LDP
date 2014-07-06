@@ -22,7 +22,7 @@ mbox_grep()  # Parse mailbox file.
 
     while IFS= read -r mail
 #         ^^^^                 Reset $IFS.
-#  Otherwise "read" will strip leading & trailing space from its input.
+#  Otherwise "read" will strip leading &amp; trailing space from its input.
 
    do
        if [[ $mail =~ ^From  ]]   # Match "From" field in message.
@@ -39,23 +39,23 @@ mbox_grep()  # Parse mailbox file.
             #+ of message to display.
 
    elif [[ $mail ]]; then
-      IFS=: read -r header value <<< "$mail"
+      IFS=: read -r header value &lt;&lt;&lt; "$mail"
       #                          ^^^  "here string"
 
       case "$header" in
-      [Ff][Rr][Oo][Mm] ) [[ $value =~ "$2" ]] && (( match++ )) ;;
+      [Ff][Rr][Oo][Mm] ) [[ $value =~ "$2" ]] &amp;&amp; (( match++ )) ;;
       # Match "From" line.
-      [Dd][Aa][Tt][Ee] ) read -r -a date <<< "$value" ;;
+      [Dd][Aa][Tt][Ee] ) read -r -a date &lt;&lt;&lt; "$value" ;;
       #                                  ^^^
       # Match "Date" line.
-      [Rr][Ee][Cc][Ee][Ii][Vv][Ee][Dd] ) read -r -a sender <<< "$value" ;;
+      [Rr][Ee][Cc][Ee][Ii][Vv][Ee][Dd] ) read -r -a sender &lt;&lt;&lt; "$value" ;;
       #                                                    ^^^
       # Match IP Address (may be spoofed).
       esac
 
        else
           (( body++ ))
-          (( match  )) &&
+          (( match  )) &amp;&amp;
           echo "MESSAGE ${date:+of: ${date[*]} }"
        #    Entire $date array             ^
           echo "IP address of sender: ${sender[1]}"
@@ -64,7 +64,7 @@ mbox_grep()  # Parse mailbox file.
        fi
 
 
-    done < "$1" # Redirect stdout of file into loop.
+    done &lt; "$1" # Redirect stdout of file into loop.
 }
 
 

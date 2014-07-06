@@ -59,7 +59,7 @@ sed -n 's/.*url="\([^"]*\)".*/\1/p')
                         wget -q -P $datadir "$url"
                 fi
                 done
-    done < bp.conf
+    done &lt; bp.conf
 
 # Move dynamically created log file to permanent log file:
 cat podcast.log >> temp.log

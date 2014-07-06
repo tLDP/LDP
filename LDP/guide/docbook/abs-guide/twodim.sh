@@ -69,7 +69,7 @@ filter ()     # Filter out negative array indices.
 echo -n "  "  # Provides the tilt.
               # Explain how.
 
-if [[ "$1" -ge 0 &&  "$1" -lt "$Rows" && "$2" -ge 0 && "$2" -lt "$Columns" ]]
+if [[ "$1" -ge 0 &amp;&amp;  "$1" -lt "$Rows" &amp;&amp; "$2" -ge 0 &amp;&amp; "$2" -lt "$Columns" ]]
 then
     let "index = $1 * $Rows + $2"
     # Now, print it rotated.
@@ -90,7 +90,7 @@ local column
 for (( row = Rows; row > -Rows; row-- ))
   do       # Step through the array backwards. Why?
 
-  for (( column = 0; column < Columns; column++ ))
+  for (( column = 0; column &lt; Columns; column++ ))
   do
 
     if [ "$row" -ge 0 ]

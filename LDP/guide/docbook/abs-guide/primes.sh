@@ -22,8 +22,8 @@ Primes()
 
  for i; do                    # "i" set to "@", previous values of $n.
 #   echo "-n=$n i=$i-"
-   (( i * i > n )) && break   # Optimization.
-   (( n % i )) && continue    # Sift out non-primes using modulo operator.
+   (( i * i > n )) &amp;&amp; break   # Optimization.
+   (( n % i )) &amp;&amp; continue    # Sift out non-primes using modulo operator.
    Primes $n $@               # Recursion inside loop.
    return
    done

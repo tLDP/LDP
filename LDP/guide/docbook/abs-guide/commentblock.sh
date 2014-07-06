@@ -6,7 +6,7 @@ echo "This line will not echo."
 This is a comment line missing the "#" prefix.
 This is another comment line missing the "#" prefix.
 
-&*@!!++=
+&amp;*@!!++=
 The above line will cause no error message,
 because the Bash interpreter will ignore it.
 COMMENTBLOCK
@@ -49,7 +49,7 @@ exit 0
 
   : &lt;&lt;COMMENTBLOCK
   echo "This line will not echo."
-  &*@!!++=
+  &amp;*@!!++=
   ${foo_bar_bazz?}
   $(rm -rf /tmp/foobar/)
   $(touch my_build_directory/cups/Makefile)

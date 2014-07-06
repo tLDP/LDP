@@ -96,7 +96,7 @@ function gethash () {
 	if [ "${k}" = "${key}" ]; then found=1; break; fi
     done;
 
-    [ ${found} = 0 ] && return 1;
+    [ ${found} = 0 ] &amp;&amp; return 1;
     # else: i is the index that matches the key
     h="\${${_values}[${i}]}"
     eval echo "${h}"

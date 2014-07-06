@@ -16,7 +16,7 @@
 #-- For more detail, man ascii
 #-------------------------------------------------------------------------
 
-[ -n "$BASH_VERSION" ] && shopt -s extglob
+[ -n "$BASH_VERSION" ] &amp;&amp; shopt -s extglob
 
 case "$1" in
    oct|[Oo]?([Cc][Tt])|8)       Obase=Octal;  Numy=3o;;
@@ -32,7 +32,7 @@ awk 'BEGIN{print "\n\t\t## "ENVIRON["Obase"]" ASCII Chart ##\n"
            ad="dc1,dc2,dc3,dc4,nak,syn,etb,can,em,sub,esc,fs,gs,rs,us,sp"
            split(ab ad,abr,",");abr[0]="nul";abr[127]="del";
            fm1="|%0'"${Numy:- 4d}"' %-3s"
-           for(idx=0;idx<128;idx++){fmt=fm1 (++colz%8?"":"|\n")
+           for(idx=0;idx&lt;128;idx++){fmt=fm1 (++colz%8?"":"|\n")
            printf(fmt,idx,(idx in abr)?abr[idx]:sprintf("%c",idx))} }'
 
 exit $?

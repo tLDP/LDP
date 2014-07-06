@@ -16,8 +16,8 @@ else
 fi  
 
 
-exec 3<&0                 # Save stdin to file descriptor 3.
-exec 0<"$Filename"        # Redirect standard input.
+exec 3&lt;&amp;0                 # Save stdin to file descriptor 3.
+exec 0&lt;"$Filename"        # Redirect standard input.
 
 count=0
 echo
@@ -32,13 +32,13 @@ done                      #  Loop reads from file $Filename
                           #+ because of line 20.
 
 #  The original version of this script terminated the "while" loop with
-#+      done <"$Filename" 
+#+      done &lt;"$Filename" 
 #  Exercise:
 #  Why is this unnecessary?
 
 
-exec 0<&3                 # Restore old stdin.
-exec 3<&-                 # Close temporary fd 3.
+exec 0&lt;&amp;3                 # Restore old stdin.
+exec 3&lt;&amp;-                 # Close temporary fd 3.
 
 echo; echo "$count names read"; echo
 

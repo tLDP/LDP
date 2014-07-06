@@ -23,8 +23,8 @@ fun ()
   while [ $i -lt $REPEATS ]
   do
     echo "----------FUNCTIONS---------->"
-    echo "<------------ARE-------------"
-    echo "<------------FUN------------>"
+    echo "&lt;------------ARE-------------"
+    echo "&lt;------------FUN------------>"
     echo
     let "i+=1"
   done

@@ -22,7 +22,7 @@ do
   echo $i
   global=3D": Available outside the loop."
   # ... because it does NOT run in a subshell.
-done < <( echo "random input" )
+done &lt; &lt;( echo "random input" )
 #    ^ ^
 
 echo "\$global (using process substitution) = $global"
@@ -58,7 +58,7 @@ do
   outloop[$index]="$line"
   ((index++))
   # It does NOT run in a subshell, so ...
-done < <( cat $0 )
+done &lt; &lt;( cat $0 )
 echo "OUTPUT = "
 echo ${outloop[*]}          # ... the entire script echoes.
 

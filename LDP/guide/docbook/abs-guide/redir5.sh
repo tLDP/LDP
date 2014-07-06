@@ -13,7 +13,7 @@ if [ "$TRUE" ]          # if true    and   if :   also work.
 then
  read name
  echo $name
-fi <"$Filename"
+fi &lt;"$Filename"
 #  ^^^^^^^^^^^^
 
 # Reads only first line of file.

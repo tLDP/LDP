@@ -95,7 +95,7 @@ fi
 echo quit >> ${TMPFILE}
 # ==> All commands saved in tempfile.
 
-ftp ${ftpflags} ${remhost} < ${TMPFILE}
+ftp ${ftpflags} ${remhost} &lt; ${TMPFILE}
 # ==> Now, tempfile batch processed by ftp.
 
 rm -f ${TMPFILE}
@@ -105,7 +105,7 @@ rm -f ${TMPFILE}
 # ==> Exercises:
 # ==> ---------
 # ==> 1) Add error checking.
-# ==> 2) Add bells & whistles.
+# ==> 2) Add bells &amp; whistles.
 
 #  See the included file "Moraes-COPYRIGHT" for copyright info.
 #+ on this script.

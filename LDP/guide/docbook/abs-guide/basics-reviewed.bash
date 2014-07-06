@@ -40,7 +40,7 @@
 # Variables are not typed unless otherwise specified.
 
 #  Variables are named. Names must contain a non-digit.
-#  File descriptor names (as in, for example: 2>&1)
+#  File descriptor names (as in, for example: 2>&amp;1)
 #+ contain ONLY digits.
 
 # Parameters and Bash array elements are numbered.
@@ -682,7 +682,7 @@ echo
 # local f=0                         # Count of found subscripts
 # local i=0                         # Subscript to test
 (                                   # Anonymous in-line function
-    for (( l=${#ArraySparse[@]}, f = 0, i = 0 ; f < l ; i++ ))
+    for (( l=${#ArraySparse[@]}, f = 0, i = 0 ; f &lt; l ; i++ ))
     do
         # 'if defined then...'
         ${ArraySparse[$i]+ eval echo '\ ['$i']='${ArraySparse[$i]} ; (( f++ )) }

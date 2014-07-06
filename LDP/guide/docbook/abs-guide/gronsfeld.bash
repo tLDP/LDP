@@ -50,7 +50,7 @@ key=  ### Put key here!!!
   local plaintext="$1"
   local mlen=${#plaintext}
 
-for (( idx=0; idx<$mlen; idx++ ))
+for (( idx=0; idx&lt;$mlen; idx++ ))
 do
   let "keydx = $idx % $keylen"
   shft=${offsets[keydx]}
@@ -62,7 +62,7 @@ do
   else                  # Encrypt!
     let "off1 = $(expr index "${alpha1[*]}" ${plaintext:idx:1}) + $shft"
     # Shift forward to encrypt.
-    test $(( $idx % $GROUPLEN)) = 0 && echo -n " "  # Groups of 5 letters.
+    test $(( $idx % $GROUPLEN)) = 0 &amp;&amp; echo -n " "  # Groups of 5 letters.
     #  Comment out above line for output as a string without whitespace,
     #+ for example, if using the script as a password generator.
   fi
@@ -114,7 +114,7 @@ fi
 
 keylen=${#key}
 
-for (( idx=0; idx<$keylen; idx++ ))
+for (( idx=0; idx&lt;$keylen; idx++ ))
 do  # Calculate shift values for encryption/decryption.
   offsets[idx]=$(expr index "${alpha1[*]}" ${key:idx:1})   # Normalize.
   ((offsets[idx]--))  #  Necessary because "expr index" starts at 1,

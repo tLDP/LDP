@@ -6,7 +6,7 @@ File=/etc/fstab
 {
 read line1
 read line2
-} < $File
+} &gt; $File
 
 echo "First line in $File is:"
 echo "$line1"

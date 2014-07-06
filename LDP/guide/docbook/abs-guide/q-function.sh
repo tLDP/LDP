@@ -25,7 +25,7 @@ echo "Q-series [$LIMIT terms]:"
 echo -n "${Q[1]} "             # Output first two terms.
 echo -n "${Q[2]} "
 
-for ((n=3; n <= $LIMIT; n++))  # C-like loop expression.
+for ((n=3; n &lt;= $LIMIT; n++))  # C-like loop expression.
 do   # Q[n] = Q[n - Q[n-1]] + Q[n - Q[n-2]]  for n&gt;2
 #    Need to break the expression into intermediate terms,
 #+   since Bash doesn't handle complex array arithmetic very well.

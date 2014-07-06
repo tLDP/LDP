@@ -10,7 +10,7 @@ E_NOTGZIP=87
 if [ $# -eq 0 ] # same effect as:  if [ -z "$1" ]
 # $1 can exist, but be empty:  zmore "" arg2 arg3
 then
-  echo "Usage: `basename $0` filename" >&2
+  echo "Usage: `basename $0` filename" >&amp;2
   # Error message to stderr.
   exit $E_NOARGS
   # Returns 85 as exit status of script (error code).
@@ -20,7 +20,7 @@ filename=$1
 
 if [ ! -f "$filename" ]   # Quoting $filename allows for possible spaces.
 then
-  echo "File $filename not found!" >&2   # Error message to stderr.
+  echo "File $filename not found!" >&amp;2   # Error message to stderr.
   exit $E_NOTFOUND
 fi  
 

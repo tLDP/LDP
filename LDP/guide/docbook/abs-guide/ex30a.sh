@@ -42,7 +42,7 @@ case "$person" in
   echo "(303) 734-9874"
   echo "(303) 734-9892 fax"
   echo "revans@zzy.net"
-  echo "Business partner & old friend"
+  echo "Business partner &amp; old friend"
   ;;
 
   "J" | "j" )
@@ -57,7 +57,7 @@ case "$person" in
   echo "Birthday: Feb. 11"
   ;;
 
-# Add info for Smith & Zane later.
+# Add info for Smith &amp; Zane later.
 
           * )
    # Default option.	  

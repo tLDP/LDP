@@ -16,7 +16,7 @@ echo "My PID is $$"
 
 function start_thread() {
         if [ $PROCID -le $LIMIT ] ; then
-                ./child.sh $PROCID&
+                ./child.sh $PROCID&amp;
                 let "PROCID++"
         else
            echo "Limit reached."
@@ -128,7 +128,7 @@ function avvia() {
 
 function parti() {
          if [ $INDICE -gt 0 ] ; then
-              avvia $INDICE "${PARAMETRI[@]}" &
+              avvia $INDICE "${PARAMETRI[@]}" &amp;
                 let "INDICE--"
          else
                 trap : SIGRTMIN

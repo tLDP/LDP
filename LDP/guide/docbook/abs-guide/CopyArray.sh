@@ -4,7 +4,7 @@
 # This script written by Michael Zick.
 # Used here with permission.
 
-#  How-To "Pass by Name & Return by Name"
+#  How-To "Pass by Name &amp; Return by Name"
 #+ or "Building your own assignment statement".
 
 

@@ -3,7 +3,7 @@
 
 num_chars=61
 
-read -N $num_chars var < $0   # Read first 61 characters of script!
+read -N $num_chars var &lt; $0   # Read first 61 characters of script!
 echo "$var"
 exit
 

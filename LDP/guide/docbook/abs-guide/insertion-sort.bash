@@ -25,7 +25,7 @@ typeset -a list
 # Load whitespace-separated numbers from stdin.
 if [ "$1" = "-t" ]; then
 DEBUG=1
-        read -a list < <( od -Ad -w24 -t u2 /dev/urandom ) # Random list.
+        read -a list &lt; &lt;( od -Ad -w24 -t u2 /dev/urandom ) # Random list.
 #                    ^ ^  process substition
 else
         read -a list
@@ -46,9 +46,9 @@ for(( i=1; i&lt;numelem; i++ )) do
         # From current _pivot_, back to first element.
         for(( j=i; j; j-- )) do
                 # Search for the 1st elem. less than current "pivot" . . .
-                [[ "${list[j-1]}" -le "${list[i]}" ]] && break
+                [[ "${list[j-1]}" -le "${list[i]}" ]] &amp;&amp; break
         done
-	(( i==j )) && continue ## No insertion was needed for this element.
+	(( i==j )) &amp;&amp; continue ## No insertion was needed for this element.
 	# . . . Move list[i] (pivot) to the left of list[j]:
         list=(${list[@]:0:j} ${list[i]} ${list[j]}\
 	#         {0,j-1}        {i}       {j}

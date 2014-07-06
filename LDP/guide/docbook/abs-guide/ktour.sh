@@ -174,7 +174,7 @@ to_algebraic ()   #  Translate board position (board-array element #)
 
 from_algebraic ()   #  Translate standard algebraic chess notation
 {                   #+ to numerical board position (board-array element #).
-                    #  Or recognize numerical input & return it unchanged.
+                    #  Or recognize numerical input &amp; return it unchanged.
   if [ -z "$1" ]
   then
     return $FAIL
@@ -356,7 +356,7 @@ do_move ()      # Move the knight!
   ((valid_moves++));    # moves[0]=$valid_moves
   aapos=$(to_algebraic $square)
   echo -n "$aapos "
-  test $(( $Moves % $LINELEN )) -eq 0 && echo
+  test $(( $Moves % $LINELEN )) -eq 0 &amp;&amp; echo
   # Print LINELEN=21 moves per line. A valid tour shows 3 complete lines.
   return $valid_moves   # Found a square to move to!
 }
@@ -375,7 +375,7 @@ do_move_stupid()   #  Dingbat algorithm,
   do       # Move to first-found unvisited square.
     let "squareloc = $cposloc + ${moves[movloc]}"
     is_on_board $squareloc
-    if [ $? -eq $SUCCESS ] && [ ${board[squareloc]} -eq $UNVISITED ]
+    if [ $? -eq $SUCCESS ] &amp;&amp; [ ${board[squareloc]} -eq $UNVISITED ]
     then   # Add conditions to above if-test to improve algorithm.
       (( ++movenum ))
       board[squareloc]=$movenum
@@ -383,7 +383,7 @@ do_move_stupid()   #  Dingbat algorithm,
       ((valid_moves++));     # moves[0]=$valid_moves
       aapos=$(to_algebraic $squareloc)
       echo -n "$aapos "
-      test $(( $Moves % $LINELEN )) -eq 0 && echo   # Print 21 moves/line.
+      test $(( $Moves % $LINELEN )) -eq 0 &amp;&amp; echo   # Print 21 moves/line.
       return $valid_moves    # Found a square to move to!
     fi
   done
@@ -404,7 +404,7 @@ decide_move ()         #  Which move will we make?
   do
     let "squarel = $currposl + ${moves[mov]}"
     is_on_board $squarel
-    if [[ $? -eq $SUCCESS && ${board[squarel]} -eq $UNVISITED ]]
+    if [[ $? -eq $SUCCESS &amp;&amp; ${board[squarel]} -eq $UNVISITED ]]
     then   #  Find accessible square with least possible future moves.
            #  This is Warnsdorff's algorithm.
            #  What happens is that the knight wanders toward the outer edge
@@ -437,7 +437,7 @@ decide_move_patched ()         #  Decide which move to make,
   do
     let "squarel = $currposl + ${moves[mov]}"
     is_on_board $squarel
-    if [[ $? -eq $SUCCESS && ${board[squarel]} -eq $UNVISITED ]]
+    if [[ $? -eq $SUCCESS &amp;&amp; ${board[squarel]} -eq $UNVISITED ]]
     then
       possible_moves $squarel
       mpm=$?
@@ -476,7 +476,7 @@ possible_moves ()            #  Calculate number of possible moves,
   do
     let "sq = $curr_pos + ${movesloc[movl]}"
     is_on_board $sq
-    if [ $? -eq $SUCCESS ] && [ ${board[sq]} -eq $UNVISITED ]
+    if [ $? -eq $SUCCESS ] &amp;&amp; [ ${board[sq]} -eq $UNVISITED ]
     then
       ((valid_movl++));
     fi

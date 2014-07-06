@@ -3,13 +3,13 @@
 test_char ()
 {
   case "$1" in
-    [[:print:]] )  echo "$1 is a printable character.";;&       # |
-    # The ;;& terminator continues to the next pattern test.      |
-    [[:alnum:]] )  echo "$1 is an alpha/numeric character.";;&  # v
-    [[:alpha:]] )  echo "$1 is an alphabetic character.";;&     # v
-    [[:lower:]] )  echo "$1 is a lowercase alphabetic character.";;&
-    [[:digit:]] )  echo "$1 is an numeric character.";&         # |
-    # The ;& terminator executes the next statement ...         # |
+    [[:print:]] )  echo "$1 is a printable character.";;&amp;       # |
+    # The ;;&amp; terminator continues to the next pattern test.      |
+    [[:alnum:]] )  echo "$1 is an alpha/numeric character.";;&amp;  # v
+    [[:alpha:]] )  echo "$1 is an alphabetic character.";;&amp;     # v
+    [[:lower:]] )  echo "$1 is a lowercase alphabetic character.";;&amp;
+    [[:digit:]] )  echo "$1 is an numeric character.";&amp;         # |
+    # The ;&amp; terminator executes the next statement ...         # |
     %%%@@@@@    )  echo "********************************";;    # v
 #   ^^^^^^^^  ... even with a dummy pattern.
   esac
@@ -36,5 +36,5 @@ test_char /
 
 echo
 
-# The ;;& terminator can save complex if/then conditions.
-# The ;& is somewhat less useful.
+# The ;;&amp; terminator can save complex if/then conditions.
+# The ;&amp; is somewhat less useful.

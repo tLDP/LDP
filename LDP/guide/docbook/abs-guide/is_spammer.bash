@@ -16,7 +16,7 @@
 # See also "Quickstart" at end of script.
 #######################################################
 
-:<<-'__is_spammer_Doc_'
+:&lt;&lt;-'__is_spammer_Doc_'
 
     Copyright (c) Michael S. Zick, 2004
     License: Unrestricted reuse in any form, for any purpose.
@@ -24,7 +24,7 @@
 
 Impatient?
     Application code: goto "# # # Hunt the Spammer' program code # # #"
-    Example output: ":<<-'_is_spammer_outputs_'"
+    Example output: ":&lt;&lt;-'_is_spammer_outputs_'"
     How to use: Enter script name without arguments.
                 Or goto "Quickstart" at end of script.
 
@@ -258,16 +258,16 @@ edit_exact() {
     local _ee_cnt=${#_ee_Excludes[@]}   # Exclude list length.
     [ ${_ee_len} -ne 0 ] || return 0    # Can't edit zero length.
     [ ${_ee_cnt} -ne 0 ] || return 0    # Can't edit zero length.
-    for (( x = 0; x < ${_ee_cnt} ; x++ ))
+    for (( x = 0; x &lt; ${_ee_cnt} ; x++ ))
     do
         _ee_x=${_ee_Excludes[$x]}
-        for (( n = 0 ; n < ${_ee_len} ; n++ ))
+        for (( n = 0 ; n &lt; ${_ee_len} ; n++ ))
         do
             _ee_t=${_ee_Target[$n]}
             if [ x"${_ee_t}" == x"${_ee_x}" ]
             then
                 unset _ee_Target[$n]     # Discard match.
-                [ $# -eq 2 ] && break    # If 2 arguments, then done.
+                [ $# -eq 2 ] &amp;&amp; break    # If 2 arguments, then done.
             fi
         done
     done
@@ -293,16 +293,16 @@ edit_by_glob() {
     local _ebg_cnt=${#_ebg_Excludes[@]}
     [ ${_ebg_len} -ne 0 ] || return 0
     [ ${_ebg_cnt} -ne 0 ] || return 0
-    for (( x = 0; x < ${_ebg_cnt} ; x++ ))
+    for (( x = 0; x &lt; ${_ebg_cnt} ; x++ ))
     do
         _ebg_x=${_ebg_Excludes[$x]}
-        for (( n = 0 ; n < ${_ebg_len} ; n++ ))
+        for (( n = 0 ; n &lt; ${_ebg_len} ; n++ ))
         do
-            [ $# -eq 3 ] && _ebg_x=${_ebg_x}'*'  #  Do prefix edit
-            if [ ${_ebg_Target[$n]:=} ]          #+ if defined & set.
+            [ $# -eq 3 ] &amp;&amp; _ebg_x=${_ebg_x}'*'  #  Do prefix edit
+            if [ ${_ebg_Target[$n]:=} ]          #+ if defined &amp; set.
             then
                 _ebg_t=${_ebg_Target[$n]/#${_ebg_x}/}
-                [ ${#_ebg_t} -eq 0 ] && unset _ebg_Target[$n]
+                [ ${#_ebg_t} -eq 0 ] &amp;&amp; unset _ebg_Target[$n]
             fi
         done
     done
@@ -324,16 +324,16 @@ unique_lines() {
     set -f
     eval _ul_in=\( \$\{$1\[@\]\} \)
     _ul_cnt=${#_ul_in[@]}
-    for (( _ul_pos = 0 ; _ul_pos < ${_ul_cnt} ; _ul_pos++ ))
+    for (( _ul_pos = 0 ; _ul_pos &lt; ${_ul_cnt} ; _ul_pos++ ))
     do
-        if [ ${_ul_in[${_ul_pos}]:=} ]      # If defined & not empty
+        if [ ${_ul_in[${_ul_pos}]:=} ]      # If defined &amp; not empty
         then
             _ul_tmp=${_ul_in[${_ul_pos}]}
             _ul_out[${#_ul_out[@]}]=${_ul_tmp}
-            for (( zap = _ul_pos ; zap < ${_ul_cnt} ; zap++ ))
+            for (( zap = _ul_pos ; zap &lt; ${_ul_cnt} ; zap++ ))
             do
-                [ ${_ul_in[${zap}]:=} ] &&
-                [ 'x'${_ul_in[${zap}]} == 'x'${_ul_tmp} ] &&
+                [ ${_ul_in[${zap}]:=} ] &amp;&amp;
+                [ 'x'${_ul_in[${zap}]} == 'x'${_ul_tmp} ] &amp;&amp;
                     unset _ul_in[${zap}]
             done
         fi
@@ -393,7 +393,7 @@ to_dot() {
 # is_number &lt;input&gt;
 is_number() {
     [ "$#" -eq 1 ]    || return 1  # is blank?
-    [ x"$1" == 'x0' ] && return 0  # is zero?
+    [ x"$1" == 'x0' ] &amp;&amp; return 0  # is zero?
     local -i tst
     let tst=$1 2>/dev/null         # else is numeric!
     return $?
@@ -406,14 +406,14 @@ is_address() {
     local -a _ia_input
     local IFS=${ADR_IFS}
     _ia_input=( $1 )
-    if  [ ${#_ia_input[@]} -eq 4 ]  &&
-        is_number ${_ia_input[0]}   &&
-        is_number ${_ia_input[1]}   &&
-        is_number ${_ia_input[2]}   &&
-        is_number ${_ia_input[3]}   &&
-        [ ${_ia_input[0]} -lt 256 ] &&
-        [ ${_ia_input[1]} -lt 256 ] &&
-        [ ${_ia_input[2]} -lt 256 ] &&
+    if  [ ${#_ia_input[@]} -eq 4 ]  &amp;&amp;
+        is_number ${_ia_input[0]}   &amp;&amp;
+        is_number ${_ia_input[1]}   &amp;&amp;
+        is_number ${_ia_input[2]}   &amp;&amp;
+        is_number ${_ia_input[3]}   &amp;&amp;
+        [ ${_ia_input[0]} -lt 256 ] &amp;&amp;
+        [ ${_ia_input[1]} -lt 256 ] &amp;&amp;
+        [ ${_ia_input[2]} -lt 256 ] &amp;&amp;
         [ ${_ia_input[3]} -lt 256 ]
     then
         return 0
@@ -497,19 +497,19 @@ col_print() {
     shift
     shift
     _cp_cnt=$#
-    for (( _cp = 0 ; _cp < _cp_cnt ; _cp++ ))
+    for (( _cp = 0 ; _cp &lt; _cp_cnt ; _cp++ ))
     do
         _cp_spc[${#_cp_spc[@]}]="${_cp_max:2:$1}" #"
         shift
     done
     _cp_cnt=${#_cp_inp[@]}
-    for (( _cp = 0 ; _cp < _cp_cnt ; _cp++ ))
+    for (( _cp = 0 ; _cp &lt; _cp_cnt ; _cp++ ))
     do
         _cp_pos=1
         IFS=${NO_WSP}$'\x20'
         _cp_line=( ${_cp_inp[${_cp}]} )
         IFS=${NO_WSP}
-        for (( _cpf = 0 ; _cpf < ${#_cp_line[@]} ; _cpf++ ))
+        for (( _cpf = 0 ; _cpf &lt; ${#_cp_line[@]} ; _cpf++ ))
         do
             _cp_tab=${_cp_spc[${_cpf}]:${_cp_pos}}
             if [ ${#_cp_tab} -lt ${_cp_mcnt} ]
@@ -623,7 +623,7 @@ dump_to_dot() {
     _dda_cnt=${#_dda_tmp[@]}
     if [ ${_dda_cnt} -gt 0 ]
     then
-        for (( _dda = 0 ; _dda < _dda_cnt ; _dda++ ))
+        for (( _dda = 0 ; _dda &lt; _dda_cnt ; _dda++ ))
         do
             printf "${_dda_form}" \
                    "${_dda}" "${_dda_tmp[${_dda}]}" >>${_dot_file}
@@ -644,7 +644,7 @@ dump_dot() {
         echo >>${_dot_file}
         echo '# Known domain name nodes' >>${_dot_file}
         _dd_cnt=${#known_name[@]}
-        for (( _dd = 0 ; _dd < _dd_cnt ; _dd++ ))
+        for (( _dd = 0 ; _dd &lt; _dd_cnt ; _dd++ ))
         do
             printf '    N%04u [label="%s"] ;\n' \
                    "${_dd}" "${known_name[${_dd}]}" >>${_dot_file}
@@ -656,7 +656,7 @@ dump_dot() {
         echo >>${_dot_file}
         echo '# Known address nodes' >>${_dot_file}
         _dd_cnt=${#known_address[@]}
-        for (( _dd = 0 ; _dd < _dd_cnt ; _dd++ ))
+        for (( _dd = 0 ; _dd &lt; _dd_cnt ; _dd++ ))
         do
             printf '    A%04u [label="%s"] ;\n' \
                    "${_dd}" "${known_address[${_dd}]}" >>${_dot_file}
@@ -672,7 +672,7 @@ dump_dot() {
     if [ ${#auth_chain[@]} -gt 0 ]
     then
       echo >>${_dot_file}
-      echo '# Authority ref. edges followed & field source.' >>${_dot_file}
+      echo '# Authority ref. edges followed &amp; field source.' >>${_dot_file}
         dump_to_dot auth_chain AC
     fi
 
@@ -716,7 +716,7 @@ dump_dot() {
         echo >>${_dot_file}
         echo '# Known Blacklist nodes' >>${_dot_file}
         _dd_cnt=${#list_server[@]}
-        for (( _dd = 0 ; _dd < _dd_cnt ; _dd++ ))
+        for (( _dd = 0 ; _dd &lt; _dd_cnt ; _dd++ ))
         do
             printf '    LS%04u [label="%s"] ;\n' \
                    "${_dd}" "${list_server[${_dd}]}" >>${_dot_file}
@@ -759,7 +759,7 @@ _log_dump=pend_dummy   # Initially a no-op.
 dump_log() {
     local -i _dl_cnt
     _dl_cnt=${#_trace_log[@]}
-    for (( _dl = 0 ; _dl < _dl_cnt ; _dl++ ))
+    for (( _dl = 0 ; _dl &lt; _dl_cnt ; _dl++ ))
     do
         echo ${_trace_log[${_dl}]} >> ${_log_file}
     done
@@ -804,14 +804,14 @@ echo -n '.'
   if [ ${_sf_rc} -ne 0 ]
   then
     _trace_log[${#_trace_log[@]}]='## Lookup error '${_sf_rc}' on '${1}' ##'
-# [ ${_sf_rc} -ne 9 ] && pend_drop
+# [ ${_sf_rc} -ne 9 ] &amp;&amp; pend_drop
         return ${_sf_rc}
     else
         # Some versions of 'dig' return warnings on stdout.
         _sf_cnt=${#_sf_reply[@]}
-        for (( _sf = 0 ; _sf < ${_sf_cnt} ; _sf++ ))
+        for (( _sf = 0 ; _sf &lt; ${_sf_cnt} ; _sf++ ))
         do
-            [ 'x'${_sf_reply[${_sf}]:0:2} == 'x;;' ] &&
+            [ 'x'${_sf_reply[${_sf}]:0:2} == 'x;;' ] &amp;&amp;
                 unset _sf_reply[${_sf}]
         done
         eval $2=\( \$\{_sf_reply\[@\]\} \)
@@ -833,14 +833,14 @@ echo -n '.'
   if [ ${_sr_rc} -ne 0 ]
   then
     _trace_log[${#_trace_log[@]}]='## Lookup error '${_sr_rc}' on '${1}' ##'
-# [ ${_sr_rc} -ne 9 ] && pend_drop
+# [ ${_sr_rc} -ne 9 ] &amp;&amp; pend_drop
         return ${_sr_rc}
     else
         # Some versions of 'dig' return warnings on stdout.
         _sr_cnt=${#_sr_reply[@]}
-        for (( _sr = 0 ; _sr < ${_sr_cnt} ; _sr++ ))
+        for (( _sr = 0 ; _sr &lt; ${_sr_cnt} ; _sr++ ))
         do
-            [ 'x'${_sr_reply[${_sr}]:0:2} == 'x;;' ] &&
+            [ 'x'${_sr_reply[${_sr}]:0:2} == 'x;;' ] &amp;&amp;
                 unset _sr_reply[${_sr}]
         done
         eval $2=\( \$\{_sr_reply\[@\]\} \)
@@ -861,14 +861,14 @@ short_text() {
   if [ ${_st_rc} -ne 0 ]
   then
     _trace_log[${#_trace_log[@]}]='##Text lookup error '${_st_rc}' on '${1}'##'
-# [ ${_st_rc} -ne 9 ] && pend_drop
+# [ ${_st_rc} -ne 9 ] &amp;&amp; pend_drop
         return ${_st_rc}
     else
         # Some versions of 'dig' return warnings on stdout.
         _st_cnt=${#_st_reply[@]}
-        for (( _st = 0 ; _st < ${#_st_cnt} ; _st++ ))
+        for (( _st = 0 ; _st &lt; ${#_st_cnt} ; _st++ ))
         do
-            [ 'x'${_st_reply[${_st}]:0:2} == 'x;;' ] &&
+            [ 'x'${_st_reply[${_st}]:0:2} == 'x;;' ] &amp;&amp;
                 unset _st_reply[${_st}]
         done
         eval $2=\( \$\{_st_reply\[@\]\} \)
@@ -900,14 +900,14 @@ echo -n ':'
   if [ ${_lf_rc} -ne 0 ]
   then
     _trace_log[${#_trace_log[@]}]='# Zone lookup err '${_lf_rc}' on '${1}' #'
-# [ ${_lf_rc} -ne 9 ] && pend_drop
+# [ ${_lf_rc} -ne 9 ] &amp;&amp; pend_drop
         return ${_lf_rc}
     else
         # Some versions of 'dig' return warnings on stdout.
         _lf_cnt=${#_lf_reply[@]}
-        for (( _lf = 0 ; _lf < ${_lf_cnt} ; _lf++ ))
+        for (( _lf = 0 ; _lf &lt; ${_lf_cnt} ; _lf++ ))
         do
-            [ 'x'${_lf_reply[${_lf}]:0:2} == 'x;;' ] &&
+            [ 'x'${_lf_reply[${_lf}]:0:2} == 'x;;' ] &amp;&amp;
                 unset _lf_reply[${_lf}]
         done
         eval $2=\( \$\{_lf_reply\[@\]\} \)
@@ -937,14 +937,14 @@ echo -n ':'
   if [ ${_lr_rc} -ne 0 ]
   then
     _trace_log[${#_trace_log[@]}]='# Deleg lkp error '${_lr_rc}' on '${1}' #'
-# [ ${_lr_rc} -ne 9 ] && pend_drop
+# [ ${_lr_rc} -ne 9 ] &amp;&amp; pend_drop
         return ${_lr_rc}
     else
         # Some versions of 'dig' return warnings on stdout.
         _lr_cnt=${#_lr_reply[@]}
-        for (( _lr = 0 ; _lr < ${_lr_cnt} ; _lr++ ))
+        for (( _lr = 0 ; _lr &lt; ${_lr_cnt} ; _lr++ ))
         do
-            [ 'x'${_lr_reply[${_lr}]:0:2} == 'x;;' ] &&
+            [ 'x'${_lr_reply[${_lr}]:0:2} == 'x;;' ] &amp;&amp;
                 unset _lr_reply[${_lr}]
         done
         eval $2=\( \$\{_lr_reply\[@\]\} \)
@@ -964,7 +964,7 @@ name_fixup(){
     _nf_str=$(to_lower ${1})
     _nf_str=$(to_dot ${_nf_str})
     _nf_end=${#_nf_str}-1
-    [ ${_nf_str:${_nf_end}} != '.' ] &&
+    [ ${_nf_str:${_nf_end}} != '.' ] &amp;&amp;
         _nf_str=${_nf_str}'.'
     IFS=${ADR_IFS}
     _nf_tmp=( ${_nf_str} )
@@ -1005,7 +1005,7 @@ split_input() {
     local _si_str
     unique_lines uc_name uc_name
     _si_cnt=${#uc_name[@]}
-    for (( _si = 0 ; _si < _si_cnt ; _si++ ))
+    for (( _si = 0 ; _si &lt; _si_cnt ; _si++ ))
     do
         _si_str=${uc_name[$_si]}
         if is_address ${_si_str}
@@ -1074,11 +1074,11 @@ expand_input_name() {
         return 0
     fi
 
-    for (( _ein = 0 ; _ein < _ucn_cnt ; _ein++ ))
+    for (( _ein = 0 ; _ein &lt; _ucn_cnt ; _ein++ ))
     do
         if short_fwd ${uc_name[${_ein}]} _ein_new
         then
-          for (( _ein_cnt = 0 ; _ein_cnt < ${#_ein_new[@]}; _ein_cnt++ ))
+          for (( _ein_cnt = 0 ; _ein_cnt &lt; ${#_ein_new[@]}; _ein_cnt++ ))
           do
               _ein_tst=${_ein_new[${_ein_cnt}]}
               if is_address ${_ein_tst}
@@ -1126,14 +1126,14 @@ expand_input_address() {
     unset uc_address[@]
     edit_exact been_there_addr _eia_addr
     _uca_cnt=${#_eia_addr[@]}
-    [ ${_uca_cnt} -gt 0 ] &&
+    [ ${_uca_cnt} -gt 0 ] &amp;&amp;
         been_there_addr=( ${been_there_addr[@]} ${_eia_addr[@]} )
 
-    for (( _eia = 0 ; _eia < _uca_cnt ; _eia++ ))
+    for (( _eia = 0 ; _eia &lt; _uca_cnt ; _eia++ ))
      do
        if short_rev ${_eia_addr[${_eia}]} _eia_new
        then
-         for (( _eia_cnt = 0 ; _eia_cnt < ${#_eia_new[@]} ; _eia_cnt++ ))
+         for (( _eia_cnt = 0 ; _eia_cnt &lt; ${#_eia_new[@]} ; _eia_cnt++ ))
          do
            _eia_tst=${_eia_new[${_eia_cnt}]}
            if _eia_tst=$(name_fixup ${_eia_tst})
@@ -1199,11 +1199,11 @@ detail_each_name() {
     _den_cnt=${#_den_chk[@]}
 
     # If anything left, add to known_name.
-    [ ${_den_cnt} -gt 0 ] &&
+    [ ${_den_cnt} -gt 0 ] &amp;&amp;
         known_name=( ${known_name[@]} ${_den_chk[@]} )
 
     # for the list of (previously) unknown names . . .
-    for (( _den = 0 ; _den < _den_cnt ; _den++ ))
+    for (( _den = 0 ; _den &lt; _den_cnt ; _den++ ))
     do
         _den_who=${_den_chk[${_den}]}
         if long_fwd ${_den_who} _den_new
@@ -1215,13 +1215,13 @@ detail_each_name() {
             fi
 
             # Parse each line in the reply.
-            for (( _line = 0 ; _line < ${#_den_new[@]} ; _line++ ))
+            for (( _line = 0 ; _line &lt; ${#_den_new[@]} ; _line++ ))
             do
                 IFS=${NO_WSP}$'\x09'$'\x20'
                 _den_tmp=( ${_den_new[${_line}]} )
                 IFS=${WSP_IFS}
               # If usable record and not a warning message . . .
-              if [ ${#_den_tmp[@]} -gt 4 ] && [ 'x'${_den_tmp[0]} != 'x;;' ]
+              if [ ${#_den_tmp[@]} -gt 4 ] &amp;&amp; [ 'x'${_den_tmp[0]} != 'x;;' ]
               then
                     _den_rec=${_den_tmp[3]}
                     _den_nr[${#_den_nr[@]}]=${_den_who}' '${_den_rec}
@@ -1251,7 +1251,7 @@ detail_each_name() {
         if [ ${#_den_auth[@]} -gt 2 ]
         then
           _den_cont=${_den_auth[1]}
-          for (( _auth = 2 ; _auth < ${#_den_auth[@]} ; _auth++ ))
+          for (( _auth = 2 ; _auth &lt; ${#_den_auth[@]} ; _auth++ ))
           do
             _den_cont=${_den_cont}'.'${_den_auth[${_auth}]}
           done
@@ -1534,7 +1534,7 @@ check_lists() {
     _cl_dns_addr=$(dot_array _cl_rev_addr)'.'
     _ls_cnt=${#list_server[@]}
     echo '    Checking address '${1}
-    for (( _cl = 0 ; _cl < _ls_cnt ; _cl++ ))
+    for (( _cl = 0 ; _cl &lt; _ls_cnt ; _cl++ ))
     do
       _cl_lkup=${_cl_dns_addr}${list_server[${_cl}]}
       if short_text ${_cl_lkup} _cl_reply
@@ -1544,7 +1544,7 @@ check_lists() {
           echo '        Records from '${list_server[${_cl}]}
           address_hits[${#address_hits[@]}]=${1}' '${list_server[${_cl}]}
           _hs_RC=2
-          for (( _clr = 0 ; _clr < ${#_cl_reply[@]} ; _clr++ ))
+          for (( _clr = 0 ; _clr &lt; ${#_cl_reply[@]} ; _clr++ ))
           do
             echo '            '${_cl_reply[${_clr}]}
           done
@@ -1565,7 +1565,7 @@ credits() {
 # How to use it?
 # (See also, "Quickstart" at end of script.)
 usage() {
-    cat <<-'_usage_statement_'
+    cat &lt;&lt;-'_usage_statement_'
     The script is_spammer.bash requires either one or two arguments.
 
     arg 1) May be one of:
@@ -1631,18 +1631,18 @@ default_servers[7]='unconfirmed.dsbl.org'
 
 # User input argument #1
 setup_input() {
-    if [ -e ${1} ] && [ -r ${1} ]  # Name of readable file
+    if [ -e ${1} ] &amp;&amp; [ -r ${1} ]  # Name of readable file
     then
         file_to_array ${1} uc_name
-        echo 'Using filename >'${1}'< as input.'
+        echo 'Using filename >'${1}'&lt; as input.'
     else
         if is_address ${1}          # IP address?
         then
             uc_address=( ${1} )
-            echo 'Starting with address >'${1}'<'
+            echo 'Starting with address >'${1}'&lt;'
         else                       # Must be a name.
             uc_name=( ${1} )
-            echo 'Starting with domain name >'${1}'<'
+            echo 'Starting with domain name >'${1}'&lt;'
         fi
     fi
     return 0
@@ -1650,13 +1650,13 @@ setup_input() {
 
 # User input argument #2
 setup_servers() {
-    if [ -e ${1} ] && [ -r ${1} ]  # Name of a readable file
+    if [ -e ${1} ] &amp;&amp; [ -r ${1} ]  # Name of a readable file
     then
         file_to_array ${1} list_server
-        echo 'Using filename >'${1}'< as blacklist server list.'
+        echo 'Using filename >'${1}'&lt; as blacklist server list.'
     else
         list_server=( ${1} )
-        echo 'Using blacklist server >'${1}'<'
+        echo 'Using blacklist server >'${1}'&lt;'
     fi
     return 0
 }
@@ -1670,7 +1670,7 @@ live_log_die() {
             if ! touch ${SPAMMER_TRACE} 2>/dev/null
             then
                 pend_func echo $(printf '%q\n' \
-                'Unable to create log file >'${SPAMMER_TRACE}'<')
+                'Unable to create log file >'${SPAMMER_TRACE}'&lt;')
                 pend_release
                 exit 1
             fi
@@ -1681,7 +1681,7 @@ live_log_die() {
             if [ ! -w ${SPAMMER_TRACE} ]
             then
                 pend_func echo $(printf '%q\n' \
-                'Unable to write log file >'${SPAMMER_TRACE}'<')
+                'Unable to write log file >'${SPAMMER_TRACE}'&lt;')
                 pend_release
                 exit 1
             fi
@@ -1703,7 +1703,7 @@ data_capture() {
             if ! touch ${SPAMMER_DATA} 2>/dev/null
             then
                 pend_func echo $(printf '%q]n' \
-                'Unable to create data output file >'${SPAMMER_DATA}'<')
+                'Unable to create data output file >'${SPAMMER_DATA}'&lt;')
                 pend_release
                 exit 1
             fi
@@ -1713,7 +1713,7 @@ data_capture() {
             if [ ! -w ${SPAMMER_DATA} ]
             then
                 pend_func echo $(printf '%q\n' \
-                'Unable to write data output file >'${SPAMMER_DATA}'<')
+                'Unable to write data output file >'${SPAMMER_DATA}'&lt;')
                 pend_release
                 exit 1
             fi
@@ -1726,7 +1726,7 @@ data_capture() {
 
 # Grope user specified arguments.
 do_user_args() {
-    if [ $# -gt 0 ] && is_number $1
+    if [ $# -gt 0 ] &amp;&amp; is_number $1
     then
         indirect=$1
         shift
@@ -1783,9 +1783,9 @@ list_array() {
     echo "Element count "${#_la_lines[@]}" array "${1}
     local _ln_cnt=${#_la_lines[@]}
 
-    for (( _i = 0; _i < ${_ln_cnt}; _i++ ))
+    for (( _i = 0; _i &lt; ${_ln_cnt}; _i++ ))
     do
-        echo 'Element '$_i' >'${_la_lines[$_i]}'<'
+        echo 'Element '$_i' >'${_la_lines[$_i]}'&lt;'
     done
     set +f
     return 0
@@ -1855,11 +1855,11 @@ echo
 ##############################
 # Example output from script #
 ##############################
-:<<-'_is_spammer_outputs_'
+:&lt;&lt;-'_is_spammer_outputs_'
 
 ./is_spammer.bash 0 web4.alojamentos7.com
 
-Starting with domain name >web4.alojamentos7.com<
+Starting with domain name >web4.alojamentos7.com&lt;
 Using default blacklist server list.
 Search depth limit: 0
 .:....::::...:::...:::.......::..::...:::.......::

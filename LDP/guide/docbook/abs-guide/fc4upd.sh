@@ -78,7 +78,7 @@ check_pid () {
     if [ -s "$PID_FILE" ]; then
         echo "PID file exists. Checking ..."
         PID=$(/bin/egrep -o "^[[:digit:]]+" $PID_FILE)
-        if /bin/ps --pid $PID &>/dev/null; then
+        if /bin/ps --pid $PID &amp;>/dev/null; then
             echo "Process $PID found. ${0##*/} seems to be running!"
            /usr/bin/logger -t ${0##*/} \
                  "Process $PID found. ${0##*/} seems to be running!"
@@ -164,7 +164,7 @@ get_list () {
 
     RET=$?  # Get return code of the pipe command.
 
-    [ "$RET" -ne 0 ] && {
+    [ "$RET" -ne 0 ] &amp;&amp; {
         echo "List retrieving failed with code $RET"
         exit $E_RETURN
     }

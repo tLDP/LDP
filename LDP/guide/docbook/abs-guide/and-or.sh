@@ -3,21 +3,21 @@
 a=24
 b=47
 
-if [ "$a" -eq 24 ] && [ "$b" -eq 47 ]
+if [ "$a" -eq 24 ] &amp;&amp; [ "$b" -eq 47 ]
 then
   echo "Test #1 succeeds."
 else
   echo "Test #1 fails."
 fi
 
-# ERROR:   if [ "$a" -eq 24 && "$b" -eq 47 ]
+# ERROR:   if [ "$a" -eq 24 &amp;&amp; "$b" -eq 47 ]
 #+         attempts to execute  ' [ "$a" -eq 24 '
 #+         and fails to finding matching ']'.
 #
-#  Note:  if [[ $a -eq 24 && $b -eq 24 ]]  works.
+#  Note:  if [[ $a -eq 24 &amp;&amp; $b -eq 24 ]]  works.
 #  The double-bracket if-test is more flexible
 #+ than the single-bracket version.       
-#    (The "&&" has a different meaning in line 17 than in line 6.)
+#    (The "&amp;&amp;" has a different meaning in line 17 than in line 6.)
 #    Thanks, Stephane Chazelas, for pointing this out.
 
 
@@ -52,7 +52,7 @@ fi
 
 a=rhino
 b=crocodile
-if [ "$a" = rhino ] && [ "$b" = crocodile ]
+if [ "$a" = rhino ] &amp;&amp; [ "$b" = crocodile ]
 then
   echo "Test #5 succeeds."
 else

@@ -8,7 +8,7 @@ OUTFILE=generated.sh         # Name of the file to generate.
 # -----------------------------------------------------------
 # 'Here document containing the body of the generated script.
 (
-cat <<'EOF'
+cat &lt;&lt;'EOF'
 #!/bin/bash
 
 echo "This is a generated shell script."

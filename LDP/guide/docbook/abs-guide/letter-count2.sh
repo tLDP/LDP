@@ -17,18 +17,18 @@ E_PARAMERR=85
 
 usage()
 {
-    echo "Usage: letter-count.sh file letters" 2>&1
+    echo "Usage: letter-count.sh file letters" 2>&amp;1
     # For example:   ./letter-count2.sh filename.txt a b c
     exit $E_PARAMERR  # Too few arguments passed to script.
 }
 
 if [ ! -f "$1" ] ; then
-    echo "$1: No such file." 2>&1
+    echo "$1: No such file." 2>&amp;1
     usage                 # Print usage message and exit.
 fi 
 
 if [ -z "$2" ] ; then
-    echo "$2: No letters specified." 2>&1
+    echo "$2: No letters specified." 2>&amp;1
     usage
 fi 
 
