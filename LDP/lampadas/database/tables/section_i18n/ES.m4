@@ -1,5 +1,0 @@
-insert(main,        [Menú Principal])
-insert(admin,       [Menú de Administración])
-insert(news,        [Menú de Noticias])
-insert(volunteer,   [Menú de Voluntarios])
-insert(help,        [Menú de Ayuda])
