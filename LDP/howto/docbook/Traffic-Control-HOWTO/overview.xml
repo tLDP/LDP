@@ -13,11 +13,11 @@
 
    This was initially authored while Martin A. Brown worked for
    SecurePipe, Inc.
-     
+
    This HOWTO is likely available at the following address:
 
      http://tldp.org/HOWTO/Traffic-Control-HOWTO/
-     
+
   -->
 
 <!-- conventions used in this documentation....
@@ -35,7 +35,7 @@
     <link linkend="o-why-use">examine reasons for it</link>,
     identify a few
     <link linkend="o-advantages">advantages</link> and
-    <link linkend="o-disadvantages">disadvantages</link> and 
+    <link linkend="o-disadvantages">disadvantages</link> and
     introduce key concepts used in traffic control.
   </para>
 
@@ -98,7 +98,7 @@
       Packet-switched networks differ from circuit based networks in one very
       important regard.  A packet-switched network itself is stateless.  A
       circuit-based network (such as a telephone network) must hold state
-      within the network.  IP networks are stateless and packet-switched 
+      within the network.  IP networks are stateless and packet-switched
       networks by design; in fact, this statelessness is one of the
       fundamental strengths of IP.
     </para>
@@ -175,7 +175,8 @@
     </itemizedlist>
     <para>
       Remember, too that sometimes, it is simply better to purchase more
-      bandwidth.  Traffic control does not solve all problems!
+      bandwidth.  Traffic control does not solve all problems!But, keep attention:
+      A 100 Gigabit network is always faster than a 1 megabit network, isn’t it? More bandwidth is always better! I want a faster network! No, such a network can easily be much slower. Bandwidth is a measure of capacity, not a measure of how fast the network can respond. You pick up the phone to send a message to Shanghai immediately, but dispatching a cargo ship full of blu-ray disks will be amazingly slower than the telephone call, even though the bandwidth of the ship is billions and billions of times larger than the telephone line.   So more bandwidth is better only if it’s latency (speed) meets your needs. More of what you don’t need is useless. Bufferbloat destroys the speed we really need. (<ulink url="https://gettys.wordpress.com/bufferbloat-faq/">Jim Gettys jg's Ramblings</ulink>)
     </para>
     <para>
     </para>
@@ -210,7 +211,7 @@
     <para>
       Complexity is easily one of the most significant disadvantages of using
       traffic control.  There are ways to become familiar with traffic control
-      tools which ease the learning curve about traffic control and its 
+      tools which ease the learning curve about traffic control and its
       mechanisms, but identifying a traffic control misconfiguration can be
       quite a challenge.
     </para>
@@ -238,7 +239,7 @@
       Although
       traffic control on packet-switched networks covers a larger conceptual
       area, you can think of traffic control as a way to provide [some of] the
-      statefulness of a circuit-based network to a packet-switched network.
+      statefulness of a circuit-based network to a packet-switched.
     </para>
   </section>
 
@@ -271,7 +272,7 @@
     </para>
     <para>
       A queue becomes much more interesting when coupled with other mechanisms
-      which can delay packets, rearrange, drop and prioritize packets in 
+      which can delay packets, rearrange, drop and prioritize packets in
       multiple queues.  A queue can also use subqueues, which allow for
       complexity of behaviour in a scheduling operation.
     </para>
@@ -290,6 +291,33 @@
       </footnote>.
       It is only by examining the internals of this layer that
       the traffic control structures become exposed and available.
+    </para>
+    <para>
+      In the image below a simplified high level overview of the queues on
+      the transmit path of the Linux network stack:
+    </para>
+      <mediaobject id="img-Figure1">
+          <imageobject>
+              <imagedata fileref="images/Figure1.eps" format="EPS"/>
+          </imageobject>
+          <imageobject>
+              <imagedata fileref="images/Figure1.png" format="PNG"/>
+          </imageobject>
+          <imageobject>
+              <imagedata fileref="images/Figure1.jpg" format="JPG"/>
+          </imageobject>
+          <textobject>
+              <phrase>Figure 1: Simplified high level overview of the queues on the transmit
+                  path of the Linux network stack.</phrase>
+          </textobject>
+          <caption>
+              <para><command>Figure 1: </command><emphasis>Simplified high level overview of the queues on the transmit path of the Linux network stack</emphasis>.
+              </para>
+          </caption>
+      </mediaobject>
+    <para>
+      See <link linkend="o-nic">2.9</link> for details about NIC interface and <link linkend="c-driver-queue">4.9</link>
+      for details about <link linkend="c-driver-queue">driver queue</link>.
     </para>
   </section>
 
@@ -415,6 +443,115 @@
       layer 3 (network) units.  The term packet is preferred in this
       documentation, although it is slightly inaccurate.
     </para>
+  </section>
+
+  <section id="o-nic">
+      <title>NIC, Network Interface Controller</title>
+      <para>
+         A network interface controller is a computer hardware component, differently from previous ones thar are software components, that connects a computer to a computer network. The network controller implements the electronic circuitry required to communicate using a specific physical layer and data link layer standard such as Ethernet, Fibre Channel, Wi-Fi or Token Ring. Traffic contol must deal with the characteristic of NIC interface.
+      </para>
+      <section id="o-huge-packet">
+          <title>Huge Packets from the Stack</title>
+          <para>
+              Most NICs have a fixed maximum transmission unit (MTU) which is the biggest frame which can be transmitted by the physical media. For Ethernet the default MTU is 1,500 bytes but some Ethernet networks support Jumbo Frames of up to 9,000 bytes. Inside IP network stack, the MTU can manifest as a limit on the size of the packets which are sent to the device for transmission. For example, if an application writes 2,000 bytes to a TCP socket then the IP stack needs to create two IP packets to keep the packet size less than or equal to a 1,500 MTU. For large data transfers the comparably small MTU causes a large number of small packets to be created and transferred through the <link linkend="c-driver-queue">driver queue</link>.
+          </para>
+          <para>
+              In order to avoid the overhead associated with a large number of packets on the transmit path, the Linux kernel implements several optimizations: TCP segmentation offload (TSO), UDP fragmentation offload (UFO) and generic segmentation offload (GSO). All of these optimizations allow the IP stack to create packets which are larger than the MTU of the outgoing NIC. For IPv4, packets as large as the IPv4 maximum of 65,536 bytes can be created and queued to the <link linkend="c-driver-queue">driver queue</link>. In the case of TSO and UFO, the NIC hardware takes responsibility for breaking the single large packet into packets small enough to be transmitted on the physical interface. For NICs without hardware support, GSO performs the same operation in software immediately before queueing to the <link linkend="c-driver-queue">driver queue</link>.
+          </para>
+          <para>
+              Recall from earlier that the <link linkend="c-driver-queue">driver queue</link> contains a fixed number of descriptors which each point to packets of varying sizes, Since TSO, UFO and GSO allow for much larger packets these optimizations have the side effect of greatly increasing the number of bytes which can be queued in the <link linkend="c-driver-queue">driver queue</link>. Figure 3 illustrates this concept.
+          </para>
+          <mediaobject id="img-Figure2">
+              <imageobject>
+                  <imagedata fileref="images/Figure2.eps" format="EPS"/>
+              </imageobject>
+              <imageobject>
+                  <imagedata fileref="images/Figure2.png" format="PNG"/>
+              </imageobject>
+              <imageobject>
+                  <imagedata fileref="images/Figure2.jpg" format="JPG"/>
+              </imageobject>
+              <textobject>
+                  <phrase>Figure 2:  Large packets can be sent to the NIC when TSO, UFO or GSO are enabled. This can greatly increase the number of bytes in the queudrivere.
+                  </phrase>
+              </textobject>
+              <caption>
+                  <para><command>Figure 2:</command><emphasis> Large packets can be sent to the NIC when TSO, UFO or GSO are enabled. This can greatly increase the number of bytes in the <link linkend="c-driver-queue">driver queue</link>.</emphasis>
+                  </para>
+              </caption>
+          </mediaobject>
+      </section>
+  </section>
+
+  <section id="o-starv-lat">
+      <title>Starvation and     </title>
+      <para>
+          The queue between the IP stack and the hardware (see <link linkend="c-driver-queue">chapter 4.2</link> for detail about <link linkend="c-driver-queue">driver queue</link> or see <link linkend="s-ethtool">chapter 5.5</link> for how manage it) introduces two problems: starvation and latency.
+      </para>
+      <para>
+          If the NIC driver wakes to pull packets off of the queue for transmission and the queue is empty the hardware will miss a transmission opportunity thereby reducing the throughput of the system. This is referred to as starvation. Note that an empty queue when the system does not have anything to transmit is not starvation – this is normal. The complication associated with avoiding starvation is that the IP stack which is filling the queue and the hardware driver draining the queue run asynchronously. Worse, the duration between fill or drain events varies with the load on the system and external conditions such as the network interface’s physical medium. For example, on a busy system the IP stack will get fewer opportunities to add packets to the buffer which increases the chances that the hardware will drain the buffer before more packets are queued. For this reason it is advantageous to have a very large buffer to reduce the probability of starvation and ensures high throughput.
+      </para>
+      <para>
+          While a large queue is necessary for a busy system to maintain high throughput, it has the downside of allowing for the introduction of a large amount of latency.
+      </para>
+      <mediaobject id="img-Figure3">
+          <imageobject>
+              <imagedata fileref="images/Figure3.eps" format="EPS"/>
+          </imageobject>
+          <imageobject>
+              <imagedata fileref="images/Figure3.png" format="PNG"/>
+          </imageobject>
+          <imageobject>
+              <imagedata fileref="images/Figure3.jpg" format="JPG"/>
+          </imageobject>
+          <textobject>
+              <phrase>Figure 3: Interactive packet (yellow) behind bulk flow packets (blue)
+              </phrase>
+          </textobject>
+          <caption>
+              <para><command>Figure 3:</command> <emphasis>Interactive packet (yellow) behind bulk flow packets (blue)</emphasis>
+              </para>
+          </caption>
+      </mediaobject>
+      <para>
+          Figure 3 shows a <link linkend="c-driver-queue">driver queue</link> which is almost full with TCP segments for a single high bandwidth, bulk traffic flow (blue). Queued last is a packet from a VoIP or gaming flow (yellow). Interactive applications like VoIP or gaming typically emit small packets at fixed intervals which are latency sensitive while a high bandwidth data transfer generates a higher packet rate and larger packets. This higher packet rate can fill the buffer between interactive packets causing the transmission of the interactive packet to be delayed. To further illustrate this behaviour consider a scenario based on the following assumptions:
+      </para>
+      <itemizedlist>
+          <listitem>
+              <para>
+                 A network interface which is capable of transmitting at 5 Mbit/sec or 5,000,000 bits/sec.
+              </para>
+          </listitem>
+          <listitem>
+              <para>
+                 Each packet from the bulk flow is 1,500 bytes or 12,000 bits.
+              </para>
+          </listitem>
+          <listitem>
+              <para>
+                  Each packet from the interactive flow is 500 bytes.
+              </para>
+          </listitem>
+          <listitem>
+              <para>
+                 The depth of the queue is 128 descriptors
+              </para>
+          </listitem>
+          <listitem>
+              <para>
+                  There are 127 bulk data packets and 1 interactive packet queued last.
+              </para>
+          </listitem>
+        </itemizedlist>
+        <para>
+            Given the above assumptions, the time required to drain the 127 bulk packets and create a transmission opportunity for the interactive packet is (127 * 12,000) / 5,000,000 = 0.304 seconds (304 milliseconds for those who think of latency in terms of ping results). This amount of latency is well beyond what is acceptable for interactive applications and this does not even represent the complete round trip time – it is only the time required transmit the packets queued before the interactive one. As described earlier, the size of the packets in the <link linkend="c-driver-queue">driver queue</link> can be larger than 1,500 bytes if TSO, UFO or GSO are enabled. This makes the latency problem correspondingly worse.
+        </para>
+        <para>
+          Choosing the correct size for the <link linkend="c-driver-queue">driver queue</link> is a Goldilocks problem – it can’t be too small or throughput suffers, it can’t be too big or latency suffers.
+        </para>
+
+
+
   </section>
 
 </section>
