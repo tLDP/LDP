@@ -13,11 +13,11 @@
 
    This was initially authored while Martin A. Brown worked for
    SecurePipe, Inc.
-     
+
    This HOWTO is likely available at the following address:
 
      http://tldp.org/HOWTO/Traffic-Control-HOWTO/
-     
+
   -->
 
 <!-- conventions used in this documentation....
@@ -84,6 +84,11 @@
           <entry colname="comp">The &linux-dsmark; &linux-qdisc; is used for
                                 marking.</entry>
         </row>
+        <row>
+            <entry colname="elem">//</entry>
+            <entry colname="comp">Between the schedulers &linux-qdisc; and the <link linkend="o-nic">network interface controller (NIC)</link> lies the <link linkend="c-driver-queue">driver queue</link>. The <link linkend="c-driver-queue">driver queue</link> gives the IP stack a location to queue data asynchronously from the operation of the hardware. Size of that queue is automatically sized by <link linkend="c-bql">Byte Queue Limits (BQL) alghorithm</link>.</entry>
+        </row>
+
       </tbody>
     </tgroup>
   </table>
@@ -342,6 +347,229 @@
       each object.
     </para>
   </section>
+
+  <section id="c-txqueuelen">
+      <title><constant>txqueuelen</constant></title>
+      <para>
+          The current size of the transmission queue can be obtained from the ip and ifconfig commands. Confusingly, these commands name the transmission queue length differently (bold text):
+      </para>
+      <programlisting>
+$ifconfig eth0
+
+eth0      Link encap:Ethernet  HWaddr 00:18:F3:51:44:10
+          inet addr:69.41.199.58  Bcast:69.41.199.63
+Mask:255.255.255.248
+          inet6 addr: fe80::218:f3ff:fe51:4410/64 Scope:Link
+          UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+          RX packets:435033 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:429919 errors:0 dropped:0 overruns:0
+carrier:0
+          collisions:0 <command>txqueuelen:1000</command>
+          RX bytes:65651219 (62.6 MiB)  TX bytes:132143593 (126.0 MiB)
+Interrupt:23
+      </programlisting>
+
+      <programlisting>
+$ip link
+
+1: lo:  mtu 16436 qdisc noqueue state UNKNOWN
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+2: eth0:  mtu 1500 qdisc pfifo_fast state UP <command>qlen 1000</command>
+    link/ether 00:18:f3:51:44:10 brd ff:ff:ff:ff:ff:ff
+      </programlisting>
+
+      <para>
+          The length of the transmission queue in Linux defaults to 1,000 packets which is a large amount of buffering especially at low bandwidths.      </para>
+      <para>
+          The interesting question is what exactly does this variable control? The txqueuelen is only used as a default queue length for some of the queueing disciplines. Specifically:
+      </para>
+      <itemizedlist>
+          <listitem>
+              <para>
+                  <constant>pfifo_fast</constant> (Linux default queueing discipline)
+              </para>
+          </listitem>
+          <listitem>
+              <para>
+                  <constant>sch_fifo</constant>
+              </para>
+          </listitem>
+          <listitem>
+              <para>
+                    <constant>sch_gred</constant>
+              </para>
+          </listitem>
+          <listitem>
+              <para>
+                    <constant>sch_htb</constant> (only for the default queue)
+              </para>
+          </listitem>
+          <listitem>
+              <para>
+                    <constant>sch_plug</constant>
+              </para>
+          </listitem>
+          <listitem>
+              <para>
+                    <constant>sch_sfb</constant>
+              </para>
+          </listitem>
+          <listitem>
+              <para>
+                    <constant>sch_teql</constant>
+              </para>
+          </listitem>
+      </itemizedlist>
+      <para>
+          Looking back at Figure 1, the txqueuelen parameter controls the size of the queues in the Queueing Discipline box for the QDiscs listed above. For most of these queueing disciplines, the “limit” argument on the tc command line overrides the txqueuelen default. In summary, if you do not use one of the above queueing disciplines or if you override the queue length then the txqueuelen value is meaningless.
+      </para>
+      <para>
+         The length of the transmission queue is configured with the ip or ifconfig commands.
+      </para>
+      <programlisting>
+ip link set txqueuelen 500 dev eth0
+      </programlisting>
+      <para>
+          Notice that the ip command uses “txqueuelen” but when displaying the interface details it uses “qlen”.
+      </para>
+      </section>
+
+      <section id="c-driver-queue">
+          <title>Driver Queue (aka ring buffer)</title>
+          <para>
+              Between the IP stack and the network interface controller (NIC) lies the driver queue. This queue is typically implemented as a first-in, first-out (FIFO) ring buffer – just think of it as a fixed sized buffer. The driver queue does not contain packet data. Instead it consists of descriptors which point to other data structures called socket kernel buffers (SKBs) which hold the packet data and are used throughout the kernel.
+          </para>
+          <mediaobject id="img-Figure4">
+              <imageobject>
+                  <imagedata fileref="images/Figure4.eps" format="EPS"/>
+              </imageobject>
+              <imageobject>
+                  <imagedata fileref="images/Figure4.png" format="PNG"/>
+              </imageobject>
+              <imageobject>
+                  <imagedata fileref="images/Figure4.jpg" format="JPG"/>
+              </imageobject>
+              <textobject>
+                  <phrase>Figure 4: Partially full driver queue with descriptors pointing to SKBs</phrase>
+              </textobject>
+              <caption>
+                  <para><command>Figure 4: </command><emphasis>Partially full driver queue with descriptors pointing to SKBs</emphasis></para>
+              </caption>
+          </mediaobject>
+          <para>
+              The input source for the driver queue is the IP stack which queues complete IP packets. The packets may be generated locally or received on one NIC to be routed out another when the device is functioning as an IP router. Packets added to the driver queue by the IP stack are dequeued by the hardware driver and sent across a data bus to the NIC hardware for transmission.
+          </para>
+          <para>
+              The reason the driver queue exists is to ensure that whenever the system has data to transmit, the data is available to the NIC for immediate transmission. That is, the driver queue gives the IP stack a location to queue data asynchronously from the operation of the hardware. One alternative design would be for the NIC to ask the IP stack for data whenever the physical medium is ready to transmit. Since responding to this request cannot be instantaneous this design wastes valuable transmission opportunities resulting in lower throughput. The opposite approach would be for the IP stack to wait after a packet is created until the hardware is ready to transmit. This is also not ideal because the IP stack cannot move on to other work.
+          </para>
+          <para>
+              For detail how to set driver queue see <link linkend="s-ethtool">chapter 5.5</link>.
+          </para>
+      </section>
+
+<section id="c-bql">
+    <title>Byte Queue Limits(BQL)</title>
+    <para>
+        Byte Queue Limits (BQL) is a new feature in recent Linux kernels (> 3.3.0) which attempts to solve the problem of driver queue sizing automatically. This is accomplished by adding a layer which enables and disables queuing to the driver queue based on calculating the minimum buffer size required to avoid starvation under the current system conditions. Recall from earlier that the smaller the amount of queued data, the lower the maximum latency experienced by queued packets.
+    </para>
+    <para>
+        It is key to understand that the actual size of the driver queue is not changed by BQL. Rather BQL calculates a limit of how much data (in bytes) can be queued at the current time. Any bytes over this limit must be held or dropped by the layers above the driver queue..
+    </para>
+    <para>
+    The BQL mechanism operates when two events occur: when packets are enqueued to the driver queue and when a transmission to the wire has completed. A simplified version of the BQL algorithm is outlined below. LIMIT refers to the value calculated by BQL.
+    </para>
+    <programlisting>
+****
+** After adding packets to the queue
+****
+
+if the number of queued bytes is over the current LIMIT value then
+        disable the queueing of more data to the driver queue
+    </programlisting>
+    <para>
+        Notice that the amount of queued data can exceed LIMIT because data is queued before the LIMIT check occurs. Since a large number of bytes can be queued in a single operation when TSO, UFO or GSO (see chapter 2.9.1 aggiungi link for details) are enabled these throughput optimizations have the side effect of allowing a higher than desirable amount of data to be queued. If you care about latency you probably want to disable these features.
+    </para>
+    <para>
+       The second stage of BQL is executed after the hardware has completed a transmission (simplified pseudo-code):
+    </para>
+    <programlisting>
+****
+** When the hardware has completed sending a batch of packets
+** (Referred to as the end of an interval)
+****
+
+if the hardware was starved in the interval
+    increase LIMIT
+
+else if the hardware was busy during the entire interval (not starved) and there are bytes to transmit
+    decrease LIMIT by the number of bytes not transmitted in the interval
+
+if the number of queued bytes is less than LIMIT
+    enable the queueing of more data to the buffer
+    </programlisting>
+    <para>
+        As you can see, BQL is based on testing whether the device was starved. If it was starved, then LIMIT is increased allowing more data to be queued which reduces the chance of starvation. If the device was busy for the entire interval and there are still bytes to be transferred in the queue then the queue is bigger than is necessary for the system under the current conditions and LIMIT is decreased to constrain the latency.
+    </para>
+    <para>
+        A real world example may help provide a sense of how much BQL affects the amount of data which can be queued. On one of my servers the driver queue size defaults to 256 descriptors. Since the Ethernet MTU is 1,500 bytes this means up to 256 * 1,500 = 384,000 bytes can be queued to the driver queue (TSO, GSO etc are disabled or this would be much higher). However, the limit value calculated by BQL is 3,012 bytes. As you can see, BQL greatly constrains the amount of data which can be queued.
+    </para>
+    <para>
+        An interesting aspect of BQL can be inferred from the first word in the name – byte. Unlike the size of the driver queue and most other packet queues, BQL operates on bytes. This is because the number of bytes has a more direct relationship with the time required to transmit to the physical medium than the number of packets or descriptors since the later are variably sized.
+    </para>
+    <para>
+        BQL reduces network latency by limiting the amount of queued data to the minimum required to avoid starvation. It also has the very important side effect of moving the point where most packets are queued from the driver queue which is a simple FIFO to the queueing discipline (QDisc) layer which is capable of implementing much more complicated queueing strategies. The next section introduces the Linux QDisc layer.
+    </para>
+
+    <section>
+        <title>Set BQL</title>
+        <para>
+            The BQL algorithm is self tuning so you probably don’t need to mess with this too much. However, if you are concerned about optimal latencies at low bitrates then you may want override the upper limit on the calculated LIMIT value. BQL state and configuration can be found in a /sys directory based on the location and name of the NIC. On my server the directory for eth0 is:
+        </para>
+        <programlisting>
+/sys/devices/pci0000:00/0000:00:14.0/net/eth0/queues/tx-0/byte_queue_limits
+        </programlisting>
+        <para>
+            The files in this directory are:
+        </para>
+        <itemizedlist>
+            <listitem>
+                <para>
+                    <emphasis>hold_time:</emphasis> Time between modifying LIMIT in milliseconds.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    <emphasis>inflight:</emphasis> The number of queued but not yet transmitted bytes.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    <emphasis>limit:</emphasis> The LIMIT value calculated by BQL. 0 if BQL is not supported in the NIC driver.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    <emphasis>limit_max:</emphasis> A configurable maximum value for LIMIT. Set this value lower to optimize for latency.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    <emphasis>limit_min:</emphasis> A configurable minimum value for LIMIT. Set this value higher to optimize for throughput.
+                </para>
+            </listitem>
+        </itemizedlist>
+        <para>
+            To place a hard upper limit on the number of bytes which can be queued write the new value to the limit_max fie.
+        </para>
+        <programlisting>
+echo "3000" > limit_max
+        </programlisting>
+
+    </section>
+
+</section>
+
+
 
   <!--
   <section id="c-dsmark">
