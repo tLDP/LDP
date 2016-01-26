@@ -104,8 +104,8 @@ sgml-all: sgml-$(OBJINDEX) sgml-$(HTMLS) sgml-$(TEXT) sgml-$(PDF) sgml-$(HTML)
 .PHONY: sgml-$(OBJINDEX)
 sgml-$(OBJINDEX): $(OUTDIR)/images $(OUTDIR)/resources
 	(cd $(OUTDIR) \
-          && $(PERL) $(COLLATE) -N -o "$(OBJINDEX)" \
-          && openjade -t sgml -V html-index -d "$(DBDSL)" "$(OBJ)" \
+	  && $(PERL) $(COLLATE) -N -o "$(OBJINDEX)" \
+	  && openjade -t sgml -V html-index -d "$(DBDSL)" "$(OBJ)" \
 	  && $(PERL) $(COLLATE) -g -t Index -i doc-index -o "$(notdir $(OBJINDEX))" HTML.index "$(OBJ)" \
           && mv -f $(VERBOSE) -- $(notdir $(OBJINDEX)) $(dir $(OBJINDEX)) \
 	  && find . -mindepth 1 -maxdepth 1 -type f -print0 | xargs --null --no-run-if-empty -- rm -f --)
@@ -119,15 +119,15 @@ sgml-$(HTMLS): $(OUTDIR)/resources $(OUTDIR)/images $(INDEX)
 	#    can be the main output for chunked HTML
 	#
 	(cd $(OUTDIR) \
-          && jw -f docbook -b html \
-	      --dsl "$(LDPDSL)#html" \
-	      -V nochunks \
-	      -V '%callout-graphics-path%=images/callouts/' \
-	      -V '%stock-graphics-extension%=.png' \
-	      -V '%stylsheet-type%=freddie.css' \
+	  && jw -f docbook -b html \
+	        --dsl "$(LDPDSL)#html" \
+	        -V nochunks \
+	        -V '%callout-graphics-path%=images/callouts/' \
+	        -V '%stock-graphics-extension%=.png' \
+	        -V '%stylsheet-type%=freddie.css' \
 	      --output . \
 	      $(OBJ) \
-          && mv --update $(VERBOSE) -- $(notdir $(HTML)) $(notdir $(HTMLS)))
+	  && mv --update $(VERBOSE) -- $(notdir $(HTML)) $(notdir $(HTMLS)))
 
 .PHONY: sgml-$(TEXT)
 sgml-$(TEXT): sgml-$(HTMLS)
@@ -148,14 +148,14 @@ sgml-$(HTML): $(OUTDIR)
 	#    to change it (for SGML DocBook inputs, anyway).
 	#
 	( cd $(OUTDIR) \
-          && jw -f docbook -b html  \
+	  && jw -f docbook -b html  \
 	      --dsl "$(LDPDSL)#html" \
 	      -V '%admon-graphics-path%=images/' \
 	      -V '%callout-graphics-path%=images/callouts/' \
 	      -V '%stock-graphics-extension%=.png' \
 	      --output . \
 	      $(OBJ) \
-          && ln -snf $(VERBOSE) -- index.html $(notdir $(HTML)))
+	  && ln -snf $(VERBOSE) -- index.html $(notdir $(HTML)))
 
 
 # - - - - - - - - - - - - - - - - - - - - - - -
@@ -186,9 +186,9 @@ xml-$(TEXT): xml-$(HTMLS)
 
 .PHONY: xml-$(FO)
 xml-$(FO): $(OUTDIR)
-	( cd $(OUTDIR) \
-          && XML_CATALOG_FILES=/etc/xml/catalog \
-	      xsltproc > "$(notdir $(FO))" \
+	(cd $(OUTDIR) \
+	  && XML_CATALOG_FILES=/etc/xml/catalog \
+	     xsltproc > "$(notdir $(FO))" \
 	        --nonet \
 	          "$(XSLPRINT)" "$(OBJ)")
 
@@ -198,14 +198,14 @@ xml-$(PDF): xml-$(FO)
 	 || dblatex -F xml -t pdf -o $(PDF) $(OBJ))
 
 xml-$(HTML): xml-$(HTMLS)
-	( cd $(OUTDIR) \
-          && XML_CATALOG_FILES=/etc/xml/catalog \
+	(cd $(OUTDIR) \
+	  && XML_CATALOG_FILES=/etc/xml/catalog \
 	      xsltproc \
 	        --nonet \
 	        --stringparam admon.graphics.path images/ \
 	        --stringparam base.dir . \
 	          "$(XSLCHUNK)" "$(OBJ)" \
-          && ln -snf $(VERBOSE) -- index.html $(notdir $(HTML)))
+	  && ln -snf $(VERBOSE) -- index.html $(notdir $(HTML)))
 	# -- what about images and other resources?
 
 
@@ -223,8 +223,8 @@ linuxdoc-$(HTMLS): $(OUTDIR)/images
 	#    HTML file called $(OBJSTEM).html, which we will want
 	#    to create as a symlink, later
 	(cd $(OUTDIR) \
-          && sgml2html --split=0 $(OBJ) \
-          && mv --update $(VERBOSE) -- $(notdir $(HTML)) $(notdir $(HTMLS)))
+	  && sgml2html --split=0 $(OBJ) \
+	  && mv --update $(VERBOSE) -- $(notdir $(HTML)) $(notdir $(HTMLS)))
 	# -- what about images and other resources?
 
 .PHONY: linuxdoc-$(TEXT)
@@ -234,7 +234,11 @@ linuxdoc-$(TEXT): linuxdoc-$(HTMLS)
 .PHONY: linuxdoc-$(PDF)
 linuxdoc-$(PDF): linuxdoc-$(HTMLS)
 	( cd $(OUTDIR) \
-          && htmldoc --size universal -t pdf --firstpage p1 --outfile $(notdir $(PDF)) $(notdir $(HTMLS)))
+	   && htmldoc \
+	        --size universal \
+		-t pdf \
+		--firstpage p1 \
+		--outfile $(notdir $(PDF)) $(notdir $(HTMLS)))
 
 .PHONY: linuxdoc-$(HTML)
 linuxdoc-$(HTML): $(OUTDIR)
@@ -242,8 +246,8 @@ linuxdoc-$(HTML): $(OUTDIR)
 	#    Some-Name.html (and Some-Name-1.html, Some-Name-2.html), so we
 	#    should create a symlink from index.html to the Some-Name.html.
 	( cd $(OUTDIR) \
-          && sgml2html $(OBJ) \
-          && ln -snf $(VERBOSE) -- $(notdir $(HTML)) index.html)
+	  && sgml2html $(OBJ) \
+	  && ln -snf $(VERBOSE) -- $(notdir $(HTML)) index.html)
 	# -- what about images and other resources?
 
 # - - - - - - - - - - - - - - - - - - - - - - -
