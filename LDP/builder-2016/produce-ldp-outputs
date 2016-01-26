@@ -1,0 +1,277 @@
+#! /bin/bash
+#
+#
+
+ME="${0##*/}"
+VCSBASE="${1:-$HOME/vcs/LDP/LDP}"  && shift
+DESTDIR="${1:-$PWD/output}"        && shift
+
+SOURCES=""
+SOURCES="${SOURCES} ${VCSBASE}/faq/linuxdoc"
+SOURCES="${SOURCES} ${VCSBASE}/guide/linuxdoc"
+SOURCES="${SOURCES} ${VCSBASE}/howto/linuxdoc"
+
+SOURCES="${SOURCES} ${VCSBASE}/faq/docbook"
+SOURCES="${SOURCES} ${VCSBASE}/guide/docbook"
+SOURCES="${SOURCES} ${VCSBASE}/howto/docbook"
+SOURCES="${SOURCES} ${VCSBASE}/ref/docbook"
+
+# -- my favorite shell functions (and their offspring)
+#
+gripe  () { printf >&2 "%s\n" "$@"; }
+debug  () { : ; }  # -- NOOP for now
+notice () { gripe "${ME}[$$]: $@"; }
+abort  () { 
+   EXIT_CODE="${1}" && shift;
+   gripe "E: $@"; 
+   exit $EXIT_CODE;
+}
+
+# -- defaults for logging output; override these in environment
+#    if you care
+#
+ : "${LOG_FACILITY:=daemon}"
+ : "${LOG_PRIO:=err}"
+ : "${LOGGER_OPTS:=-t ${ME}[$$] -p ${LOG_FACILITY}.${LOG_PRIO}}"
+
+# -- if we are connected to a terminal, then send logging output
+#    to STDERR, as well
+
+# -- create logger as a shell function
+#
+logger () {
+  tty -s && LOGGER_OPTS="-s $LOGGER_OPTS"
+  command logger $LOGGER_OPTS -- "$@" ;
+}
+
+usage () {
+  gripe "usage: ${ME} [<ldp_checkout> [<destdir>]]" \
+        "  default ldp_checkout=${VCSBASE}" \
+        "  default destdir=${DESTDIR}" \
+        ""
+  abort 1 "$@";
+}
+
+# - - - - - - - - - - - -
+function select_source_files () {
+# - - - - - - - - - - - -
+#
+# -- return a list of filenames in any directory which are (likely)
+#    to be documents for TLDP
+#    args  1: file extension sought
+#    args +2: base directories in which to seek
+
+  local ext=${1}   && shift
+
+  for d in $@; do
+
+    test -e "$d" || abort 2 "ENOENT (2): No such file or directory: ${d}"
+    test -d "$d" || abort 20 "ENOTDIR (20): Not a directory: ${d}";
+
+    # -- locate each solo text document, e.g. XWindow-User-HOWTO.xml
+    #
+    find "$d" -mindepth 1 -maxdepth 1 -type f -name \*."${ext}" -printf "%p\n"
+
+    # -- locate each document owning a directory, e.g. 8021X-HOWTO/8021X-HOWTO.sgml
+    #
+    {
+      find "$d" -mindepth 1 -maxdepth 1 -type d -printf "%p\n" | while read DIR; do
+
+        # -- get just the stem of the document name from the directory, e.g. 8021X-HOWTO
+        stem=${DIR##*/}
+
+        # -- construct an abspath, e.g. /full/path/to/8021X-HOWTO/8021X-HOWTO.sgml
+        doc="${DIR}/${stem}.${ext}"
+
+        # -- see if file exists, and if so, print its name
+        test -e "${doc}" && printf "%s\n" "${doc}"
+
+      done
+    }
+
+  done
+}
+
+# - - - - - - - - - - - -
+  get_stem () {
+# - - - - - - - - - - - -
+#
+    local fn="${1##*/}"
+    printf "%s\n" "${fn%.*}";
+}
+
+# - - - - - - - - - - - -
+  sort_by_stem () {
+# - - - - - - - - - - - -
+#
+# -- typical decorate, sort, undecorate pattern, though,
+#    admittedly, not common in shell
+#    - no args
+#    - STDIN: stream of strings with full path
+#    - STDOUT: stem-sorted stream of strings with full path
+#
+  { 
+    { 
+      while read OBJ; do
+        stem=$( get_stem "$OBJ" )
+        printf "%s %s\n" "${stem}" "$OBJ"
+      done;
+    } | sort;
+  } | awk '{print $2}';
+}
+
+# - - - - - - - - - - - -
+  list_all_documents () {
+# - - - - - - - - - - - -
+#
+  {
+    select_source_files xml  "$@";
+    select_source_files sgml "$@";
+  } | sort_by_stem;
+
+}
+
+# - - - - - - - - - - - -
+  find_sort_by_mtime () {
+# - - - - - - - - - - - -
+#
+  local SOURCE="${1}"    && shift
+  local OUTPUT="${1}"    && shift
+  {
+    # -- directory age does not count, only file age!
+    #
+    test -e "${SOURCE}" \
+      || abort 2 "ENOENT (2): we thought this directory just existed: ${SOURCE}" 
+    find "$SOURCE" -type f -printf "%T@ SOURCE %p\n";
+
+    test -d "${OUTPUT}" \
+      && find "$OUTPUT" -type f -printf "%T@ OUTPUT %p\n";
+
+  } | sort -gr;
+}
+
+# - - - - - - - - - - - -
+function is_source_tree_newer () {
+# - - - - - - - - - - - -
+#
+# -- return a list of filenames in any directory which are (likely)
+#    to be documents for TLDP
+#    args  1: input file name
+#    args  2: DESTDIR
+#
+# -- there are two (probable) cases for the input, A) a single standalone
+#    file or B) the main document source file in a dedicated directory;
+#    below is a description of the logic....
+#
+#     Case A) single standalone file; we don't want to find all files from
+#        the parent directory
+#
+#             OBJ=/home/fred/vcs/LDP/LDP/howto/docbook/Software-Release-Practice-HOWTO.xml
+#             DESTDIR=/home/fred/wip/tldp/output
+#             fn=Software-Release-Practice-HOWTO.xml
+#             stem=Software-Release-Practice-HOWTO
+#             parentdir=/home/fred/vcs/LDP/LDP/howto/docbook
+#             parentstem=docbook
+#
+#     Case B) main document source file in a dedicated directory; we do want
+#        to look for all files starting from the parent directory
+#
+#             OBJ=/home/fred/vcs/LDP/LDP/howto/docbook/Jabber-Server-Farming-HOWTO/Jabber-Server-Farming-HOWTO.xml
+#             DESTDIR=/home/fred/wip/tldp/output
+#             fn=Jabber-Server-Farming-HOWTO.xml
+#             stem=Jabber-Server-Farming-HOWTO
+#             parentdir=/home/fred/vcs/LDP/LDP/howto/docbook/Jabber-Server-Farming-HOWTO
+#             parentstem=Jabber-Server-Farming-HOWTO
+#
+  local stem="${1}"    && shift
+  local OBJ="${1}"     && shift
+  local DESTDIR="${1}" && shift
+
+  local parentdir="${OBJ%/*}"
+  local parentstem="${parentdir##*/}"
+
+  startloc="$OBJ"
+  test "${stem}" == "${parentstem}" \
+    && startloc="${parentdir}"
+
+  local outdir="${DESTDIR}/${stem}"
+  
+  result=$( find_sort_by_mtime "$startloc" "$outdir" ) \
+    || abort 1 "Could not retrieve files for $stem sorted by mtime."
+  newest=$( head -n 1 <<<"$result" ) \
+    || abort 1 "Could not get first result for $stem files."
+  
+  DECISION=$( sed -e '/ OUTPUT /,$d' <<<"$newest" ) \
+    || abort 1 "Could not check if the SOURCE files are newest...."
+
+  if test -z "$DECISION" ; then
+    debug "${stem} No new source files"
+    return 1
+  else
+
+    # -- squawk about it, to the user
+    #
+    while read TS SOURCE FNAME ; do 
+      ts=$( date +%F-%T --date @"$TS" )
+      notice "${stem} updated file found ($ts): $FNAME"
+    done <<< "$DECISION" 
+
+    return 0
+  fi
+}
+
+# - - - - - - - - - - - -
+  generate_new_content () {
+# - - - - - - - - - - - -
+#
+  local stem="${1}"       && shift
+  local OBJ="${1}"        && shift
+  local DESTDIR="${1}"    && shift
+  #local makefile="${1}"   && shift
+
+  # -- make a stab at processing the document, but don't let the driver
+  #    stop just because a single document has an error
+  # 
+  {
+    { 
+      exec 2>&1;
+      make OBJ="${OBJ}" DESTDIR="${DESTDIR}";
+      test $? -eq 0 \
+        || gripe "FAILURE" "FAILURE producing all outputs from $OBJ" "FAILURE";
+    } | sed -ue "s/^/${stem} /";
+  } | command logger -s ${LOGGER_OPTS} --
+}
+
+# - - - - - - - - - - - -
+  main () {
+# - - - - - - - - - - - -
+#
+  local SOURCES="$@"
+  list_all_documents "$SOURCES" | while read OBJ; do
+  
+    stem=$( get_stem "$OBJ" )
+  
+    notice "${stem} checking if rebuild required for $OBJ"
+  
+    # -- N.B. there's a dangerous looking ||: at the end of the line
+    #    calling the Makefile.  This is intentional.  The Makefile 
+    #    may not be able to process the input successfully, but we
+    #    would like to continue, if possible, and process the next
+    #    available document.
+    #
+    is_source_tree_newer "${stem}" "$OBJ" "$DESTDIR" \
+      && (generate_new_content "${stem}" "${OBJ}" "${DESTDIR}" || :)
+  
+  done
+}
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# main
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+test -d "${DESTDIR}" \
+  || usage "Output directory must already exist, quitting."
+
+main "$SOURCES"
+
+# -- end of file
