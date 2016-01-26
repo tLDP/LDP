@@ -77,7 +77,7 @@ TEXT        = $(abspath $(OUTDIR)/$(OBJSTEM).txt)
 # generic targets
 # - - - - - - - - - - - - - - - - - - - - - - -
 
-all: clear_$(OUTDIR) $(OBJFORMAT)-all
+all: announce clear_$(OUTDIR) $(OBJFORMAT)-all
 	rsync $(VERBOSE) --archive --delay-updates --delete-after --partial $(OUTDIR)/ $(DESTDIR)/$(OBJSTEM)/
 
 clear_$(OUTDIR):
@@ -88,6 +88,10 @@ $(OUTDIR): $(WORKING)
 
 $(OUTDIR)/images $(OUTDIR)/resources: $(OUTDIR)
 	(cd $(OBJDIR) && test ! -d $(notdir $@) || rsync -aL $(VERBOSE) ./$(notdir $@) $(OUTDIR))
+
+.PHONY: announce
+announce:
+	$(info Detected $(OBJ) file as $(OBJFORMAT).)
 
 # - - - - - - - - - - - - - - - - - - - - - - -
 # specific handling for DocBook SGML documents
