@@ -1,8 +1,22 @@
 #! /bin/bash
 #
+# -- Program to locate all DocBook and LinuxDoc files in The Linux
+#    Documentation Project (TLDP) Version Control System (VCS) and
+#    produce HTML, PDF and text outputs (with companion Makefile)
+#
+# -- License:  GPLv2
+#
+# -- written for TLDP in January 2016; Martin A. Brown <martin@linux-ip.net>
 #
 
-ME="${0##*/}"
+set -e
+# set -x
+
+SELFNAME="$( readlink --canonicalize ${0})"
+ME="${SELFNAME##*/}"  # -- basename
+DIR="${SELFNAME%/*}"  # -- dirname
+MAKEFILE="${DIR}/Makefile"
+
 VCSBASE="${1:-$HOME/vcs/LDP/LDP}"  && shift
 DESTDIR="${1:-$PWD/output}"        && shift
 
@@ -84,7 +98,12 @@ function select_source_files () {
         doc="${DIR}/${stem}.${ext}"
 
         # -- see if file exists, and if so, print its name
-        test -e "${doc}" && printf "%s\n" "${doc}"
+        #    File existence test logic is reversed, because this script runs
+        #    with "set -e".  If the test for existence fails, then the script
+        #    stops (this should be familiar to those who have written
+        #    Makefiles).
+        #
+        test ! -e "${doc}" || printf "%s\n" "${doc}"
 
       done
     }
@@ -93,11 +112,37 @@ function select_source_files () {
 }
 
 # - - - - - - - - - - - -
+  list_output_documents () {
+# - - - - - - - - - - - -
+#
+# -- by definition, each directory in the output tree
+#    is named by the STEM, so this produces a list of the
+#    stem names of the documents that have been produced
+#
+  find "$@" -mindepth 1 -maxdepth 1 -printf "%P\n";
+}
+
+# - - - - - - - - - - - -
+  list_source_documents () {
+# - - - - - - - - - - - -
+#
+  select_source_files xml  "$@";
+  select_source_files sgml "$@";
+}
+
+# - - - - - - - - - - - -
   get_stem () {
 # - - - - - - - - - - - -
 #
-    local fn="${1##*/}"
-    printf "%s\n" "${fn%.*}";
+# -- filter filenames and produce stem names
+#    - no args
+#    - STDIN:  A filename (can be full filename)
+#    - STDOUT: Just the stem name.
+#
+    while read FULLNAME ; do
+      fn="${FULLNAME##*/}"
+      printf "%s\n" "${fn%.*}";
+    done
 }
 
 # - - - - - - - - - - - -
@@ -113,22 +158,11 @@ function select_source_files () {
   { 
     { 
       while read OBJ; do
-        stem=$( get_stem "$OBJ" )
+        stem=$( printf "%s\n" "$OBJ" | get_stem )
         printf "%s %s\n" "${stem}" "$OBJ"
       done;
     } | sort;
   } | awk '{print $2}';
-}
-
-# - - - - - - - - - - - -
-  list_all_documents () {
-# - - - - - - - - - - - -
-#
-  {
-    select_source_files xml  "$@";
-    select_source_files sgml "$@";
-  } | sort_by_stem;
-
 }
 
 # - - - - - - - - - - - -
@@ -151,7 +185,7 @@ function select_source_files () {
 }
 
 # - - - - - - - - - - - -
-function is_source_tree_newer () {
+function is_output_current () {
 # - - - - - - - - - - - -
 #
 # -- return a list of filenames in any directory which are (likely)
@@ -206,7 +240,7 @@ function is_source_tree_newer () {
 
   if test -z "$DECISION" ; then
     debug "${stem} No new source files"
-    return 1
+    return 0
   else
 
     # -- squawk about it, to the user
@@ -216,7 +250,7 @@ function is_source_tree_newer () {
       notice "${stem} updated file found ($ts): $FNAME"
     done <<< "$DECISION" 
 
-    return 0
+    return 1
   fi
 }
 
@@ -235,7 +269,7 @@ function is_source_tree_newer () {
   {
     { 
       exec 2>&1;
-      make OBJ="${OBJ}" DESTDIR="${DESTDIR}";
+      make -f "$MAKEFILE" OBJ="${OBJ}" DESTDIR="${DESTDIR}";
       test $? -eq 0 \
         || gripe "FAILURE" "FAILURE producing all outputs from $OBJ" "FAILURE";
     } | sed -ue "s/^/${stem} /";
@@ -243,13 +277,43 @@ function is_source_tree_newer () {
 }
 
 # - - - - - - - - - - - -
-  main () {
+  list_orphaned_outputs () {
 # - - - - - - - - - - - -
 #
+  local DESTDIR="${1}"    && shift
   local SOURCES="$@"
-  list_all_documents "$SOURCES" | while read OBJ; do
+  {
+    SOURCEDOCS=$( list_source_documents "${SOURCES}" | get_stem | sort )
+    OUTPUTDOCS=$( list_output_documents "${DESTDIR}"            | sort )
+
+    # -- list documents in source tree that do not have corresponding
+    #    output directory
+    #
+    diff -Nur -- <( printf "%s\n" "$SOURCEDOCS" ) <( printf "%s\n" "$OUTPUTDOCS" ) \
+      | tail -n +2 \
+      | grep  -- '^-' \
+      | sed -e 's|^-|Unbuilt source document |';
+
+    # -- list documents in output tree that do not have corresponding
+    #    input directory
+    #
+    diff -Nur -- <( printf "%s\n" "$OUTPUTDOCS" ) <( printf "%s\n" "$SOURCEDOCS" ) \
+      | tail -n +2 \
+      | grep  -- '^-' \
+      | sed -e 's|^-|Extra output document |';
+
+  } | command logger -s ${LOGGER_OPTS} --;
+}
+
+# - - - - - - - - - - - -
+  produce_ldp_outputs () {
+# - - - - - - - - - - - -
+#
+  local DESTDIR="${1}"    && shift
+  local SOURCES="$@"
+  list_source_documents "$SOURCES" | sort_by_stem | while read OBJ; do
   
-    stem=$( get_stem "$OBJ" )
+    stem=$( printf "%s\n" "$OBJ" | get_stem )
   
     notice "${stem} checking if rebuild required for $OBJ"
   
@@ -259,8 +323,8 @@ function is_source_tree_newer () {
     #    would like to continue, if possible, and process the next
     #    available document.
     #
-    is_source_tree_newer "${stem}" "$OBJ" "$DESTDIR" \
-      && (generate_new_content "${stem}" "${OBJ}" "${DESTDIR}" || :)
+    is_output_current "${stem}" "$OBJ" "$DESTDIR" \
+      || (generate_new_content "${stem}" "${OBJ}" "${DESTDIR}" || :)
   
   done
 }
@@ -272,6 +336,8 @@ function is_source_tree_newer () {
 test -d "${DESTDIR}" \
   || usage "Output directory must already exist, quitting."
 
-main "$SOURCES"
+produce_ldp_outputs "$DESTDIR" "$SOURCES"
+
+list_orphaned_outputs "$DESTDIR" "$SOURCES"
 
 # -- end of file
