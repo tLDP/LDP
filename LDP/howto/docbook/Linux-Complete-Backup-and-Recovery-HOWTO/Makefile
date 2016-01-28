@@ -25,16 +25,16 @@ dslprint = -d /usr/share/sgml/docbook/dsssl-stylesheets/ldp.dsl\\\#print
 
 
 cooked:
-	-mkdir cooked $(DOCUMENT) $(DOCUMENT).junk
+	-mkdir scripts/cooked $(DOCUMENT) $(DOCUMENT).junk
 
 clean:
-	-rm -r $(DOCUMENT) $(DOCUMENT).[a-b]* $(DOCUMENT).[d-r]* $(DOCUMENT).[t-z]* $(DOCUMENT).smooth.html cooked ../images
+	-rm -r $(DOCUMENT) $(DOCUMENT).[a-b]* $(DOCUMENT).[d-r]* $(DOCUMENT).[t-z]* $(DOCUMENT).smooth.html scripts/cooked ../images
 	mkdir $(DOCUMENT) $(DOCUMENT).junk
 
 # scripts: $(SCRIPTS)
 scripts: cooked
 	for S in $(SCRIPTS) ; do \
-	./buildscript $$S ; \
+        test ! -d scripts/$$S && ./buildscript $$S ; \
 	done
 
 $(DOCUMENT)/index.html: $(DOCUMENT).sgml scripts
