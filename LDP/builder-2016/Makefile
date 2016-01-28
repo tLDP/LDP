@@ -137,7 +137,7 @@ sgml-$(TEXT): sgml-$(HTMLS)
 sgml-$(PDF): $(OUTDIR)
 	( cd $(OUTDIR) \
           && jw -f docbook -b pdf --output . $(OBJ) \
-	  || dblatex -F sgml -t pdf -o sgml-$(PDF) $(OBJ))
+	  || dblatex -F sgml -t pdf -o $(PDF) $(OBJ))
 
 .PHONY: sgml-$(HTML)
 sgml-$(HTML): $(OUTDIR)
