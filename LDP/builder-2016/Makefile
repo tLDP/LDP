@@ -71,6 +71,8 @@ PDF         = $(abspath $(OUTDIR)/$(OBJSTEM).pdf)
 HTML        = $(abspath $(OUTDIR)/$(OBJSTEM).html)
 HTMLS       = $(abspath $(OUTDIR)/$(OBJSTEM)-single.html)
 TEXT        = $(abspath $(OUTDIR)/$(OBJSTEM).txt)
+TEXTGZ      = $(TEXT).gz
+TARBALL     = $(HTML).tar.gz
 
 
 # - - - - - - - - - - - - - - - - - - - - - - -
@@ -88,6 +90,18 @@ $(OUTDIR): $(WORKING)
 
 $(OUTDIR)/images $(OUTDIR)/resources: $(OUTDIR)
 	(cd $(OBJDIR) && test ! -d $(notdir $@) || rsync -aL $(VERBOSE) ./$(notdir $@) $(OUTDIR))
+
+$(TEXTGZ): $(OBJFORMAT)-$(TEXT)
+	(cd $(OUTDIR) && gzip --stdout < $(TEXT) > $(TEXTGZ))
+
+$(TARBALL): $(OBJFORMAT)-$(HTMLS) $(OBJFORMAT)-$(HTML)
+	(cd $(WORKING) \
+	  && tar $(VERBOSE) --gzip --create --file $(TARBALL) \
+	     --exclude $(OBJSTEM)/$(notdir $(TARBALL)) \
+	     --exclude $(OBJSTEM)/$(notdir $(PDF)) \
+	     --exclude $(OBJSTEM)/$(notdir $(TEXT)) \
+	     -- $(OBJSTEM))
+
 
 .PHONY: announce
 announce:
