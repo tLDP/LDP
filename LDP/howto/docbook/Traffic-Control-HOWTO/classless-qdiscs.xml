@@ -13,11 +13,11 @@
 
    This was initially authored while Martin A. Brown worked for
    SecurePipe, Inc.
-     
+
    This HOWTO is likely available at the following address:
 
      http://tldp.org/HOWTO/Traffic-Control-HOWTO/
-     
+
   -->
 
 <!-- conventions used in this documentation....
@@ -35,8 +35,6 @@
     These are the fundamental schedulers used under Linux.  Note that the
     default scheduler is the &link-sch_pfifo_fast;.
   </para>
-  <para>
-  </para>
 
   <section id="qs-fifo">
     <title>FIFO, First-In First-Out (&sch_pfifo; and &sch_bfifo;)</title>
@@ -47,6 +45,8 @@
       (&sch_pfifo_fast;) qdisc.
       </para>
     </note>
+    <section id="qs-fifo-algorithm">
+       <title><constant>pfifo, bfifo</constant> Algorithm</title>
     <para>
       The FIFO algorithm forms the basis for the default qdisc on all Linux
       network interfaces (&link-sch_pfifo_fast;).  It performs no shaping or
@@ -65,16 +65,35 @@
       <imageobject>
         <imagedata fileref="images/fifo-qdisc.jpg" format="JPG"/>
       </imageobject>
+      <textobject>
+          <phrase>Figure 7: FIFO qdisc</phrase>
+      </textobject>
+      <caption>
+          <para><command>Figure 7:</command> <emphasis>FIFO qdisc</emphasis></para>
+      </caption>
     </mediaobject>
+    <para>
+        A list  of  packets is maintained, when a packet is enqueued it gets inserted at the tail of a list. When a packet needs to be sent  out  to the network, it is taken from the head of the list.
+    </para>
+    </section>
+    <section>
+        <title><constant>limit</constant> parameter</title>
     <para>
       A real FIFO qdisc must, however, have a size limit (a buffer size) to
       prevent it from overflowing in case it is unable to dequeue packets as
       quickly as it receives them.  Linux implements two basic FIFO
       &linux-qdisc;s, one based on bytes, and one on packets.  Regardless of
       the type of FIFO used, the size of the queue is defined by the parameter
-      <parameter>limit</parameter>.  For a &sch_pfifo; the unit is understood
-      to be packets and for a &sch_bfifo; the unit is understood to be bytes.
+      <parameter>limit</parameter>.  For a &sch_pfifo; <parameter>(Packet limited First In, First Out queue)</parameter>  the unit is understood
+      to be packets and for a &sch_bfifo;<parameter> (Byte limited First In, First Out queue) </parameter> the unit is understood to be bytes.
     </para>
+    <para>
+        For pfifo, defaults to the interface <link linkend="c-txqueuelen">txqueuelen</link> , as specified with <link linkend="c-txqueuelen">ifconfig</link> or <link linkend="c-txqueuelen">ip</link>.  The range for this  parameter is [0, UINT32_MAX].
+    </para>
+    <para>
+        For bfifo, it  defaults to the <link linkend="c-txqueuelen">txqueuelen</link> multiplied by the interface MTU.  The range for this parameter is [0,  UINT32_MAX] bytes. Note: The link layer header was considered when counting packet length.
+    </para>
+
     <example id="ex-qs-fifo-limit">
       <title>Specifying a <parameter>limit</parameter> for a packet
         or byte FIFO</title>
@@ -115,46 +134,155 @@ tc qdisc add dev eth0 handle 2:0 parent 1:0 pfifo limit 30</computeroutput>
     </example>
   </section>
 
-  <section id="qs-pfifo_fast">
+ <section id="qd-pfifo-ls">
+     <title>tc –s qdisc ls</title>
+     <para>
+         The output of tc -s qdisc ls contains the limit, either in packets or in bytes, and the number of bytes and packets actually sent. An unsent and dropped packet only appears between braces and is  not  counted  as 'Sent'.
+     </para>
+     <para>
+         In this example, the queue length is 100 packets, 45894 bytes were sentover 681 packets.  No packets were dropped, and as the pfifo queue does not slow down packets, there were also no overlimits:
+     </para>
+     <programlisting>
+$ tc -s qdisc ls dev eth0
+
+    qdisc pfifo 8001: dev eth0 limit 100p
+    Sent 45894 bytes 681 pkts (dropped 0, overlimits 0)
+     </programlisting>
+     <para>
+          If a backlog occurs, this is displayed as well.
+     </para>
+     <para>
+         <constant>pfifo</constant> and <constant>bfifo</constant>, like all non-default qdiscs, maintain statistics. This might be a reason to prefer that over the default.
+     </para>
+ </section>
+</section>
+
+<section id="qs-pfifo_fast">
     <title>&sch_pfifo_fast;, the default Linux qdisc</title>
     <para>
-      The &sch_pfifo_fast; qdisc is the default qdisc for all interfaces under
-      Linux.  Based on a conventional &link-sch_fifo; qdisc, this qdisc also
-      provides some prioritization.  It provides three different bands
-      (individual FIFOs) for separating traffic.  The highest priority traffic
-      (interactive flows) are placed into band 0 and are always serviced
-      first.  Similarly, band 1 is always emptied of pending packets before
-      band 2 is dequeued.
+        The &sch_pfifo_fast; <parameter>(three-band first in, first out queue)</parameter> qdisc is the default qdisc for all interfaces under
+        Linux. Whenever an interface is created, the pfifo_fast qdisc is automatically used as a queue. If another qdisc is attached, it preempts the default pfifo_fast, which  automatically  returns to function when an existing qdisc is detached.
     </para>
     <mediaobject id="img-qs-pfifo_fast">
-      <imageobject>
-        <imagedata fileref="images/pfifo_fast-qdisc.eps" format="EPS"/>
-      </imageobject>
-      <imageobject>
-        <imagedata fileref="images/pfifo_fast-qdisc.png" format="PNG"/>
-      </imageobject>
-      <imageobject>
-        <imagedata fileref="images/pfifo_fast-qdisc.jpg" format="JPG"/>
-      </imageobject>
+        <imageobject>
+            <imagedata fileref="images/pfifo_fast-qdisc.eps" format="EPS"/>
+        </imageobject>
+        <imageobject>
+            <imagedata fileref="images/pfifo_fast-qdisc.png" format="PNG"/>
+        </imageobject>
+        <imageobject>
+            <imagedata fileref="images/pfifo_fast-qdisc.jpg" format="JPG"/>
+        </imageobject>
+        <textobject>
+            <phrase>Figure 8: pfifo_fast qdisc </phrase>
+        </textobject>
+        <caption>
+            <para><command>Figure 8:</command> <emphasis>pfifo_fast qdisc</emphasis></para>
+        </caption>
     </mediaobject>
-    <para>
-      There is nothing configurable to the end user about the &sch_pfifo_fast;
-      qdisc.  For exact details on the <constant>priomap</constant> and use of
-      the ToS bits, see the &url-lartc-howto-pfifo_fast;.
-    </para>
-  </section>
+
+    <section id="qd-pfifo_fast-algorithm">
+        <title><constant>pfifo_fast</constant> algorithm</title>
+        <para>
+            Based on a conventional <link linkend="qs-fifo">FIFO</link> &linux-qdisc;, this qdisc also provides some prioritization. It provides three different bands (individual FIFOs) for separating traffic. The highest priority traffic (interactive flows) are placed into band 0 and are always serviced first. Similarly, band 1 is always emptied of pending packets before band 2 is dequeued.
+            </para>
+            <para>
+                The algorithm is very similar to that of the classful <link linkend="qc-prio">tc-prio qdisc</link>. pfifo_fast is like three tc-pfifo queues side by side, where packets can be enqueued in any of the three bands based on their Type of  Service bits or assigned priority. Not all three bands are dequeued simultaneously - as long as lower bands have traffic, higher bands are never dequeued. This can be used to prioritize interactive traffic or penalize 'lowest cost' traffic. Each band can be txqueuelen packets long, as configured with <link linkend="c-txqueuelen">ifconfig</link> or <link linkend="c-txqueuelen">ip</link>.  Additional packets coming in are not enqueued but are instead dropped.
+            </para>
+            <para>
+                See <link linkend="qd-pfifo_fast-bugs">chapter 6.2.3</link> for complete details on how TOS bits are translated into bands.
+            </para>
+    </section>
+
+            <section id="qd-pfifo_fast-parameter">
+                <title><constant>txqueuelen</constant> parameter</title>
+                <para>
+                    The length of the three bands depends on the interface <link linkend="c-txqueuelen">txqueuelen</link>, as specified with <link linkend="c-txqueuelen">ifconfig</link> or <link linkend="c-txqueuelen">ip</link>.
+                </para>
+    </section>
+
+
+            <section id="qd-pfifo_fast-bugs">
+                <title>Bugs</title>
+                <para>
+                    There is nothing configurable to the end user about the pfifo_fast qdisc. This is how it is configured by default:
+                </para>
+                <para>
+                    <constant>priomap</constant> determines how packet priorities, as assigned by the kernel, map to bands. Mapping occurs based on the TOS octet of the packet, which looks like this:
+                </para>
+                <mediaobject id="bugs1">
+                    <imageobject>
+                        <imagedata fileref="images/bugs1.eps" format="EPS"/>
+                    </imageobject>
+                    <imageobject>
+                        <imagedata fileref="images/bugs1.png" format="PNG"/>
+                    </imageobject>
+                    <imageobject>
+                        <imagedata fileref="images/bugs1.jpg" format="JPG"/>
+                    </imageobject>
+                </mediaobject>
+
+                <para>
+                    The four TOS bits (the 'TOS field') are defined as:
+                </para>
+
+                <mediaobject id="bugs2">
+                    <imageobject>
+                        <imagedata fileref="images/bugs2.eps" format="EPS"/>
+                    </imageobject>
+                    <imageobject>
+                        <imagedata fileref="images/bugs2.png" format="PNG"/>
+                    </imageobject>
+                    <imageobject>
+                        <imagedata fileref="images/bugs2.jpg" format="JPG"/>
+                    </imageobject>
+                </mediaobject>
+
+                <para>
+                    As there is 1 bit to the right of these four bits, the actual value of the TOS field is double the value of the TOS bits. Tcpdump -v -v shows you the value of the entire TOS field, not just the four bits. It is the value you see in the first column of this table:
+
+                </para>
+                <mediaobject id="bugs3">
+                    <imageobject>
+                        <imagedata fileref="images/bugs3.eps" format="EPS"/>
+                    </imageobject>
+                    <imageobject>
+                        <imagedata fileref="images/bugs3.png" format="PNG"/>
+                    </imageobject>
+                    <imageobject>
+                        <imagedata fileref="images/bugs3.jpg" format="JPG"/>
+                    </imageobject>
+                </mediaobject>
+
+                <para>
+                    Lots of numbers. The second column contains the value of the relevant four TOS bits, followed by their translated meaning. For example, 15 stands for a packet wanting Minimal Monetary Cost, Maximum Reliability, Maximum Throughput AND Minimum Delay.
+                </para>
+                <para>
+                    The fourth column lists the way the Linux kernel interprets the TOS bits, by showing to which Priority they are mapped.
+                </para>
+                <para>
+                    The last column shows the result of the default priomap. On the command line, the default priomap looks like this:
+                </para>
+                <para>
+                    1, 2, 2, 2, 1, 2, 0, 0 , 1, 1, 1, 1, 1, 1, 1, 1
+                </para>
+                <para>
+                    This means that priority 4, for example, gets mapped to band number 1. The priomap also allows you to list higher priorities (> 7) which do not correspond to TOS mappings, but which are set by other means.
+                </para>
+                <para>
+                    Moreover, differently from other non standard qdisc, pfifo_fast does not maintain statistics and does not show up in tc qdisc ls. This is because it is the automatic default in the absence of  a  configured qdisc.
+                </para>
+                </section>
+            </section>
+
 
   <section id="qs-sfq">
     <title>&sch_sfq;, Stochastic Fair Queuing</title>
     <para>
-      The &sch_sfq; qdisc attempts to fairly distribute opportunity to
-      transmit data to the network among an arbitrary number of
-      &concepts-flows;.  It accomplishes this by using a hash function to
-      separate the traffic into separate (internally maintained) &sch_fifo;s
-      which are dequeued in a round-robin fashion.  Because there is the
-      possibility for unfairness to manifest in the choice of hash function,
-      this function is altered periodically.  Perturbation (the parameter
-      <parameter>perturb</parameter>) sets this periodicity.
+      Stochastic Fairness Queueing is a classless queueing discipline available for traffic control with the tc command. SFQ does not shape traffic but only schedules the transmission of packets, based on 'flows'.  The goal is to ensure fairness so that each flow is able to send data in turn, thus preventing any single flow from drowning out the rest. It accomplishes this by using a hash function to separate the traffic into separate (internally maintained) FIFOs which are dequeued in a round-robin fashion. Because there is the possibility for unfairness to manifest in the choice of hash function, this function is altered periodically (<link linkend="qs-sfq-algorithm">see 6.3.1 algorithm</link>). Perturbation (the parameter <emphasis>perturb</emphasis>) sets this periodicity (<link linkend="qd-sfq-parameters">see 6.3.3 parameters</link>). This may in fact have some effect in mitigating a Denial of Service attempt. SFQ is work-conserving and therefore always delivers a packet if it has one available.
+    </para>
+    <para>
+        So, the SFQ qdisc attempts to fairly distribute opportunity to transmit data to the network among an arbitrary number of flows.
     </para>
     <mediaobject id="img-qs-sfq">
       <imageobject>
@@ -166,7 +294,184 @@ tc qdisc add dev eth0 handle 2:0 parent 1:0 pfifo limit 30</computeroutput>
       <imageobject>
         <imagedata fileref="images/sfq-qdisc.jpg" format="JPG"/>
       </imageobject>
+      <textobject>
+          <phrase>Figure 9: Stochastic Fair Queuing (SFQ) </phrase>
+      </textobject>
+      <caption>
+          <para><command>Figure 9:</command> <emphasis> Stochastic Fair Queuing (SFQ)</emphasis> </para>
+      </caption>
     </mediaobject>
+
+    <section id="qs-sfq-algorithm">
+        <title>SFQ Algorithm</title>
+        <para>
+         On enqueueing, each packet is assigned to a hash bucket, based on the packets hash value.  This hash value is either obtained from an external flow classifier (use tc filter to set them), or a default internal classifier if no external classifier has been configured. When the internal classifier is used, sfq uses
+        </para>
+        <itemizedlist>
+            <listitem>
+                <para>
+                    Source address;
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    Destination address;
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    Source and Destination port;
+                </para>
+            </listitem>
+        </itemizedlist>
+        <para>
+            if these are available.
+        </para>
+        <para>
+            SFQ knows about ipv4 and ipv6 and also UDP, TCP and ESP.  Packets with other protocols are hashed based on the  32bits representation  of  their  destination  and  source. A flow corresponds mostly to a TCP/IP connection.
+        </para>
+        <para>
+            Each of these buckets should represent a unique flow. Because multiple flows may  get  hashed to the same bucket, sfqs internal hashing algorithm may be perturbed at configurable intervals so that the unfairness lasts only for a short while. Perturbation may however cause some inadvertent packet reordering to occur. After linux-3.3, there is no packet reordering  problem, but  possible packet drops if rehashing hits one limit (number of flows or packets per flow)
+        </para>
+        <para>
+            When dequeuing, each hashbucket with data is queried in a round robin fashion.
+        </para>
+        <para>
+            Before  linux-3.3,  the  compile  time maximum length of the SFQ is 128 packets, which can be spread over at most 128 buckets  of  1024  available.  In case  of  overflow,  tail-drop  is  performed on the fullest bucket, thus maintaining fairness.
+        </para>
+        <para>
+            After linux-3.3, maximum length of SFQ is 65535 packets,  and  divisor limit  is  65536.   In case of overflow, tail-drop is performed on the fullest bucket, unless headdrop was requested.
+        </para>
+    </section>
+
+    <section id="qd-sfq-synopsis">
+        <title>Synopsis</title>
+        <programlisting>
+tc  qdisc ... [divisor hashtablesize] [limit packets] [perturb seconds] [quantum bytes] [flows number] [depth number] [head drop] [redflowlimit bytes] [min bytes] [max bytes] [avpkt bytes] [burst packets] [probability P] [ecn] [harddrop]
+        </programlisting>
+        <para>
+        </para>
+    </section>
+
+    <section id="qd-sfq-parameters">
+        <title>Parameters</title>
+        <itemizedlist>
+            <listitem>
+                <para>
+                    <emphasis>divisor:</emphasis> can be used to set a different hash table size,  available  from kernel 2.6.39 onwards.  The specified divisor must be a power of two and cannot be larger than 65536.  Default value is 1024.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+
+                    <emphasis>limit:</emphasis>  upper limit of the SFQ. Can be used to reduce the default length of 127 packets.  After linux-3.3, it can be raised.
+
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    <emphasis>depth:</emphasis>  limit of packets per flow (after linux-3.3). Default to 127 and can be lowered.
+
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    <emphasis>perturb:</emphasis> interval in seconds for queue algorithm perturbation.  Defaults to 0,  which  means that no perturbation occurs. Do not set too low for each perturbation may cause some packet reordering or losses. Advised value is 60. This value has no effect when external flow classification is used.  Its  better to  increase  divisor value to lower risk of hash collisions.
+
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    <emphasis>quantum:</emphasis> amount  of  bytes a flow is allowed to dequeue during a round of the round robin process.  Defaults to the MTU of the interface which is also the advised value and the minimum value.
+
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+
+                    <emphasis>flows:</emphasis>  after  linux-3.3,  it is possible to change the default limit of flows.  Default value is 127.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    <emphasis>headdrop:</emphasis> default SFQ behavior is to perform tail-drop of packets  from  a flow. You can ask a headdrop instead, as this is known to provide a better feedback for TCP flows
+                </para>
+            </listitem>
+            <listitem>
+                <para><emphasis>redflowlimit:</emphasis> configure the optional RED module on top of each SFQ flow.  Random  Early  Detection  principle  is  to perform packet marks or drops in a probabilistic way. Redflowlimit configures the hard limit on the real (not average) queue size per SFQ flow in bytes.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    <emphasis>min:</emphasis> average  queue  size  at  which  marking  becomes a possibility. Defaults to max /3.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    <emphasis>max:</emphasis>  at this average queue size, the marking probability is  maximal. Defaults to redflowlimit /4.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    <emphasis>probability:</emphasis> maximum   probability   for   marking,  specified  as a floating point number from 0.0 to 1.0. Default value is 0.02.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    <emphasis>avpkt:</emphasis>  specified in bytes. Used with burst to determine the  time  constant for average queue size calculations. Default value is 1000.
+                </para>
+            </listitem>
+            <listitem>
+                <para><emphasis>burst:</emphasis>  used  for  determining how fast the average queue size is influenced by the real queue size. Default value is: (2 * min + max) / (3 * avpkt).
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    <emphasis>ecn:</emphasis> RED can either 'mark' or 'drop'. Explicit Congestion  Notification  allows RED to notify remote hosts that their rate exceeds the amount of bandwidth available.  Non-ECN capable  hosts  can only  be  notified  by  dropping a packet.  If this parameter is specified, packets which indicate that  their  hosts  honor  ECN will  only be marked and not dropped, unless the queue size hits depth packets.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    <emphasis>harddrop:</emphasis> if average flow queue size is above max  bytes,  this  parameter forces a drop instead of ecn marking.
+                </para>
+            </listitem>
+        </itemizedlist>
+
+    </section>
+
+    <section>
+        <title>Example and Usage</title>
+
+    <para>
+        To attach to device ppp0:
+    </para>
+    <programlisting>
+$ tc qdisc add dev ppp0 root sfq
+    </programlisting>
+
+    <para>
+        Please note that SFQ, like all non-shaping (work-conserving) qdiscs, is only useful if it owns the queue.  This is the case when the link speed equals  the  actually available bandwidth. This holds for regular phone modems, ISDN connections and direct non-switched ethernet links.
+    </para>
+    <para>
+        Most often, cable modems and DSL devices do not fall  into this category. The same holds for when connected to a switch and trying to send data to a congested segment also connected to the switch. In this case, the effective queue does not reside within Linux and is therefore not available for scheduling. Embed SFQ in a classful qdisc to make sure it owns the queue.
+    </para>
+    <para>
+        It is possible to use external classifiers with sfq, for example to hash traffic based only on source/destination ip addresses
+    </para>
+    <programlisting>
+$ tc filter add ... flow hash keys src,dst perturb 30 divisor 1024
+    </programlisting>
+
+    <para>
+       Note that the given divisor should match the one used by sfq.  If  you have  changed  the sfq default of 1024, use the same value for the flow hash filter, too.
+    </para>
+
+    <example id="ex-qs-sfq-bos">
+        <title>SFQ with optional RED mode</title>
+        <programlisting>
+<prompt>[root@leander]# </prompt><userinput>tc qdisc add dev eth0 parent 1:1 handle 10: sfq limit 3000 flows 512 divisor 16384 redflowlimit 100000 min 8000 max 60000 probability 0.20 ecn headdrop</userinput>
+        </programlisting>
+    </example>
     <example id="ex-qs-sfq">
       <title>Creating an &sch_sfq;</title>
       <programlisting>
@@ -201,6 +506,8 @@ tc qdisc add dev eth0 handle 2:0 parent 1:0 sfq perturb 10</computeroutput>
       <xref linkend="qs-esfq"/> for an &sch_sfq; qdisc with more exposed
       parameters for the user to manipulate.
     </para>
+
+  </section>
   </section>
 
   <section id="qs-esfq">
@@ -229,17 +536,197 @@ HASHTYPE := { classic | src | dst }
     </para>
   </section>
 
+<section id="qs-red">
+    <title>RED,Random Early Drop</title>
+
+    <section id="qs-red-descriptiom">
+        <title>Description</title>
+    <para>
+        Random Early  Detection  is  a classless qdisc which manages its queue size smartly. Regular queues simply drop packets from the  tail  when they  are  full,  which may not be the optimal behaviour. RED also performs tail drop, but does so in a more gradual way.
+
+    </para>
+    <para>
+        Once the queue hits a certain average length, packets enqueued  have  a configurable  chance  of  being  marked  (which may mean dropped). This chance increases linearly up to a point called the max  average  queue length, although the queue might get bigger.
+    </para>
+    <para>
+        This has a host of benefits over simple taildrop, while not being processor intensive. It prevents synchronous retransmits after a burst in traffic, which cause further retransmits, etc. The goal is to have a small queue size, which is good for interactivity while not disturbing TCP/IP traffic with too many sudden drops after  a burst of traffic.
+    </para>
+    <para>
+        Depending on if  ECN  is configured, marking either means dropping or purely marking a packet as overlimit.
+    </para>
+    </section>
+        <section id="qs-red-algorithm">
+            <title>Algorithm</title>
+                <para>
+The average queue size is used for determining the marking probability. This is calculated using an Exponential Weighted Moving Average, which can be more or less sensitive to bursts. When the average queue size is below min bytes, no packet will ever be marked.  When  it  exceeds min, the probability of doing so climbs linearly up to probability, until the average queue size hits  max  bytes. Because probability is normally not set to 100%, the queue size might conceivably rise above max bytes, so the limit parameter is provided to set a hard maximum for the size of the queue.
+               </para>
+            </section>
+        <section id="qs-red-synopsis">
+            <title>Synopsis</title>
+                <programlisting>
+$ tc  qdisc ... red limit bytes [min bytes] [max bytes] avpkt bytes [burst packets] [ecn] [harddrop] [bandwidth rate]  [probability chance] [adaptive]
+                </programlisting>
+        </section>
+
+        <section id="qs-red-parameters">
+            <title>Parameters</title>
+                <itemizedlist>
+                    <listitem>
+                        <para>
+                            <emphasis>min:</emphasis>  average  queue  size  at  which  marking  becomes a possibility. Defaults to max/3.
+                        </para>
+                    </listitem>
+                    <listitem>
+                        <para>
+                            <emphasis>max:</emphasis>  at this average queue size, the marking probability is  maximal. Should be at least twice min to prevent synchronous retransmits, higher for low min.  Default to limit/4.
+                        </para>
+                    </listitem>
+                    <listitem>
+                        <para>
+                            <emphasis>probability:</emphasis> maximum probability for marking, specified as a  floating  point number  from 0.0 to 1.0. Suggested values are 0.01 or 0.02 (1 or 2%, respectively). Default is 0.02.
+                        </para>
+                    </listitem>
+                    <listitem>
+                        <para>
+                            <emphasis>limit:</emphasis>  hard limit on the real (not average) queue size in  bytes.  Further  packets  are dropped. Should be set higher than max+burst. It is advised to set this a few times higher than max.
+                        </para>
+                    </listitem>
+                    <listitem>
+                        <para>
+                            <emphasis>burst:</emphasis> used for determining how fast the average queue size  is  influenced by the real queue size. Larger values make the calculation more sluggish, allowing longer bursts of traffic before  marking starts.  Real life experiments support the following guideline (min+min+max)/(3*avpkt).
+                        </para>
+                    </listitem>
+                    <listitem>
+                        <para>
+                            <emphasis>Avpkt:</emphasis>  specified in bytes. Used with burst to determine the time constant for average queue size calculations. 1000 is a good value.
+                        </para>
+                    </listitem>
+                    <listitem>
+                        <para>
+                            <emphasis>bandwidth:</emphasis> this  rate  is used for calculating the average queue size after some idle time. Should be set to the bandwidth  of  your  interface.  Does  not  mean  that  RED  will shape for you! Optional. Default is 10Mbit.
+                        </para>
+                    </listitem>
+                    <listitem>
+                        <para>
+                            <emphasis>ecn:</emphasis> as mentioned before, RED can either 'mark' or  'drop'.  Explicit Congestion  Notification  allows RED to notify remote hosts that their rate exceeds the amount of  bandwidth  available.  Non-ECN capable  hosts  can  only  be notified by dropping a packet.  If this parameter is specified, packets which indicate  that  their hosts  honor ECN will only be marked and not dropped, unless the queue size hits limit bytes. Recommended.
+                        </para>
+                    </listitem>
+                    <listitem>
+                        <para>
+                            <emphasis>harddrop:</emphasis> If average flow queue size is above max  bytes,  this  parameterv forces a drop instead of ecn marking.
+                        </para>
+                    </listitem>
+                    <listitem>
+                        <para>
+                            <emphasis>adaptive:</emphasis> (added  in  linux-3.3) Sets RED in adaptive mode as described in http://icir.org/floyd/papers/adaptiveRed.pdf. Goal of Adaptive RED is to make 'probability' dynamic value between 1% and 50% to reach the target average queue: (max - min) / 2.
+                        </para>
+                    </listitem>
+
+                </itemizedlist>
+        </section>
+
+        <section id="qs-red-example">
+            <title>Example</title>
+            <programlisting>
+# tc qdisc add dev eth0 parent 1:1 handle 10: red limit 400000 min 30000 max 90000 avpkt 1000 burst 55 ecn adaptive bandwidth 10Mbit
+            </programlisting>
+        </section>
+
+</section>
+
   <section id="qs-gred">
     <title>GRED, Generic Random Early Drop</title>
     <para>
-      FIXME; I have never used this.  Need practical experience or
-      attestation.
+      Generalized RED is used in DiffServ implementation and it has virtual queue (VQ) within physical queue. Currently, the number of virtual queues is limited to 16.
     </para>
     <para>
-      Theory declares that a RED algorithm is useful on a backbone or core
-      network, but not as useful near the end-user.  See the section on
-      &concepts-flows; to see a general discussion of the thirstiness of TCP.
+        GRED is configured in two steps. First the generic parameters are configured to select the number of virtual queues DPs and whether to turn on the RIO-like buffer sharing scheme. Also at this point, a default virtual queue is selected.
     </para>
+    <para>
+        The second step is used to set parameters for individual virtual queues.
+    </para>
+    <section id="qs-gred-synopsis">
+        <title>Synopsis</title>
+        <programlisting>
+... gred DP drop-probability limit BYTES min BYTES max BYTES avpkt BYTES burst PACKETS probability PROBABILITY bandwidth KBPS [prio value]
+
+OR
+
+... gred setup DPs "num of DPs" default "default DP" [grio]
+        </programlisting>
+    </section>
+
+    <section id="qs-gred-parameter">
+        <title>Parameter</title>
+        <itemizedlist>
+            <listitem>
+                <para>
+                    <emphasis>setup:</emphasis> identifies that this is a generic setup for GRED;
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    <emphasis>DPs:</emphasis> is the number of virtual queues;
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    <emphasis>default:</emphasis> specifies default virtual queue;
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    <emphasis>grio:</emphasis> turns on the RIO-like buffering scheme;
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    <emphasis>limit:</emphasis> defines the virtual queue “physical” limit in bytes;
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    <emphasis>min:</emphasis> defines the minimum threshold value in bytes;
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                     <emphasis>max:</emphasis> defines the maximum threshold value in bytes;
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    <emphasis>avpkt:</emphasis> is the average packet size in bytes;
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    <emphasis>bandwidth:</emphasis> is the wire-speed of the interface;
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                     <emphasis>burst:</emphasis> is the number of average-sized packets allowed to burst;
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    <emphasis>probability:</emphasis> defines the drop probability in the range (0…);
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    <emphasis>DP:</emphasis> identifies the virtual queue assigned to these parameters;
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    <emphasis>prio:</emphasis> identifies the virtual queue priority if grio was set in general parameters;
+                </para>
+            </listitem>
+
+        </itemizedlist>
+    </section>
   </section>
 
   <section id="qs-tbf">
@@ -266,7 +753,66 @@ HASHTYPE := { classic | src | dst }
       <imageobject>
         <imagedata fileref="images/tbf-qdisc.jpg" format="JPG"/>
       </imageobject>
+      <textobject>
+          <phrase>Figure 10: Token Bucket Filter (TBF)</phrase>
+      </textobject>
+      <caption>
+          <para><command>Figure 10:</command> <emphasis>Token Bucket Filter (TBF)</emphasis></para>
+      </caption>
     </mediaobject>
+
+    <section id="qs-tbf-algorithm">
+        <title>Algorithm</title>
+
+        <para>
+            As the name implies, traffic is filtered based on the expenditure of tokens (non-work-conserving). Tokens roughly correspond to bytes, with the additional  constraint  that  each packet consumes some tokens, no matter how small it is. This reflects the fact that even a zero-sized packet occupies the link for some time. On creation,  the  TBF  is stocked with tokens which correspond to the amount of traffic that can be burst in  one  go.  Tokens  arrive at a steady rate, until the bucket is full. If no tokens are available, packets are queued, up to a configured limit. The TBF now calculates the token deficit, and throttles until the first packet in the queue can be sent. If  it  is  not  acceptable  to  burst  out packets at maximum speed, a peakrate can be configured to limit the speed at which the bucket  empties.  This  peakrate is implemented as a second TBF with a very small bucket, so that it doesn't burst.
+        </para>
+        <para>
+        </para>
+
+    </section>
+
+    <section id="qs-tbf-parameters">
+        <title>Parameters</title>
+        <itemizedlist>
+            <listitem>
+                <para>
+                    <emphasis>limit or latency:</emphasis> limit  is  the  number  of  bytes that can be queued waiting for tokens to become available. You can also specify this the other way around by setting the latency parameter, which specifies the maximum amount of time a packet can sit in the TBF. The  latter calculation  takes into account the size of the bucket, the rate and possibly the peakrate (if set).  These  two  parameters are mutually exclusive.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    <emphasis>Burst:</emphasis> also known as buffer or maxburst.  Size of the bucket, in bytes. This is the maximum amount of bytes that tokens can be available for instantaneously.  In general, larger shaping rates require a larger buffer. For 10mbit/s on Intel, you need at least  10kbyte buffer if you want to reach your configured rate. If your buffer is too small, packets may be dropped because more tokens arrive per timer tick than fit in your bucket. The minimum buffer size can be calculated by dividing the rate by HZ.
+                </para>
+                <para>
+                    Token usage calculations are performed using a table which by default has a resolution of 8 packets. This resolution can be changed by specifying the cell size with the burst. For example, to specify a 6000 byte buffer with a 16 byte cell  size,  set  a burst of 6000/16. You will probably never have to set this. Must be an integral power of 2.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    <emphasis>Mpu:</emphasis> a zero-sized packet does not use zero bandwidth.  For ethernet, no packet uses  less  than  64  bytes. The Minimum Packet Unit determines the minimal token usage (specified in bytes) for a packet. Defaults to zero.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    <emphasis>Rate:</emphasis> the speed knob. Furthermore, if a peakrate is desired, the  following  parameters  are available:
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    <emphasis>peakrate:</emphasis> maximum  depletion  rate  of  the bucket.  The peakrate does not need to be set, it is only  necessary  if  perfect  millisecond timescale shaping is required.
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    <emphasis>mtu/minburst:</emphasis> specifies the size of the peakrate bucket. For perfect accuracy, should be set to the MTU of the interface.  If a peakrate is needed,  but  some  burstiness  is  acceptable, this size can be raised. A 3000 byte minburst allows around 3mbit/s of peakrate, given 1000 byte packets. Like the regular burstsize you can also specify a cell size.
+                </para>
+            </listitem>
+        </itemizedlist>
+    </section>
+
+    <section id="qs-tbf-example">
+        <title>Example</title>
     <example id="ex-qs-tbf">
       <title>Creating a 256kbit/s &sch_tbf;</title>
       <programlisting>
@@ -290,6 +836,8 @@ tc qdisc add dev eth0 handle 2:0 parent 1:0 tbf burst 20480 limit 20480 mtu 1514
     </example>
     <para>
     </para>
+
+  </section>
   </section>
 
   <!--
@@ -301,7 +849,7 @@ tc qdisc add dev eth0 handle 2:0 parent 1:0 tbf burst 20480 limit 20480 mtu 1514
     </para>
   </section>
     -->
-  
+
 </section>
 
 <!-- end of file -->

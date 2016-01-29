@@ -13,11 +13,11 @@
 
    This was initially authored while Martin A. Brown worked for
    SecurePipe, Inc.
-     
+
    This HOWTO is likely available at the following address:
 
      http://tldp.org/HOWTO/Traffic-Control-HOWTO/
-     
+
   -->
 
 <!-- conventions used in this documentation....
@@ -422,17 +422,263 @@ where  OBJECT := { qdisc | class | filter }
     </para>
   </section>
 
+  <section id="s-netfilter">
+      <title>Netfilter</title>
+      <para>
+         Netfilter is a framework provided by the Linux kernel that allows various networking-related operations to be implemented in the form of customized handlers. Netfilter offers various functions and operations for packet filtering, network address translation, and port translation, which provide the functionality required for directing packets through a network, as well as for providing ability to prohibit packets from reaching sensitive locations within a computer network.
+      </para>
+      <para>
+          Netfilter represents a set of hooks inside the Linux kernel, allowing specific kernel modules to register callback functions with the kernel's networking stack. Those functions, usually applied to the traffic in form of filtering and modification rules, are called for every packet that traverses the respective hook within the networking stack.
+      </para>
+
+      <section id="s-iptables">
+          <title><constant>iptables</constant></title>
+          <para>
+              iptables is a user-space application program that allows a system administrator to configure the tables provided by the Linux kernel firewall (implemented as different Netfilter modules) and the chains and rules it stores. Different kernel modules and programs are currently used for different protocols; iptables applies to IPv4, ip6tables to IPv6, arptables to ARP, and ebtables to Ethernet frames.
+          </para>
+          <para>
+              iptables requires elevated privileges to operate and must be executed by user root, otherwise it fails to function. On most Linux systems, iptables is installed as /usr/sbin/iptables and documented in its man pages, which can be opened using man iptables when installed. It may also be found in /sbin/iptables, but since iptables is more like a service rather than an "essential binary", the preferred location remains /usr/sbin.
+          </para>
+          <para>
+              The term iptables is also commonly used to inclusively refer to the kernel-level components. x_tables is the name of the kernel module carrying the shared code portion used by all four modules that also provides the API used for extensions; subsequently, Xtables is more or less used to refer to the entire firewall (v4, v6, arp, and eb) architecture.
+          </para>
+          <para>
+              Xtables allows the system administrator to define tables containing chains of rules for the treatment of packets. Each table is associated with a different kind of packet processing. Packets are processed by sequentially traversing the rules in chains. A rule in a chain can cause a goto or jump to another chain, and this can be repeated to whatever level of nesting is desired. (A jump is like a “call”, i.e. the point that was jumped from is remembered.) Every network packet arriving at or leaving from the computer traverses at least one chain.
+          </para>
+          <mediaobject id="img-Figure5">
+              <imageobject>
+                  <imagedata fileref="images/Figure5.eps" format="EPS"/>
+              </imageobject>
+              <imageobject>
+                  <imagedata fileref="images/Figure5.png" format="PNG"/>
+              </imageobject>
+              <imageobject>
+                  <imagedata fileref="images/Figure5.jpg" format="JPG"/>
+              </imageobject>
+              <textobject>
+                  <phrase>Figure 5: Packet flow paths. Packets start at a given box and will flow along a certain path, depending on the circumstances.</phrase>
+              </textobject>
+              <caption>
+                  <para><command>Figure 5: </command><emphasis>Packet flow paths. Packets start at a given box and will flow along a certain path, depending on the circumstances.</emphasis>
+                  </para>
+              </caption>
+          </mediaobject>
+          <para>
+              The origin of the packet determines which chain it traverses initially. There are five predefined chains (mapping to the five available Netfilter hooks, see figure 5), though a table may not have all chains.
+          </para>
+          <mediaobject id="img-Figure6">
+              <imageobject>
+                  <imagedata fileref="images/Figure6.eps" format="EPS"/>
+              </imageobject>
+              <imageobject>
+                  <imagedata fileref="images/Figure6.png" format="PNG"/>
+              </imageobject>
+              <imageobject>
+                  <imagedata fileref="images/Figure6.jpg" format="JPG"/>
+              </imageobject>
+              <textobject>
+                  <phrase>Figure 6: netfilter’s hook</phrase>
+              </textobject>
+              <caption>
+                  <para><command>Figure 6: </command><emphasis>netfilter’s hook</emphasis>
+                  </para>
+              </caption>
+          </mediaobject>
+          <para>
+              Predefined chains have a policy, for example DROP, which is applied to the packet if it reaches the end of the chain. The system administrator can create as many other chains as desired. These chains have no policy; if a packet reaches the end of the chain it is returned to the chain which called it. A chain may be empty.
+          </para>
+          <itemizedlist>
+              <listitem>
+                  <para>
+                      <constant>PREROUTING:</constant> Packets will enter this chain before a routing decision is made (point 1 in Figure 6).
+                  </para>
+              </listitem>
+              <listitem>
+                  <para>
+                      <constant>INPUT:</constant> Packet is going to be locally delivered. It does not have anything to do with processes having an opened socket; local delivery is controlled by the "local-delivery" routing table: ip route show table local (point 2 Figure 6).
+                  </para>
+              </listitem>
+              <listitem>
+                  <para>
+                      <constant>FORWARD:</constant> All packets that have been routed and were not for local delivery will traverse this chain (point 3 in Figure 6).
+                  </para>
+              </listitem>
+              <listitem>
+                  <para>
+                      <constant>OUTPUT:</constant> Packets sent from the machine itself will be visiting this chain (point 5 in Figure 6)
+                  </para>
+              </listitem>
+              <listitem>
+                  <para>
+                      <constant>POSTROUTING:</constant> Routing decision has been made. Packets enter this chain just before handing them off to the hardware (point 4 in Figure 6).
+                  </para>
+              </listitem>
+          </itemizedlist>
+          <para>
+              Each rule in a chain contains the specification of which packets it matches. It may also contain a target (used for extensions) or verdict (one of the built-in decisions). As a packet traverses a chain, each rule in turn is examined. If a rule does not match the packet, the packet is passed to the next rule. If a rule does match the packet, the rule takes the action indicated by the target/verdict, which may result in the packet being allowed to continue along the chain or it may not. Matches make up the large part of rulesets, as they contain the conditions packets are tested for. These can happen for about any layer in the OSI model, as with e.g. the --mac-source and -p tcp --dport parameters, and there are also protocol-independent matches, such as -m time.
+          </para>
+          <para>
+              The packet continues to traverse the chain until either
+          </para>
+          <itemizedlist>
+              <listitem>
+                  <para>
+                      a rule matches the packet and decides the ultimate fate of the packet, for example by calling one of the <constant>ACCEPT</constant> or <constant>DROP</constant>, or a module returning such an ultimate fate; or
+                  </para>
+              </listitem>
+              <listitem>
+                  <para>
+                      a rule calls the <constant>RETURN</constant> verdict, in which case processing returns to the calling chain; or
+                  </para>
+              </listitem>
+              <listitem>
+                  <para>
+                     the end of the chain is reached; traversal either continues in the parent chain (as if RETURN was used), or the base chain policy, which is an ultimate fate, is used.
+                  </para>
+              </listitem>
+          </itemizedlist>
+          <para>
+              Targets also return a verdict like ACCEPT (NAT modules will do this) or DROP (e.g. the REJECT module), but may also imply CONTINUE (e.g. the LOG module; CONTINUE is an internal name) to continue with the next rule as if no target/verdict was specified at all.
+          </para>
+
+      </section>
+
+  </section>
+
   <section id="s-imq">
     <title>IMQ, Intermediate Queuing device</title>
     <para>
+        The Intermediate queueing device is not a qdisc but its usage is tightly bound to qdiscs. Within linux, qdiscs are attached to network devices and everything that is queued to the device is first queued to the qdisc and then to driver queue. From this concept, two limitations arise:
+    </para>
+    <itemizedlist>
+        <listitem>
+            <para>
+                Only egress shaping is possible (an ingress qdisc exists, but its possibilities are very limited compared to classful qdiscs, as seen before).
+            </para>
+        </listitem>
+        <listitem>
+            <para>
+                A qdisc can only see traffic of one interface, global limitations can't be placed.
+            </para>
+        </listitem>
+    </itemizedlist>
+    <para>
+      IMQ is there to help solve those two limitations. In short, you can put everything you choose in a qdisc. Specially marked packets get intercepted in netfilter NF_IP_PRE_ROUTING and NF_IP_POST_ROUTING hooks and pass through the qdisc attached to an imq device. An iptables target is used for marking the packets.
     </para>
     <para>
-      FIXME; must discuss IMQ.  See also Patrick McHardy's website on 
-      &url-imq;.
+        This enables you to do ingress shaping as you can just mark packets coming in from somewhere and/or treat interfaces as classes to set global limits. You can also do lots of other stuff like just putting your http traffic in a qdisc, put new connection requests in a qdisc, exc.
     </para>
-    <para>
-    </para>
+    <section id="s-sample-configuration">
+        <title>Sample configuration</title>
+        <para>
+            The first thing that might come to mind is use ingress shaping to give yourself a high guaranteed bandwidth. Configuration is just like with any other interface:
+        </para>
+        <programlisting>
+tc qdisc add dev imq0 root handle 1: htb default 20
+
+tc class add dev imq0 parent 1: classid 1:1 htb rate 2mbit burst 15k
+
+tc class add dev imq0 parent 1:1 classid 1:10 htb rate 1mbit
+tc class add dev imq0 parent 1:1 classid 1:20 htb rate 1mbit
+
+tc qdisc add dev imq0 parent 1:10 handle 10: pfifo
+tc qdisc add dev imq0 parent 1:20 handle 20: sfq
+        </programlisting>
+        <programlisting>
+tc filter add dev imq0 parent 10:0 protocol ip prio 1 u32 match \ ip dst 10.0.0.230/32 flowid 1:10
+        </programlisting>
+        <para>
+            In this example u32 is used for classification. Other classifiers should work as expected. Next traffic has to be selected and marked to be enqueued to imq0.
+        </para>
+        <programlisting>
+iptables -t mangle -A PREROUTING -i eth0 -j IMQ --todev 0
+
+ip link set imq0 up
+        </programlisting>
+        <para>
+            The IMQ iptables targets is valid in the PREROUTING and POSTROUTING chains of the mangle table. It's syntax is
+        </para>
+        <programlisting>
+IMQ [ --todev n ]	n : number of imq device
+        </programlisting>
+        <para>
+            An ip6tables target is also provided.
+        </para>
+        <para>
+            Please note traffic is not enqueued when the target is hit but afterwards. The exact location where traffic enters the imq device depends on the direction of the traffic (in/out). These are the predefined netfilter hooks used by iptables:
+        </para>
+        <programlisting>
+enum nf_ip_hook_priorities {
+            NF_IP_PRI_FIRST = INT_MIN,
+            NF_IP_PRI_CONNTRACK = -200,
+            NF_IP_PRI_MANGLE = -150,
+            NF_IP_PRI_NAT_DST = -100,
+            NF_IP_PRI_FILTER = 0,
+            NF_IP_PRI_NAT_SRC = 100,
+            NF_IP_PRI_LAST = INT_MAX,
+            };
+        </programlisting>
+        <para>
+            For ingress traffic, imq registers itself with NF_IP_PRI_MANGLE + 1 priority which means packets enter the imq device directly after the mangle PREROUTING chain has been passed.
+        </para>
+        <para>
+          For egress imq uses NF_IP_PRI_LAST which honours the fact that packets dropped by the filter table won't occupy bandwidth.
+        </para>
+
+    </section>
   </section>
+
+<section id="s-ethtool">
+    <title><constant>ethtool,</constant> Driver Queue</title>
+    <para>
+ The ethtool command is used to control the driver queue size for Ethernet devices. ethtool also provides low level interface statistics as well as the ability to enable and disable IP stack and driver features.
+    </para>
+    <para>
+        The -g flag to ethtool displays the driver queue (ring) parameters (see Figure 1) :
+    </para>
+    <programlisting>
+$ethtool -g eth0
+
+    Ring parameters for eth0:
+    Pre-set maximums:
+    RX:        16384
+    RX Mini:    0
+    RX Jumbo:    0
+    TX:        16384
+    Current hardware settings:
+    RX:        512
+    RX Mini:    0
+    RX Jumbo:    0
+    TX:        256
+    </programlisting>
+    <para>
+        You can see from the above output that the driver for this NIC defaults to 256 descriptors in the transmission queue. It was often recommended to reduce the size of the driver queue in order to reduce latency. With the introduction of BQL (assuming your NIC driver supports it) there is no longer any reason to modify the driver queue size (see the below for how to configure BQL).
+    </para>
+    <para>
+        Ethtool also allows you to manage optimization features such as <link linkend="o-huge-packet">TSO, UFO and GSO</link>. The -k flag displays the current offload settings and -K modifies them.
+    </para>
+    <programlisting>
+$ethtool -k eth0
+
+    Offload parameters for eth0:
+    rx-checksumming: off
+    tx-checksumming: off
+    scatter-gather: off
+    tcp-segmentation-offload: off
+    udp-fragmentation-offload: off
+    generic-segmentation-offload: off
+    generic-receive-offload: on
+    large-receive-offload: off
+    rx-vlan-offload: off
+    tx-vlan-offload: off
+    ntuple-filters: off
+    receive-hashing: off
+    </programlisting>
+    <para>
+        Since <link linkend="o-huge-packet">TSO, GSO, UFO</link> and GRO greatly increase the number of bytes which can be queued in the driver queue you should disable these optimizations if you want to optimize for latency over throughput. It’s doubtful you will notice any CPU impact or throughput decrease when disabling these features unless the system is handling very high data rates.
+    </para>
+</section>
+
 
 </section>
 
