@@ -1,0 +1,112 @@
+#! /bin/bash
+#
+# -- create compatibility symlinks from a new style LDP output tree to the
+#    earlier filesystem layout:
+#
+# -- License:  GPLv2
+#
+# -- written for TLDP in January 2016; Martin A. Brown <martin@linux-ip.net>
+#
+#
+#          old                        new
+#    -------------------           -----------------------
+#    ${STEM}/${STEM}.txt           html/HOWTO/text/${STEM}
+#    ${STEM}/${STEM}.pdf           html/HOWTO/pdf/${STEM}.pdf
+#    ${STEM}/${STEM}.html          html/${STEM}.html
+#    ${STEM}/${STEM}-single.html   html/HOWTO/html_single/${STEM}/index.html
+#
+#
+
+set -e
+# set -x
+
+SELFNAME="$( readlink --canonicalize ${0})"
+ME="${SELFNAME##*/}"  # -- basename
+DIR="${SELFNAME%/*}"  # -- dirname
+
+# -- my favorite shell functions (and their offspring)
+#
+gripe  () { printf >&2 "%s\n" "$@"; }
+debug  () { : ; }  # -- NOOP for now
+notice () { gripe "${ME}[$$]: $@"; }
+abort  () { 
+   EXIT_CODE="${1}" && shift;
+   gripe "E: $@"; 
+   exit $EXIT_CODE;
+}
+
+usage () {
+  abort 1 "usage: ${ME} <newtree> <oldtree>";
+}
+
+test "$#" -eq 2 || usage
+
+NEWTREE="$( readlink --canonicalize $1 )"   && shift
+OLDTREE="$( readlink --canonicalize $1 )"   && shift
+
+notice "Will walk all documents in $NEWTREE"
+notice "Will create symlinks under $OLDTREE"
+
+DRYRUN=echo
+
+cd "$NEWTREE" \
+  || abort 1 "Could not \"cd $NEWTREE\""
+
+find . -mindepth 1 -maxdepth 1 -type d -printf "%P\n" \
+  | sort | while read STEM ; do
+
+  cd "${OLDTREE}" \
+    || abort 1 "Could not \"cd $OLDTREE\""
+
+  NEWFILE="${NEWTREE}/${STEM}/${STEM}.html"
+  for OLDFILE in html/{HOWTO,FAQ,REF}/${STEM}.html html/LDP/${STEM}/html/${STEM}.html ; do
+    if test -e "$OLDFILE"; then
+      notice "$STEM symlinking (html)  $OLDFILE (to $NEWFILE)"
+      $DRYRUN ln -srf --backup=simple --suffix="-$( date +%F-%T)" -- "$NEWFILE" "$OLDFILE"
+      break
+    else
+      : # -- noop
+      notice "$STEM missing    (html)  $OLDFILE"
+    fi
+  done
+
+  # HTML single file outputs for HOWTO and GUIDE document categories
+  #
+  NEWFILE="${NEWTREE}/${STEM}/${STEM}-single.html"
+  for OLDFILE in html/HOWTO/${STEM}.html html/LDP/${STEM}/html/${STEM}.html ; do
+    if test -e "$OLDFILE"; then
+      notice "$STEM symlinking (htmls) $OLDFILE (to $NEWFILE)"
+      $DRYRUN ln -srf --backup=simple --suffix="-$( date +%F-%T)" -- "$NEWFILE" "$OLDFILE"
+    else
+      : # -- noop
+      notice "$STEM missing    (htmls) $OLDFILE"
+    fi
+  done
+
+    
+  NEWFILE="${NEWTREE}/${STEM}/${STEM}.txt"
+  for OLDFILE in html/{FAQ/faqs,HOWTO/text}/${STEM} html/{LDP,REF}/${STEM}/${STEM}.txt ; do
+    if test -e "$OLDFILE"; then
+      notice "$STEM symlinking (text)  $OLDFILE (to $NEWFILE)"
+      $DRYRUN ln -srf --backup=simple --suffix="-$( date +%F-%T)" -- "$NEWFILE" "$OLDFILE"
+    else
+      : # -- noop
+      notice "$STEM missing    (text)  $OLDFILE"
+    fi
+  done
+
+  NEWFILE="${NEWTREE}/${STEM}/${STEM}.pdf"
+  OLDFILE="html/HOWTO/pdf/${STEM}.pdf"
+  for OLDFILE in html/{HOWTO,FAQ}/pdf/${STEM}.pdf html/{LDP,REF}/${STEM}/${STEM}.pdf ; do
+    if test -e "$OLDFILE"; then
+      notice "$STEM symlinking (pdf)   $OLDFILE (to $NEWFILE)"
+      $DRYRUN ln -srf --backup=simple --suffix="-$( date +%F-%T)" -- "$NEWFILE" "$OLDFILE"
+    else
+      : # -- noop
+      notice "$STEM missing    (pdf)   $OLDFILE"
+    fi
+  done
+
+done
+
+# -- end of file
