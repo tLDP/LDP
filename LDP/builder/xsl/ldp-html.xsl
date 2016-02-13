@@ -14,7 +14,7 @@
 
 <!-- Change this to the path to where you have installed Norman
      Walsh's XSL stylesheets.  -->
-<xsl:import href="/usr/share/sgml/docbook/docbook-xsl-1.44/html/docbook.xsl"/>
+<xsl:import href="http://docbook.sourceforge.net/release/xsl/current/html/docbook.xsl"/>
 
 <!-- Imports the common LDP customization layer. -->
 <xsl:import href="ldp-html-common.xsl"/>

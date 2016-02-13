@@ -11,7 +11,7 @@
 
 <!-- Change this to the path to where you have installed Norman
      Walsh's XSL stylesheets.  -->
-<xsl:import href="/usr/share/xml/docbook/stylesheet/nwalsh/current/fo/docbook.xsl"/>
+<xsl:import href="http://docbook.sourceforge.net/release/xsl/current/fo/docbook.xsl"/>
 
 <!-- Number all sections in the style of 'CH.S1.S2 Section Title' where
      CH is the chapter number,  S1 is the section number and S2 is the
