@@ -34,8 +34,8 @@ ifeq ($(FLAVOR),ubuntu)
 else ifeq ($(FLAVOR),opensuse)
   # -- OpenSUSE-13.2
   # -- for DocBook SGML (DSSSL) processing
-  DBDSL      := /usr/share/sgml/docbook/dsssl-stylesheets-1.79/html/docbook.dsl
-  COLLATE    := /usr/share/sgml/docbook/dsssl-stylesheets-1.79/bin/collateindex.pl
+  DBDSL      := /usr/share/sgml/docbook/dsssl-stylesheets/html/docbook.dsl
+  COLLATE    := /usr/share/sgml/docbook/dsssl-stylesheets/bin/collateindex.pl
   LDPDSL     := /home/mabrown/vcs/LDP/LDP/builder/dsssl/ldp.dsl
   # -- for DocBook XML (XSLT layer) processing
   XSLCHUNK   := /home/mabrown/vcs/LDP/LDP/builder/xsl/ldp-html-chunk.xsl
