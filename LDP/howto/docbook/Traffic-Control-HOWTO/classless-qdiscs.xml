@@ -11,9 +11,6 @@
    Documentation License (GFDL) through The Linux Documentation
    Project (TLDP).
 
-   This was initially authored while Martin A. Brown worked for
-   SecurePipe, Inc.
-
    This HOWTO is likely available at the following address:
 
      http://tldp.org/HOWTO/Traffic-Control-HOWTO/
@@ -40,7 +37,9 @@
     <title>FIFO, First-In First-Out (&sch_pfifo; and &sch_bfifo;)</title>
     <note>
       <para>
-      This is not the default qdisc on Linux interfaces.  Be certain to see
+      Although a FIFO is one of the simplest elements of a queueing system,
+      neither &sch_pfifo; nor &sch_bfifo; is the default qdisc on Linux
+      interfaces.  Be certain to see
       <xref linkend="qs-pfifo_fast"/> for the full details on the default
       (&sch_pfifo_fast;) qdisc.
       </para>
@@ -48,7 +47,8 @@
     <section id="qs-fifo-algorithm">
        <title><constant>pfifo, bfifo</constant> Algorithm</title>
     <para>
-      The FIFO algorithm forms the basis for the default qdisc on all Linux
+      The FIFO algorithm forms the underlying basis for the default qdisc on
+      all Linux
       network interfaces (&link-sch_pfifo_fast;).  It performs no shaping or
       rearranging of packets.  It simply transmits packets as soon as it can
       after receiving and queuing them.  This is also the qdisc used inside
@@ -187,10 +187,24 @@ $ tc -s qdisc ls dev eth0
             Based on a conventional <link linkend="qs-fifo">FIFO</link> &linux-qdisc;, this qdisc also provides some prioritization. It provides three different bands (individual FIFOs) for separating traffic. The highest priority traffic (interactive flows) are placed into band 0 and are always serviced first. Similarly, band 1 is always emptied of pending packets before band 2 is dequeued.
             </para>
             <para>
-                The algorithm is very similar to that of the classful <link linkend="qc-prio">tc-prio qdisc</link>. pfifo_fast is like three tc-pfifo queues side by side, where packets can be enqueued in any of the three bands based on their Type of  Service bits or assigned priority. Not all three bands are dequeued simultaneously - as long as lower bands have traffic, higher bands are never dequeued. This can be used to prioritize interactive traffic or penalize 'lowest cost' traffic. Each band can be txqueuelen packets long, as configured with <link linkend="c-txqueuelen">ifconfig</link> or <link linkend="c-txqueuelen">ip</link>.  Additional packets coming in are not enqueued but are instead dropped.
+                The algorithm is very similar to that of the classful 
+                <link linkend="qc-prio">prio qdisc</link>.  The pfifo_fast qdisc is like
+                three &sch_pfifo; queues side by side, where an individual packet will
+                be enqueued in one of the three FIFOs based on its Type of
+                Service (<acronym>ToS</acronym>) bits.
+                Not all three bands are dequeued simultaneously - as long as
+                lower-numbered (higher priority) bands have traffic,
+                higher-numbered bands are never dequeued.  This can be used to
+                prioritize interactive traffic or penalize 'lowest cost'
+                traffic. Each band can be txqueuelen packets long, as
+                configured with 
+                <link linkend="c-txqueuelen">ifconfig</link> or 
+                <link linkend="c-txqueuelen">ip</link>.  Any additional
+                packets arriving, once a specific band is full, are not
+                enqueued but are instead dropped.
             </para>
             <para>
-                See <link linkend="qd-pfifo_fast-bugs">chapter 6.2.3</link> for complete details on how TOS bits are translated into bands.
+                See <link linkend="qd-pfifo_fast-bugs">chapter 6.2.3</link> for complete details on how ToS bits are translated into bands.
             </para>
     </section>
 
@@ -208,7 +222,7 @@ $ tc -s qdisc ls dev eth0
                     There is nothing configurable to the end user about the pfifo_fast qdisc. This is how it is configured by default:
                 </para>
                 <para>
-                    <constant>priomap</constant> determines how packet priorities, as assigned by the kernel, map to bands. Mapping occurs based on the TOS octet of the packet, which looks like this:
+                    <constant>priomap</constant> determines how packet priorities, as assigned by the kernel, map to bands. Mapping occurs based on the ToS octet of the packet, which looks like this:
                 </para>
                 <mediaobject id="bugs1">
                     <imageobject>
@@ -223,7 +237,7 @@ $ tc -s qdisc ls dev eth0
                 </mediaobject>
 
                 <para>
-                    The four TOS bits (the 'TOS field') are defined as:
+                    The four ToS bits (the 'ToS field') are defined as:
                 </para>
 
                 <mediaobject id="bugs2">
@@ -239,7 +253,7 @@ $ tc -s qdisc ls dev eth0
                 </mediaobject>
 
                 <para>
-                    As there is 1 bit to the right of these four bits, the actual value of the TOS field is double the value of the TOS bits. Tcpdump -v -v shows you the value of the entire TOS field, not just the four bits. It is the value you see in the first column of this table:
+                    As there is 1 bit to the right of these four bits, the actual value of the ToS field is double the value of the ToS bits. Running <command>tcpdump -v -v</command> shows you the value of the entire ToS field, not just the four bits. It is the value you see in the first column of this table:
 
                 </para>
                 <mediaobject id="bugs3">
@@ -255,10 +269,10 @@ $ tc -s qdisc ls dev eth0
                 </mediaobject>
 
                 <para>
-                    Lots of numbers. The second column contains the value of the relevant four TOS bits, followed by their translated meaning. For example, 15 stands for a packet wanting Minimal Monetary Cost, Maximum Reliability, Maximum Throughput AND Minimum Delay.
+                    Lots of numbers. The second column contains the value of the relevant four ToS bits, followed by their translated meaning. For example, 15 stands for a packet wanting Minimal Monetary Cost, Maximum Reliability, Maximum Throughput AND Minimum Delay.
                 </para>
                 <para>
-                    The fourth column lists the way the Linux kernel interprets the TOS bits, by showing to which Priority they are mapped.
+                    The fourth column lists the way the Linux kernel interprets the ToS bits, by showing to which Priority they are mapped.
                 </para>
                 <para>
                     The last column shows the result of the default priomap. On the command line, the default priomap looks like this:
@@ -267,7 +281,7 @@ $ tc -s qdisc ls dev eth0
                     1, 2, 2, 2, 1, 2, 0, 0 , 1, 1, 1, 1, 1, 1, 1, 1
                 </para>
                 <para>
-                    This means that priority 4, for example, gets mapped to band number 1. The priomap also allows you to list higher priorities (> 7) which do not correspond to TOS mappings, but which are set by other means.
+                    This means that priority 4, for example, gets mapped to band number 1. The priomap also allows you to list higher priorities (> 7) which do not correspond to ToS mappings, but which are set by other means.
                 </para>
                 <para>
                     Moreover, differently from other non standard qdisc, pfifo_fast does not maintain statistics and does not show up in tc qdisc ls. This is because it is the automatic default in the absence of  a  configured qdisc.
