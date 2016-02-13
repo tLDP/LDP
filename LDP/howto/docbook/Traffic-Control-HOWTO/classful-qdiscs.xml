@@ -11,9 +11,6 @@
    Documentation License (GFDL) through The Linux Documentation
    Project (TLDP).
 
-   This was initially authored while Martin A. Brown worked for
-   SecurePipe, Inc.
-
    This HOWTO is likely available at the following address:
 
      http://tldp.org/HOWTO/Traffic-Control-HOWTO/
@@ -408,7 +405,8 @@ TC HTB version 3.3
       <title>Rules</title>
       <para>
         Below are some general guidelines to using &sch_htb; culled from
-        &url-docum.org; and the &url-lartc-mailinglist;.  These rules are
+        &url-docum.org; and the &url-new-lartc-mailinglist-archive; (see also the
+        &url-old-lartc-mailinglist-archive;).  These rules are
         simply a recommendation for beginners to maximize the benefit of
         &sch_htb; until gaining a better understanding of the practical
         application of &sch_htb;.
@@ -542,10 +540,16 @@ TC HTB version 3.3
     <section id="qc-prio-algorithm">
     <title>Algorithm</title>
     <para>
-        On creation with 'tc qdisc add', a fixed number of  bands  is  created. Each band is a class, although is not possible to add classes with 'tc qdisc add', the number of bands to be created must instead be specified on the command line attaching PRIO to its root.
+        On creation with <command>tc qdisc add</command>, a fixed number of
+        bands is created.  Each band is a class, although is not possible to
+        add classes with <command>tc class add</command>.  The number of bands
+        to be created is fixed at the creation of the qdisc itself.
     </para>
     <para>
-        When dequeueing, band 0 is tried first and only if it did not deliver a packet does PRIO try band 1, and so onwards. Maximum reliability packets should therefore go to band 0, minimum delay to band 1 and the rest to band 2.
+        When dequeueing packets, band 0 is always checked first.  If it
+        has no packet to dequeue, then &sch_prio; will try band 1, and so
+        onwards.  Maximum reliability packets should therefore go to band 0,
+        minimum delay to band 1 and the rest to band 2.
     </para>
     <para>
         As the PRIO qdisc itself will have minor number 0, band 0 is  actually major:1, band 1 is major:2, etc. For major, substitute the major number assigned to the qdisc on 'tc qdisc add' with the handle parameter.
@@ -555,31 +559,37 @@ TC HTB version 3.3
     <section id="qc-prio-synopsis">
         <title>Synopsis</title>
         <programlisting>
-$ tc  qdisc ... dev dev ( parent classid | root) [ handle major: ] prio [bands bands ] [ priomap band band band...  ] [ estimator interval time‐constant ]
+$ tc qdisc ... dev dev ( parent classid | root) [ handle major: ] prio [bands bands ] [ priomap band band band...  ] [ estimator interval time‐constant ]
         </programlisting>
     </section>
 
     <section id="qc-prio-classification">
         <title>Classification</title>
         <para>
-            Three methods are available to PRIO to determine in which band a packet will be enqueued.
+            Three methods are available to determine the target band in which a packet will be enqueued.
         </para>
         <itemizedlist>
-            <listitem>
-                <para>
-                    <emphasis>From userspace:</emphasis> a process with sufficient privileges can encode the destination class directly with SO_PRIORITY.
-                </para>
-            </listitem>
-            <listitem>
-                <para>
-                    <emphasis>with a tc filter:</emphasis> a tc filter  attached  to  the  root  qdisc  can  point  traffic directly to a class
-                </para>
-            </listitem>
-            <listitem>
-                <para>
-                    <emphasis>with the priomap:</emphasis> based  on the packet priority, which in turn is derived from the Type of Service assigned to the packet.
-                </para>
-            </listitem>
+          <listitem>
+            <para>
+                <emphasis>From userspace</emphasis>, a process with
+                sufficient privileges can encode the destination class
+                directly with SO_PRIORITY.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+                <emphasis>Programmatically</emphasis>, a <command>tc filter</command>
+                attached to the root qdisc can point any traffic directly to a
+                class.
+            </para>
+          </listitem>
+          <listitem>
+            <para>
+                And, typically, <emphasis>with reference to the priomap</emphasis>, a packet's
+                priority, is derived from the Type of Service
+                (<acronym>ToS</acronym>) assigned to the packet.
+            </para>
+          </listitem>
         </itemizedlist>
         <para>
             Only the priomap is specific to this qdisc.
@@ -587,66 +597,228 @@ $ tc  qdisc ... dev dev ( parent classid | root) [ handle major: ] prio [bands b
     </section>
 
     <section id="qc-prio-parameters">
-        <title>Parameters</title>
-        <itemizedlist>
+        <title>Configurable parameters</title>
+        <variablelist>
+          <varlistentry>
+            <term>bands</term>
             <listitem>
                 <para>
-                    <emphasis>bands:</emphasis> number of bands. If changed from the default of 3, priomap  must be updated as well.
+                  total number of distinct bands. If changed from the default of 3, priomap must be updated as well.
                 </para>
             </listitem>
+          </varlistentry>
+          <varlistentry>
+            <term>priomap</term>
             <listitem>
                 <para>
-                    <emphasis>priomap:</emphasis> a tc filter  attached  to  the  root  qdisc  can  point  traffic directly to a class
+                  a tc filter attached to the  root  qdisc  can  point  traffic directly to a class
                 </para>
             </listitem>
-        </itemizedlist>
+          </varlistentry>
+        </variablelist>
         <para>
-            <emphasis>priomap</emphasis> determines how packet priorities, as assigned by the kernel, map to bands. Mapping occurs based on the TOS octet of  the  packet, which looks like this:
+          The <emphasis>priomap</emphasis> specifies how this qdisc determines
+          how a packet maps to a specific band.  Mapping occurs based on the
+          value of the ToS octet of a packet.
         </para>
-        <mediaobject id="parameters1">
-            <imageobject>
-                <imagedata fileref="images/parameters1.eps" format="EPS"/>
-            </imageobject>
-            <imageobject>
-                <imagedata fileref="images/parameters1.png" format="PNG"/>
-            </imageobject>
-            <imageobject>
-                <imagedata fileref="images/parameters1.jpg" format="JPG"/>
-            </imageobject>
-        </mediaobject>
+        <screen>
+   0     1     2     3     4     5     6     7
++-----+-----+-----+-----+-----+-----+-----+-----+
+|   PRECEDENCE    |          ToS          | MBZ |   RFC 791
++-----+-----+-----+-----+-----+-----+-----+-----+
+
+   0     1     2     3     4     5     6     7
++-----+-----+-----+-----+-----+-----+-----+-----+
+|    DiffServ Code Point (DSCP)     |  (unused) |   RFC 2474
++-----+-----+-----+-----+-----+-----+-----+-----+
+        </screen>
         <para>
-            The four TOS bits (the 'TOS field') are defined as:
+          The four ToS bits from the  (the 'ToS field') are defined slightly
+          differently in RFC 791 and RFC 2474.  The later RFC supersedes the
+          definitions of the former, but not all software, systems and
+          terminology have caught up to that change.  So, often packet
+          analysis programs will still refer to Type of Service (ToS) instead
+          of DiffServ Code Point (DSCP).
         </para>
-        <mediaobject id="parameters2">
-            <imageobject>
-                <imagedata fileref="images/parameters2.eps" format="EPS"/>
-            </imageobject>
-            <imageobject>
-                <imagedata fileref="images/parameters2.png" format="PNG"/>
-            </imageobject>
-            <imageobject>
-                <imagedata fileref="images/parameters2.jpg" format="JPG"/>
-            </imageobject>
-        </mediaobject>
+        <table>
+          <title><ulink url="https://tools.ietf.org/rfc/rfc791.txt">RFC 791</ulink> interpretation of IP ToS header</title>
+          <tgroup cols="3">
+            <thead>
+              <row>
+                <entry>Binary</entry>
+                <entry>Decimal</entry>
+                <entry>Meaning</entry>
+              </row>
+            </thead>
+            <tbody>
+              <row>
+                <entry>1000</entry>
+                <entry>8</entry>
+                <entry>Minimize delay (md)</entry>
+              </row>
+              <row>
+                <entry>0100</entry>
+                <entry>4</entry>
+                <entry>Maximize throughput (mt)</entry>
+              </row>
+              <row>
+                <entry>0010</entry>
+                <entry>2</entry>
+                <entry>Maximize reliability (mr)</entry>
+              </row>
+              <row>
+                <entry>0001</entry>
+                <entry>1</entry>
+                <entry>Minimize monetary cost (mmc)</entry>
+              </row>
+              <row>
+                <entry>0000</entry>
+                <entry>0</entry>
+                <entry>Normal Service</entry>
+              </row>
+            </tbody>
+          </tgroup>
+        </table>
         <para>
-            As there is 1 bit to the right of these four bits, the actual value of the TOS field is double the value of the TOS bits. Tcpdump -v -v shows you the value of the entire TOS field, not just the four bits. It is the value you see in the  first  column  of this table:
+            As there is 1 bit to the right of these four bits, the actual
+            value of the ToS field is double the value of the ToS bits.
+            Running <command>tcpdump -v -v</command> shows you the value of
+            the entire ToS field, not just the four bits. It is the value you
+            see in the  first  column  of this table:
         </para>
-        <mediaobject id="parameters3">
-            <imageobject>
-                <imagedata fileref="images/parameters3.eps" format="EPS"/>
-            </imageobject>
-            <imageobject>
-                <imagedata fileref="images/parameters3.png" format="PNG"/>
-            </imageobject>
-            <imageobject>
-                <imagedata fileref="images/parameters3.jpg" format="JPG"/>
-            </imageobject>
-        </mediaobject>
+        <table>
+          <title>Mapping ToS value to priomap band</title>
+          <tgroup cols="5">
+            <thead>
+              <row>
+                <entry>ToS Field</entry>
+                <entry>ToS Bits</entry>
+                <entry>Meaning</entry>
+                <entry>Linux Priority</entry>
+                <entry>Band</entry>
+              </row>
+            </thead>
+            <tbody>
+              <row>
+                <entry>0x0</entry>
+                <entry>0</entry>
+                <entry>Normal Service</entry>
+                <entry>0 Best Effort</entry>
+                <entry>1</entry>
+              </row>
+              <row>
+                <entry>0x2</entry>
+                <entry>1</entry>
+                <entry>Minimize Monetary Cost (mmc)</entry>
+                <entry>1 Filler</entry>
+                <entry>2</entry>
+              </row>
+              <row>
+                <entry>0x4</entry>
+                <entry>2</entry>
+                <entry>Maximize Reliability (mr)</entry>
+                <entry>0 Best Effort</entry>
+                <entry>1</entry>
+              </row>
+              <row>
+                <entry>0x6</entry>
+                <entry>3</entry>
+                <entry>mmc+mr</entry>
+                <entry>0 Best Effort</entry>
+                <entry>1</entry>
+              </row>
+              <row>
+                <entry>0x8</entry>
+                <entry>4</entry>
+                <entry>Maximize Throughput (mt)</entry>
+                <entry>2 Bulk</entry>
+                <entry>2</entry>
+              </row>
+              <row>
+                <entry>0xa</entry>
+                <entry>5</entry>
+                <entry>mmc+mt</entry>
+                <entry>2 Bulk</entry>
+                <entry>2</entry>
+              </row>
+              <row>
+                <entry>0xc</entry>
+                <entry>6</entry>
+                <entry>mr+mt</entry>
+                <entry>2 Bulk</entry>
+                <entry>2</entry>
+              </row>
+              <row>
+                <entry>0xe</entry>
+                <entry>7</entry>
+                <entry>mmc+mr+mt</entry>
+                <entry>2 Bulk</entry>
+                <entry>2</entry>
+              </row>
+              <row>
+                <entry>0x10</entry>
+                <entry>8</entry>
+                <entry>Minimize Delay (md)</entry>
+                <entry>6 Interactive</entry>
+                <entry>0</entry>
+              </row>
+              <row>
+                <entry>0x12</entry>
+                <entry>9</entry>
+                <entry>mmc+md</entry>
+                <entry>6 Interactive</entry>
+                <entry>0</entry>
+              </row>
+              <row>
+                <entry>0x14</entry>
+                <entry>10</entry>
+                <entry>mr+md</entry>
+                <entry>6 Interactive</entry>
+                <entry>0</entry>
+              </row>
+              <row>
+                <entry>0x16</entry>
+                <entry>11</entry>
+                <entry>mmc+mr+md</entry>
+                <entry>6 Interactive</entry>
+                <entry>0</entry>
+              </row>
+              <row>
+                <entry>0x18</entry>
+                <entry>12</entry>
+                <entry>mt+md</entry>
+                <entry>4 Int. Bulk</entry>
+                <entry>1</entry>
+              </row>
+              <row>
+                <entry>0x1a</entry>
+                <entry>13</entry>
+                <entry>mmc+mt+md</entry>
+                <entry>4 Int. Bulk</entry>
+                <entry>1</entry>
+              </row>
+              <row>
+                <entry>0x1c</entry>
+                <entry>14</entry>
+                <entry>mr+mt+md</entry>
+                <entry>4 Int. Bulk</entry>
+                <entry>1</entry>
+              </row>
+              <row>
+                <entry>0x1e</entry>
+                <entry>15</entry>
+                <entry>mmc+mr+mt+md</entry>
+                <entry>4 Int. Bulk</entry>
+                <entry>1</entry>
+              </row>
+            </tbody>
+          </tgroup>
+        </table>
         <para>
-            The second column contains the value of the relevant four TOS bits, followed by their  translated  meaning. For example, 15 stands for a packet wanting Minimal Monetary Cost, Maximum Reliability, Maximum Throughput AND Minimum Delay.
+            The second column contains the value of the relevant four ToS bits, followed by their  translated  meaning. For example, 15 stands for a packet wanting Minimal Monetary Cost, Maximum Reliability, Maximum Throughput AND Minimum Delay.
         </para>
         <para>
-            The fourth column lists the way the Linux kernel interprets the TOS bits, by showing to which Priority they are mapped.
+            The fourth column lists the way the Linux kernel interprets the ToS bits, by showing to which Priority they are mapped.
         </para>
         <para>
             The last column shows the result of the default priomap. On the command line, the default priomap looks like this:
@@ -655,7 +827,7 @@ $ tc  qdisc ... dev dev ( parent classid | root) [ handle major: ] prio [bands b
             1 2 2 2 1 2 0 0 1 1 1 1 1 1 1 1
         </para>
         <para>
-            This means that priority 4, for example,  gets  mapped  to  band number 1.  The priomap also allows you to list higher priorities (> 7) which do not correspond to TOS mappings, but which are set by other means.
+            This means that priority 4, for example,  gets  mapped  to  band number 1.  The priomap also allows you to list higher priorities (> 7) which do not correspond to ToS mappings, but which are set by other means.
         </para>
     </section>
 
@@ -676,10 +848,15 @@ $ tc  qdisc ... dev dev ( parent classid | root) [ handle major: ] prio [bands b
   </section>
 
   <section id="qc-cbq">
-    <title>&sch_cbq;, Class Based Queuing</title>
+    <title>&sch_cbq;, Class Based Queuing (<acronym>CBQ</acronym>)</title>
     <para>
-      CBQ is the classic implementation (also called venerable) of a traffic
-      control system. Class Based Queueing is a classful qdisc that implements a rich linksharing hierarchy of classes.  It contains shaping elements as well as prioritizing capabilities.  Shaping is performed  using link  idle time  calculations based on the timing of dequeue events and underlying link bandwidth.
+      Class Based Queuing (<acronym>CBQ</acronym>) is the classic
+      implementation (also called venerable) of a traffic control system.  CBQ
+      is a classful qdisc that implements a rich link sharing hierarchy of
+      classes.  It contains shaping elements as well as prioritizing
+      capabilities.  Shaping is performed by calculating link idle time
+      based on the timing of dequeue events and knowledge of the underlying
+      link layer bandwidth.
     </para>
 
     <section id="qc-cbq-shaping">
@@ -688,16 +865,16 @@ $ tc  qdisc ... dev dev ( parent classid | root) [ handle major: ] prio [bands b
             Shaping is done using link idle time calculations, and actions taken if these calculations deviate from set limits.
         </para>
         <para>
-            When  shaping a 10mbit/s connection to 1mbit/s, the link will be idle 90% of the time. If it isn't, it needs to be throttled so that it is idle 90% of the time.
+            When shaping a 10mbit/s connection to 1mbit/s, the link will be idle 90% of the time. If it isn't, it needs to be throttled so that it is idle 90% of the time.
         </para>
         <para>
-            From the kernel's perspective, this is hard to measure, so CBQ instead derives the idle time from the number of microseconds that elapse between requests from the device driver for more data. Combined with the knowledge of packet sizes, this is used to approximate how full or empty the link is.
+            From the kernel's perspective, this is hard to measure, so CBQ instead computes idle time from the number of microseconds that elapse between requests from the device driver for more data.  Combined with the knowledge of packet sizes, this is used to approximate how full or empty the link is.
         </para>
         <para>
-            This is rather circumspect and doesn't always arrive at proper results. The physical link bandwidth may be ill defined in  case  of  not-quite-real  network  devices  like PPP over Ethernet or PPTP over TCP/IP. The effective bandwidth in that case is probably determined by the efficiency of pipes to userspace - which not defined.
+            This is rather circumspect and doesn't always arrive at proper results. The physical link bandwidth may be ill defined in case of not-quite-real network devices like PPP over Ethernet or PPTP over TCP/IP. The effective bandwidth in that case is probably determined by the efficiency of pipes to userspace - which not defined.
         </para>
         <para>
-            During operations, the effective idletime is measured using an exponential weighted moving average (EWMA), which considers recent packets to be exponentially more important than past ones. The Unix loadaverage is calculated in the same way.
+            During operations, the effective idletime is measured using an exponential weighted moving average (EWMA).  This calculation of activity against idleness values recent packets exponentially more than predecessors.  The EWMA is an effective calculation to deal with the problem that a system is either active or inactive.  For example, the Unix system load average is calculated in the same way.
         </para>
         <para>
             The calculated idle time is subtracted from the EWMA measured one, the resulting number is called 'avgidle'. A perfectly loaded link has an avgidle of zero: packets arrive exactly at the calculated interval.
@@ -714,7 +891,7 @@ $ tc  qdisc ... dev dev ( parent classid | root) [ handle major: ] prio [bands b
     <section id="qc-cbq-classification">
         <title>Classification</title>
         <para>
-            Within the one CBQ instance many  classes  may  exist.  Each  of  these classes contains another qdisc, by default <link linkend="qs-fifo">tc-pfifo</link>.
+            Under one installed CBQ qdisc many classes may exist.  Each of these classes contains another qdisc, by default <link linkend="qs-fifo">tc-pfifo</link>.
         </para>
         <para>
             When enqueueing a packet, CBQ starts at the root and uses various methods to determine which class should receive the data. If a verdict is reached, this process is repeated for the recipient class which might have further means of classifying traffic to its children, if any. CBQ has the following methods available to classify  a  packet  to  any child classes.
@@ -732,7 +909,7 @@ $ tc  qdisc ... dev dev ( parent classid | root) [ handle major: ] prio [bands b
             </listitem>
             <listitem>
                 <para>
-                    <emphasis>The defmap of a class</emphasis>, as set with the split  and  defmap  parameters.  The defmap  may  contain  instructions for each possible Linux packet priority.
+                    <emphasis>The defmap of a class</emphasis>, as set with the split and  defmap parameters.  The defmap  may contain instructions for each possible Linux packet priority.
                 </para>
             </listitem>
         </itemizedlist>
@@ -749,7 +926,7 @@ $ tc  qdisc ... dev dev ( parent classid | root) [ handle major: ] prio [bands b
         <itemizedlist>
             <listitem>
                 <para>
-                    If the packet is generated  locally and has a valid  classid encoded within its skb->priority, choose it and terminate.
+                    If the packet is generated locally and has a valid  classid encoded within its skb->priority, choose it and terminate.
                 </para>
             </listitem>
             <listitem>
@@ -774,7 +951,7 @@ $ tc  qdisc ... dev dev ( parent classid | root) [ handle major: ] prio [bands b
         <itemizedlist>
             <listitem>
                 <para>
-                    Consult the  defmap of the class at which the jump to fallback occured. If the defmap contains a class for the priority of the class (which is related to the TOS field), choose this class and terminate.
+                    Consult the  defmap of the class at which the jump to fallback occured. If the defmap contains a class for the priority of the class (which is related to the ToS field), choose this class and terminate.
                 </para>
             </listitem>
             <listitem>
@@ -811,43 +988,84 @@ $ tc  qdisc ... dev dev ( parent classid | root) [ handle major: ] prio [bands b
     <para>
         The root qdisc of a CBQ class tree has the following parameters:
     </para>
-    <itemizedlist>
+    <variablelist>
+      <varlistentry>
+        <term><constant>parent</constant> <group choice="req"><replaceable>root</replaceable> | <replaceable>major:minor</replaceable></group></term>
         <listitem>
             <para>
-                <emphasis>parent major:minor | root:</emphasis> this  mandatory  parameter  determines  the  place  of  the  CBQ instance, either at the root of an interface or within an existing class.
+                this mandatory parameter determines the place of the CBQ
+                instance, either at the root of an interface or within an
+                existing class.
             </para>
         </listitem>
+      </varlistentry>
+      <varlistentry>
+        <term><constant>handle</constant> <replaceable>major:</replaceable></term>
         <listitem>
             <para>
-                <emphasis>handle major:</emphasis> like all other qdiscs, the CBQ can be assigned a handle.  Should consist only of a major number, followed by a colon. This parameter is optional.
+                like all other qdiscs, the CBQ can be assigned a handle.
+                Should consist only of a major number, followed by a colon.
+                This parameter is optional.
             </para>
         </listitem>
+      </varlistentry>
+      <varlistentry>
+        <term><constant>avpkt</constant> <replaceable>bytes</replaceable></term>
         <listitem>
             <para>
-                <emphasis>avpkt bytes:</emphasis> for calculations,  the average packet size must be known. It is silently capped at a minimum of 2/3 of the interface MTU. This parameter is Mandatory.
+                for calculations, the average packet size must be known.  It is
+                silently capped at a minimum of 2/3 of the interface MTU.  This
+                parameter is mandatory.
             </para>
         </listitem>
+      </varlistentry>
+      <varlistentry>
+        <term><constant>bandwidth</constant> <replaceable>rate</replaceable></term>
         <listitem>
             <para>
-                <emphasis>bandwidth rate:</emphasis> to determine the idle time, CBQ must know the bandwidth of your underlying physical interface, or parent qdisc. This is a vital parameter, more about it later. This parameter is Mandatory.
+                underlying available bandwidth; to determine the idle time,
+                CBQ must know the bandwidth of your A) desired target
+                bandwidth, B) underlying physical interface or C) parent
+                qdisc. This is a vital parameter, more about it later. This
+                parameter is mandatory.
             </para>
         </listitem>
+      </varlistentry>
+      <varlistentry>
+        <term><constant>cell</constant> <replaceable>size</replaceable></term>
         <listitem>
             <para>
-                <emphasis>cell:</emphasis> the  cell  size determines the granularity of packet transmission time calculations. Has a sensible default.
+                the cell size determines the granularity of packet
+                transmission time calculations. Must be an integral power of
+                2, defaults to 8.
             </para>
         </listitem>
+      </varlistentry>
+      <varlistentry>
+        <term><constant>mpu</constant> <replaceable>bytes</replaceable></term>
         <listitem>
             <para>
-                <emphasis>mpu:</emphasis> a zero sized packet may still take time to transmit. This  value is  the  lower  cap  for packet transmission time calculations - packets smaller than this value are still deemed  to  have  this size. Defaults to zero.
+                a zero sized packet may still take time to transmit. This
+                value is the lower cap for packet transmission time
+                calculations - packets smaller than this value are still
+                deemed to have this size.  Defaults to 0.
             </para>
         </listitem>
+      </varlistentry>
+      <varlistentry>
+        <term><constant>ewma</constant> <replaceable>log</replaceable></term>
         <listitem>
             <para>
-                <emphasis>ewma log:</emphasis> when  CBQ  needs  to  measure  the average idle time, it does so using an Exponentially Weighted Moving Average which smooths out measurements  into a moving average. The EWMA LOG determines how much smoothing occurs. Defaults to 5. Lower values imply greater sensitivity. Must be between 0 and 31.
+                CBQ calculates idleness using an Exponentially Weighted Moving
+                Average (<acronym>EWMA</acronym>) which smooths out
+                measurements easily accommodating short bursts. The
+                <replaceable>log</replaceable> value determines how much
+                smoothing occurs.  Lower values imply greater sensitivity.
+                Must be between 0 and 31.  Defaults to 5.
             </para>
         </listitem>
-    </itemizedlist>
+      </varlistentry>
+    </variablelist>
     <para>
         A CBQ qdisc does not shape out of its own accord. It only needs to know certain parameters about the underlying link. Actual shaping is done in classes.
     </para>
@@ -858,67 +1076,150 @@ $ tc  qdisc ... dev dev ( parent classid | root) [ handle major: ] prio [bands b
     <para>
         Classes have a lot of parameters to configure their operation.
     </para>
-    <itemizedlist>
+    <variablelist>
+      <varlistentry>
+        <term><constant>parent</constant> <replaceable>major:minor</replaceable></term>
         <listitem>
             <para>
-                <emphasis>parent major:minor:</emphasis> place  of  this class within the hierarchy. If attached directly to a qdisc and not to another  class,  minor  can  be  omitted. This parameter is mandatory.
+                place of this class within the hierarchy. If attached directly
+                to a qdisc and not to another  class,  minor  can  be
+                omitted.  This parameter is mandatory.
             </para>
         </listitem>
+      </varlistentry>
+      <varlistentry>
+        <term><constant>classid</constant> <replaceable>major:minor</replaceable></term>
         <listitem>
             <para>
-                <emphasis>classid major:minor:</emphasis> like  qdiscs,  classes  can  be  named. The major number must be equal to the major number of the  qdisc  to  which  it  belongs. Optional, but needed if this class is going to have children.
+                like  qdiscs,  classes  can  be  named. The major number must be equal to the major number of the  qdisc  to  which  it  belongs. Optional, but needed if this class is going to have children.
             </para>
         </listitem>
+      </varlistentry>
+      <varlistentry>
+        <term><constant>weight</constant> <replaceable>weightvalue</replaceable></term>
         <listitem>
             <para>
-                <emphasis>weight weight:</emphasis> when  dequeuing  to the interface, classes are tried for traffic in a round-robin fashion. Classes with a higher configured qdisc will  generally have more traffic to offer during each round, so it makes sense to allow it to dequeue more traffic. All  weights under  a  class  are  normalized,  so  only  the  ratios matter. Defaults to the configured rate, unless  the  priority  of  this class is maximal, in which case it is set to 1.
+                when  dequeuing to the lower layer, classes are tried for
+                traffic in a round-robin fashion. Classes with a higher
+                configured qdisc will generally have more traffic to offer
+                during each round, so it makes sense to allow it to dequeue
+                more traffic. All weights under a class are normalized, so
+                only the ratios matter.  Defaults to the configured rate,
+                unless the priority of this class is maximal, in which case it
+                is set to 1.
             </para>
         </listitem>
+      </varlistentry>
+      <varlistentry>
+        <term><constant>allot</constant> <replaceable>bytes</replaceable></term>
         <listitem>
             <para>
-                <emphasis>allot bytes:</emphasis> allot  specifies  how many bytes a qdisc can dequeue during each round of the process.  This  parameter  is  weighted  using  the renormalized class weight described above.
+                allot specifies how many bytes a qdisc can dequeue during
+                each round of the process.  This parameter is weighted
+                using the renormalized class weight described above.
             </para>
         </listitem>
+      </varlistentry>
+      <varlistentry>
+        <term><constant>priority</constant> <replaceable>priovalue</replaceable></term>
         <listitem>
             <para>
-                <emphasis>priority priority:</emphasis> in  the  round-robin  process,  classes with the lowest priority field are tried for packets first. This parameter is mandatory.
+                in the round-robin process, classes with the lowest priority
+                field are tried for packets first. This parameter is
+                mandatory.
             </para>
         </listitem>
+      </varlistentry>
+      <varlistentry>
+        <term><constant>rate</constant> <replaceable>bitrate</replaceable></term>
         <listitem>
             <para>
-                <emphasis>rate rate:</emphasis> maximum rate this class and all its children combined  can  sendat. This parameter is mandatory.
+                maximum aggregated rate at which this class (children
+                inclusive) can transmit.  The bitrate is specified using the
+                <command>tc</command> way of specifying rates (e.g.
+                '1544kbit').  This parameter is mandatory.
             </para>
         </listitem>
+      </varlistentry>
+      <varlistentry>
+        <term><constant>bandwidth</constant> <replaceable>bitrate</replaceable></term>
         <listitem>
             <para>
-                <emphasis>bandwidth rate:</emphasis> this  is  different from the bandwidth specified when creating a CBQ disc. Only used to determine maxidle and offtime, which  are only  calculated when specifying maxburst or minburst. Mandatory if specifying maxburst or minburst.
+                this is different from the bandwidth specified when creating a
+                parent CBQ qdisc.  The CBQ class
+                <constant>bandwidth</constant> parameter is only used to
+                determine maxidle and offtime, which, in turn, are only
+                calculated when specifying maxburst or minburst.  Thus, this
+                parameter is only required if specifying
+                <constant>maxburst</constant> or
+                <constant>minburst</constant>.
             </para>
         </listitem>
+      </varlistentry>
+      <varlistentry>
+        <term><constant>maxburst</constant> <replaceable>packetcount</replaceable></term>
+        <term></term>
         <listitem>
             <para>
-                <emphasis>maxburst:</emphasis> this number of packets is used to calculate maxidle so that when avgidle  is  at  maxidle,  this number of average packets can be burst before avgidle drops to 0. Set it higher to be more tolerant  of  bursts.  You can't set maxidle directly, only via this parameter.
+                this number of packets is used to calculate maxidle so that
+                when avgidle  is  at  maxidle,  this number of average packets
+                can be burst before avgidle drops to 0. Set it higher to be
+                more tolerant  of  bursts.  You can't set maxidle directly,
+                only via this parameter.
                 </para>
             </listitem>
+      </varlistentry>
+      <varlistentry>
+        <term><constant>minburst</constant> <replaceable>packetcount</replaceable></term>
             <listitem>
                 <para>
-                    <emphasis>minburst:</emphasis> as mentioned before, CBQ needs to throttle in case of overlimit. The  ideal  solution is to do so for exactly the calculated idle time, and pass 1 packet. However, Unix kernels generally have  a hard  time  scheduling events shorter than 10ms, so it is better to throttle for a longer period, and then pass minburst  packets in one go, and then sleep minburst times longer. The  time  to  wait is called the offtime. Higher values of minburst lead to more accurate shaping in the  long  term,  but  to bigger bursts at millisecond timescales.
+                    as mentioned before, CBQ needs to throttle in case of
+                    overlimit. The  ideal  solution is to do so for exactly
+                    the calculated idle time, and pass 1 packet. However, Unix
+                    kernels generally have  a hard  time  scheduling events
+                    shorter than 10ms, so it is better to throttle for a
+                    longer period, and then pass minburst  packets in one go,
+                    and then sleep minburst times longer. The  time  to  wait
+                    is called the offtime. Higher values of minburst lead to
+                    more accurate shaping in the  long  term,  but  to bigger
+                    bursts at millisecond timescales.
                 </para>
             </listitem>
+      </varlistentry>
+      <varlistentry>
+        <term><constant>minidle</constant> <replaceable>microseconds</replaceable></term>
+        <term></term>
             <listitem>
                 <para>
-                    <emphasis>minidle:</emphasis> if  avgidle is below 0, we are overlimits and need to wait until avgidle will be big enough to send one packet. To prevent a sudden  burst from shutting down the link for a prolonged period of time, avgidle is reset to minidle if it gets too low. Minidle is specified in negative microseconds, so 10 means  that avgidle is capped at -10us.
+                    <emphasis>minidle:</emphasis> if  avgidle is below 0, we are overlimits and need to wait until avgidle will be big enough to send one packet. To prevent a sudden burst from shutting down the link for a prolonged period of time, avgidle is reset to minidle if it gets too low.  Minidle is specified in negative microseconds, so 10 means  that avgidle is capped at -10us.
                 </para>
             </listitem>
+      </varlistentry>
+      <varlistentry>
+        <term><group choice="opt"><constant>bounded</constant> | <constant>borrow</constant></group></term>
+        <term></term>
             <listitem>
                 <para>
-                    <emphasis>bounded:</emphasis> signifies  that  this  class  will not borrow bandwidth from its siblings.
+                    identifies a borrowing policy.  Either the class will try
+                    to <constant>borrow</constant> bandwidth from its siblings
+                    or it will consider itself <constant>bounded</constant>.
+                    Mutually exclusive.
                 </para>
             </listitem>
+      </varlistentry>
+      <varlistentry>
+        <term><group choice="opt"><constant>isolated</constant> | <constant>sharing</constant></group></term>
             <listitem>
                 <para>
-                    <emphasis>isolated:</emphasis> means that this class will not borrow bandwidth to its siblings
+                    identifies a sharing policy.  Either the class will engage
+                    in a <constant>sharing</constant> policy toward its
+                    siblings or it will consider itself
+                    <constant>isolated</constant>.  Mutually exclusive.
                 </para>
             </listitem>
+      </varlistentry>
+      <varlistentry>
+        <term></term>
             <listitem>
                 <para>
                     <emphasis>split major:minor and defmap bitmap[/bitmap]:</emphasis> if consulting filters attached to a class did not  give  a  verdict,  CBQ  can  also  classify  based on the packet's priority. There are 16 priorities available, numbered from 0 to 15. The defmap  specifies  which  priorities  this  class  wants  to receive, specified as a bitmap. The Least Significant Bit corresponds to priority zero. The split parameter tells CBQ at  which class the decision must be made, which should be a (grand)parent of the class you are adding.
@@ -930,12 +1231,16 @@ $ tc  qdisc ... dev dev ( parent classid | root) [ handle major: ] prio [bands b
                     The complimentary configuration would then be: 'tc class add ... classid  10:2 cbq ... split 10:0 defmap 3f' Which would send all packets 0, 1, 2, 3, 4 and 5 to 10:1.
                 </para>
             </listitem>
+      </varlistentry>
+      <varlistentry>
+        <term></term>
             <listitem>
                 <para>
                     <emphasis>estimator interval timeconstant:</emphasis> CBQ can measure how much bandwidth each class is using, which tc filters  can use to classify packets with. In order to determine the bandwidth it uses a very simple estimator that measures once every  interval  microseconds  how much traffic has passed. This again is a EWMA, for which the time constant can  be  specified, also in microseconds. The time constant corresponds to the sluggishness of the measurement or, conversely, to  the  sensitivity of  the  average to short bursts. Higher values mean less sensitivity.
                 </para>
             </listitem>
-        </itemizedlist>
+      </varlistentry>
+    </variablelist>
     </section>
 </section>
 
