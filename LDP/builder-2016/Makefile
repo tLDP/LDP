@@ -34,8 +34,8 @@ ifeq ($(FLAVOR),ubuntu)
 else ifeq ($(FLAVOR),opensuse)
   # -- OpenSUSE-13.2
   # -- for DocBook SGML (DSSSL) processing
-  DBDSL      := /usr/share/sgml/docbook/dsssl-stylesheets-1.79/html/docbook.dsl
-  COLLATE    := /usr/share/sgml/docbook/dsssl-stylesheets-1.79/bin/collateindex.pl
+  DBDSL      := /usr/share/sgml/docbook/dsssl-stylesheets/html/docbook.dsl
+  COLLATE    := /usr/share/sgml/docbook/dsssl-stylesheets/bin/collateindex.pl
   LDPDSL     := /home/mabrown/vcs/LDP/LDP/builder/dsssl/ldp.dsl
   # -- for DocBook XML (XSLT layer) processing
   XSLCHUNK   := /home/mabrown/vcs/LDP/LDP/builder/xsl/ldp-html-chunk.xsl
@@ -71,6 +71,8 @@ PDF         = $(abspath $(OUTDIR)/$(OBJSTEM).pdf)
 HTML        = $(abspath $(OUTDIR)/$(OBJSTEM).html)
 HTMLS       = $(abspath $(OUTDIR)/$(OBJSTEM)-single.html)
 TEXT        = $(abspath $(OUTDIR)/$(OBJSTEM).txt)
+TEXTGZ      = $(TEXT).gz
+TARBALL     = $(HTML).tar.gz
 
 
 # - - - - - - - - - - - - - - - - - - - - - - -
@@ -88,6 +90,18 @@ $(OUTDIR): $(WORKING)
 
 $(OUTDIR)/images $(OUTDIR)/resources: $(OUTDIR)
 	(cd $(OBJDIR) && test ! -d $(notdir $@) || rsync -aL $(VERBOSE) ./$(notdir $@) $(OUTDIR))
+
+$(TEXTGZ): $(OBJFORMAT)-$(TEXT)
+	(cd $(OUTDIR) && gzip --stdout < $(TEXT) > $(TEXTGZ))
+
+$(TARBALL): $(OBJFORMAT)-$(HTMLS) $(OBJFORMAT)-$(HTML)
+	(cd $(WORKING) \
+	  && tar $(VERBOSE) --gzip --create --file $(TARBALL) \
+	     --exclude $(OBJSTEM)/$(notdir $(TARBALL)) \
+	     --exclude $(OBJSTEM)/$(notdir $(PDF)) \
+	     --exclude $(OBJSTEM)/$(notdir $(TEXT)) \
+	     -- $(OBJSTEM))
+
 
 .PHONY: announce
 announce:
@@ -137,7 +151,7 @@ sgml-$(TEXT): sgml-$(HTMLS)
 sgml-$(PDF): $(OUTDIR)
 	( cd $(OUTDIR) \
           && jw -f docbook -b pdf --output . $(OBJ) \
-	  || dblatex -F sgml -t pdf -o sgml-$(PDF) $(OBJ))
+	  || dblatex -F sgml -t pdf -o $(PDF) $(OBJ))
 
 .PHONY: sgml-$(HTML)
 sgml-$(HTML): $(OUTDIR)

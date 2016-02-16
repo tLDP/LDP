@@ -68,15 +68,15 @@
 
 
 <!-- Make funcsynopsis look pretty -->
-<xsl:param name="funcsynopsis.decoration" select="1" doc:type="boolean"/>
+<xsl:param name="funcsynopsis.decoration" select="1" type="boolean" />
 
 <!-- Extension for HTML files -->
 <xsl:param name="html.ext" select="'.html'"/>
 
 <!-- Generate TOCs for book, article, part -->
-<xsl:param name="generate.book.toc" select="1" doc:type="boolean"/>
-<xsl:param name="generate.article.toc" select="1" doc:type="boolean"/>
-<xsl:param name="generate.part.toc" select="1" doc:type="boolean"/>
+<xsl:param name="generate.book.toc" select="1" type="boolean"/>
+<xsl:param name="generate.article.toc" select="1" type="boolean"/>
+<xsl:param name="generate.part.toc" select="1" type="boolean"/>
 
 <!-- generate-book-titlepage -->
 
@@ -111,7 +111,7 @@
 <!-- graphic-extensions - NO LONGER NEEDED?? -->
 
 <!-- default graphic filename extension -->
-<xsl:param name="graphic.default.extension" select="'.gif'" doc:type="string"/>
+<xsl:param name="graphic.default.extension" select="'.gif'" type="string"/>
 
 <!-- Should chapters be labeled? 0 or 1 -->
 <xsl:param name="chapter.autolabel" select="1"/>
@@ -121,7 +121,7 @@
 
 <!-- Related to section labels, should those labels include the chapter
      number in them (i.e., 1.1, 1.2, 1.3, 1.4 )-->
-<xsl:param name="section.label.includes.component.label" select="1" doc:type="boolean"/>
+<xsl:param name="section.label.includes.component.label" select="1" type="boolean"/>
 
 <!-- To what depth (in sections) should the TOC go? -->
 <xsl:param name="toc.section.depth" select="2"/>
