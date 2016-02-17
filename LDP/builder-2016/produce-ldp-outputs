@@ -17,18 +17,21 @@ ME="${SELFNAME##*/}"  # -- basename
 DIR="${SELFNAME%/*}"  # -- dirname
 MAKEFILE="${DIR}/Makefile"
 
-VCSBASE="${1:-$HOME/vcs/LDP/LDP}"  && shift
-DESTDIR="${1:-$PWD/output}"        && shift
+SOURCETREE="${1:-$HOME/vcs/LDP/LDP}"  && shift
+SOURCETREE="$( readlink --canonicalize $SOURCETREE )"
 
-SOURCES=""
-SOURCES="${SOURCES} ${VCSBASE}/faq/linuxdoc"
-SOURCES="${SOURCES} ${VCSBASE}/guide/linuxdoc"
-SOURCES="${SOURCES} ${VCSBASE}/howto/linuxdoc"
+OUTPUTTREE="${1:-$PWD/output}"        && shift
+OUTPUTTREE="$( readlink --canonicalize $OUTPUTTREE )"
 
-SOURCES="${SOURCES} ${VCSBASE}/faq/docbook"
-SOURCES="${SOURCES} ${VCSBASE}/guide/docbook"
-SOURCES="${SOURCES} ${VCSBASE}/howto/docbook"
-SOURCES="${SOURCES} ${VCSBASE}/ref/docbook"
+SOURCEDIRS=""
+SOURCEDIRS="${SOURCEDIRS} ${SOURCETREE}/faq/linuxdoc"
+SOURCEDIRS="${SOURCEDIRS} ${SOURCETREE}/guide/linuxdoc"
+SOURCEDIRS="${SOURCEDIRS} ${SOURCETREE}/howto/linuxdoc"
+
+SOURCEDIRS="${SOURCEDIRS} ${SOURCETREE}/faq/docbook"
+SOURCEDIRS="${SOURCEDIRS} ${SOURCETREE}/guide/docbook"
+SOURCEDIRS="${SOURCEDIRS} ${SOURCETREE}/howto/docbook"
+SOURCEDIRS="${SOURCEDIRS} ${SOURCETREE}/ref/docbook"
 
 # -- my favorite shell functions (and their offspring)
 #
@@ -60,8 +63,8 @@ logger () {
 
 usage () {
   gripe "usage: ${ME} [<ldp_checkout> [<destdir>]]" \
-        "  default ldp_checkout=${VCSBASE}" \
-        "  default destdir=${DESTDIR}" \
+        "  default ldp_checkout=${SOURCETREE}" \
+        "  default destdir=${OUTPUTTREE}" \
         ""
   abort 1 "$@";
 }
@@ -191,7 +194,7 @@ function is_output_current () {
 # -- return a list of filenames in any directory which are (likely)
 #    to be documents for TLDP
 #    args  1: input file name
-#    args  2: DESTDIR
+#    args  2: OUTPUTTREE
 #
 # -- there are two (probable) cases for the input, A) a single standalone
 #    file or B) the main document source file in a dedicated directory;
@@ -201,7 +204,7 @@ function is_output_current () {
 #        the parent directory
 #
 #             OBJ=/home/fred/vcs/LDP/LDP/howto/docbook/Software-Release-Practice-HOWTO.xml
-#             DESTDIR=/home/fred/wip/tldp/output
+#             OUTPUTTREE=/home/fred/wip/tldp/output
 #             fn=Software-Release-Practice-HOWTO.xml
 #             stem=Software-Release-Practice-HOWTO
 #             parentdir=/home/fred/vcs/LDP/LDP/howto/docbook
@@ -211,7 +214,7 @@ function is_output_current () {
 #        to look for all files starting from the parent directory
 #
 #             OBJ=/home/fred/vcs/LDP/LDP/howto/docbook/Jabber-Server-Farming-HOWTO/Jabber-Server-Farming-HOWTO.xml
-#             DESTDIR=/home/fred/wip/tldp/output
+#             OUTPUTTREE=/home/fred/wip/tldp/output
 #             fn=Jabber-Server-Farming-HOWTO.xml
 #             stem=Jabber-Server-Farming-HOWTO
 #             parentdir=/home/fred/vcs/LDP/LDP/howto/docbook/Jabber-Server-Farming-HOWTO
@@ -219,7 +222,7 @@ function is_output_current () {
 #
   local stem="${1}"    && shift
   local OBJ="${1}"     && shift
-  local DESTDIR="${1}" && shift
+  local OUTPUTTREE="${1}" && shift
 
   local parentdir="${OBJ%/*}"
   local parentstem="${parentdir##*/}"
@@ -228,7 +231,7 @@ function is_output_current () {
   test "${stem}" == "${parentstem}" \
     && startloc="${parentdir}"
 
-  local outdir="${DESTDIR}/${stem}"
+  local outdir="${OUTPUTTREE}/${stem}"
   
   result=$( find_sort_by_mtime "$startloc" "$outdir" ) \
     || abort 1 "Could not retrieve files for $stem sorted by mtime."
@@ -260,7 +263,7 @@ function is_output_current () {
 #
   local stem="${1}"       && shift
   local OBJ="${1}"        && shift
-  local DESTDIR="${1}"    && shift
+  local OUTPUTTREE="${1}"    && shift
   #local makefile="${1}"   && shift
 
   # -- make a stab at processing the document, but don't let the driver
@@ -269,7 +272,7 @@ function is_output_current () {
   {
     { 
       exec 2>&1;
-      make -f "$MAKEFILE" OBJ="${OBJ}" DESTDIR="${DESTDIR}";
+      make -f "$MAKEFILE" OBJ="${OBJ}" DESTDIR="${OUTPUTTREE}";
       test $? -eq 0 \
         || gripe "FAILURE" "FAILURE producing all outputs from $OBJ" "FAILURE";
     } | sed -ue "s/^/${stem} /";
@@ -280,11 +283,11 @@ function is_output_current () {
   list_orphaned_outputs () {
 # - - - - - - - - - - - -
 #
-  local DESTDIR="${1}"    && shift
-  local SOURCES="$@"
+  local OUTPUTTREE="${1}"    && shift
+  local SOURCEDIRS="$@"
   {
-    SOURCEDOCS=$( list_source_documents "${SOURCES}" | get_stem | sort )
-    OUTPUTDOCS=$( list_output_documents "${DESTDIR}"            | sort )
+    SOURCEDOCS=$( list_source_documents "${SOURCEDIRS}" | get_stem | sort )
+    OUTPUTDOCS=$( list_output_documents "${OUTPUTTREE}"            | sort )
 
     # -- list documents in source tree that do not have corresponding
     #    output directory
@@ -309,9 +312,9 @@ function is_output_current () {
   produce_ldp_outputs () {
 # - - - - - - - - - - - -
 #
-  local DESTDIR="${1}"    && shift
-  local SOURCES="$@"
-  list_source_documents "$SOURCES" | sort_by_stem | while read OBJ; do
+  local OUTPUTTREE="${1}"    && shift
+  local SOURCEDIRS="$@"
+  list_source_documents "$SOURCEDIRS" | sort_by_stem | while read OBJ; do
   
     stem=$( printf "%s\n" "$OBJ" | get_stem )
   
@@ -323,8 +326,8 @@ function is_output_current () {
     #    would like to continue, if possible, and process the next
     #    available document.
     #
-    is_output_current "${stem}" "$OBJ" "$DESTDIR" \
-      || (generate_new_content "${stem}" "${OBJ}" "${DESTDIR}" || :)
+    is_output_current "${stem}" "$OBJ" "$OUTPUTTREE" \
+      || (generate_new_content "${stem}" "${OBJ}" "${OUTPUTTREE}" || :)
   
   done
 }
@@ -333,11 +336,11 @@ function is_output_current () {
 # main
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-test -d "${DESTDIR}" \
+test -d "${OUTPUTTREE}" \
   || usage "Output directory must already exist, quitting."
 
-produce_ldp_outputs "$DESTDIR" "$SOURCES"
+produce_ldp_outputs "$OUTPUTTREE" "$SOURCEDIRS"
 
-list_orphaned_outputs "$DESTDIR" "$SOURCES"
+list_orphaned_outputs "$OUTPUTTREE" "$SOURCEDIRS"
 
 # -- end of file
