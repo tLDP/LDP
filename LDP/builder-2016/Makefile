@@ -219,7 +219,7 @@ xml-$(HTML): xml-$(HTMLS)
 	        --stringparam admon.graphics.path images/ \
 	        --stringparam base.dir . \
 	          "$(XSLCHUNK)" "$(OBJ)" \
-	  && ln -snf $(VERBOSE) -- $(notdir $(HTML)) index.html)
+	  && ln -snf $(VERBOSE) -- index.html $(notdir $(HTML)))
 	# -- what about images and other resources?
 
 
