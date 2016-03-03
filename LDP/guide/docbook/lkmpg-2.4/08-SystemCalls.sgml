@@ -1,0 +1,287 @@
+<sect1><title>System Calls</title>
+
+	<indexterm><primary>system calls</primary></indexterm>
+
+	<para>So far, the only thing we've done was to use well defined kernel mechanisms to register <filename
+	role="directory">/proc</filename> files and device handlers. This is fine if you want to do something the kernel programmers
+	thought you'd want, such as write a device driver. But what if you want to do something unusual, to change the behavior of the
+	system in some way? Then, you're mostly on your own.</para>
+
+	<para>This is where kernel programming gets dangerous. While writing the example below, I killed the
+	<function>open()</function> system call. This meant I couldn't open any files, I couldn't run any programs, and I couldn't
+	<command>shutdown</command> the computer.  I had to pull the power switch.  Luckily, no files died. To ensure you won't lose
+	any files either, please run <command>sync</command> right before you do the <command>insmod</command> and the
+	<command>rmmod</command>.</para>
+
+	<indexterm><primary>sync</primary></indexterm>
+	<indexterm><primary>insmod</primary></indexterm>
+	<indexterm><primary>rmmod</primary></indexterm>
+	<indexterm><primary>shutdown</primary></indexterm>
+
+	<para>Forget about <filename role="directory">/proc</filename> files, forget about device files. They're just minor details.
+	The <emphasis>real</emphasis> process to kernel communication mechanism, the one used by all processes, is system calls. When
+	a process requests a service from the kernel (such as opening a file, forking to a new process, or requesting more memory),
+	this is the mechanism used. If you want to change the behaviour of the kernel in interesting ways, this is the place to do it.
+	By the way, if you want to see which system calls a program uses, run <command>strace &lt;arguments&gt;</command>.</para>
+
+	<indexterm><primary>strace</primary></indexterm>
+
+	<para>In general, a process is not supposed to be able to access the kernel. It can't access kernel memory and it can't call
+	kernel functions. The hardware of the CPU enforces this (that's the reason why it's called `protected mode').</para>
+
+	<indexterm><primary>interrupt 0x80</primary></indexterm>
+
+	<para>System calls are an exception to this general rule. What happens is that the process fills the registers with the
+	appropriate values and then calls a special instruction which jumps to a previously defined location in the kernel (of course,
+	that location is readable by user processes, it is not writable by them). Under Intel CPUs, this is done by means of interrupt
+	0x80.  The hardware knows that once you jump to this location, you are no longer running in restricted user mode, but as the
+	operating system kernel --- and therefore you're allowed to do whatever you want.</para>
+
+	<para>The location in the kernel a process can jump to is called <emphasis>system_call</emphasis>. The procedure at that
+	location checks the system call number, which tells the kernel what service the process requested. Then, it looks at the table
+	of system calls (<varname>sys_call_table</varname>) to see the address of the kernel function to call. Then it calls the
+	function, and after it returns, does a few system checks and then return back to the process (or to a different process, if
+	the process time ran out). If you want to read this code, it's at the source file
+	<filename>arch/$<$architecture$>$/kernel/entry.S</filename>, after the line <function>ENTRY(system_call)</function>.</para>
+
+	<indexterm><primary>system call</primary></indexterm>
+	<indexterm><primary>ENTRY(system call)</primary></indexterm>
+	<indexterm><primary>sys_call_table</primary></indexterm>
+	<indexterm><primary>entry.S</primary></indexterm>
+
+	<para>So, if we want to change the way a certain system call works, what we need to do is to write our own function to
+	implement it (usually by adding a bit of our own code, and then calling the original function) and then change the pointer at
+	<varname>sys_call_table</varname> to point to our function.  Because we might be removed later and we don't want to leave the
+	system in an unstable state, it's important for <function>cleanup_module</function> to restore the table to its original
+	state.</para>
+
+	<para>The source code here is an example of such a kernel module. We want to `spy' on a certain user, and to
+	<function>printk()</function> a message whenever that user opens a file. Towards this end, we replace the system call to open
+	a file with our own function, called <function>our_sys_open</function>. This function checks the uid (user's id) of the
+	current process, and if it's equal to the uid we spy on, it calls <function>printk()</function> to display the name of the
+	file to be opened.  Then, either way, it calls the original <function>open()</function> function with the same parameters, to
+	actually open the file.</para>
+
+	<indexterm><primary>system call</primary><secondary>open</secondary></indexterm>
+
+	<para>The <function>init_module</function> function replaces the appropriate location in <varname>sys_call_table</varname> and
+	keeps the original pointer in a variable. The <function>cleanup_module</function> function uses that variable to restore
+	everything back to normal.  This approach is dangerous, because of the possibility of two kernel modules changing the same
+	system call. Imagine we have two kernel modules, A and B.  A's open system call will be A_open and B's will be B_open. Now,
+	when A is inserted into the kernel, the system call is replaced with A_open, which will call the original sys_open when it's
+	done. Next, B is inserted into the kernel, which replaces the system call with B_open, which will call what it thinks is the
+	original system call, A_open, when it's done.</para>
+
+	<para>Now, if B is removed first, everything will be well---it will simply restore the system call to A_open, which calls the
+	original. However, if A is removed and then B is removed, the system will crash. A's removal will restore the system call to
+	the original, sys_open, cutting B out of the loop.  Then, when B is removed, it will restore the system call to what
+	<emphasis>it</emphasis> thinks is the original, A_open, which is no longer in memory. At first glance, it appears we could
+	solve this particular problem by checking if the system call is equal to our open function and if so not changing it at all
+	(so that B won't change the system call when it's removed), but that will cause an even worse problem. When A is removed, it
+	sees that the system call was changed to B_open so that it is no longer pointing to A_open, so it won't restore it to sys_open
+	before it is removed from memory.  Unfortunately, B_open will still try to call A_open which is no longer there, so that even
+	without removing B the system would crash.</para>
+
+	<para>I can think of two ways to prevent this problem.  The first is to restore the call to the original value, sys_open.
+	Unfortunately, sys_open is not part of the kernel system table in <filename>/proc/ksyms</filename>, so we can't access it. The
+	other solution is to use the reference count to prevent root from <command>rmmod</command>'ing the module once it is loaded.
+	This is good for production modules, but bad for an educational sample --- which is why I didn't do it here.</para>
+
+	<indexterm><primary>MOD_INC_USE_COUNT</primary></indexterm>
+	<indexterm><primary>sys_open</primary></indexterm>
+	<indexterm><primary>source file</primary><secondary>syscall.c</secondary></indexterm>
+
+
+<example><title>syscall.c</title>
+<programlisting><![CDATA[
+/*  syscall.c 
+ * 
+ *  System call "stealing" sample.
+ */
+
+
+/* Copyright (C) 2001 by Peter Jay Salzman */
+
+
+/* The necessary header files */
+
+/* Standard in kernel modules */
+#include <linux/kernel.h>   /* We're doing kernel work */
+#include <linux/module.h>   /* Specifically, a module */
+
+/* Deal with CONFIG_MODVERSIONS */
+#if CONFIG_MODVERSIONS==1
+#define MODVERSIONS
+#include <linux/modversions.h>
+#endif        
+
+#include <sys/syscall.h>  /* The list of system calls */
+
+/* For the current (process) structure, we need
+ * this to know who the current user is. */
+#include <linux/sched.h>
+
+
+
+
+/* In 2.2.3 /usr/include/linux/version.h includes a 
+ * macro for this, but 2.0.35 doesn't - so I add it 
+ * here if necessary. */
+#ifndef KERNEL_VERSION
+#define KERNEL_VERSION(a,b,c) ((a)*65536+(b)*256+(c))
+#endif
+
+
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,2,0)
+#include <asm/uaccess.h>
+#endif
+
+
+
+/* The system call table (a table of functions). We 
+ * just define this as external, and the kernel will 
+ * fill it up for us when we are insmod'ed 
+ */
+extern void *sys_call_table[];
+
+
+/* UID we want to spy on - will be filled from the 
+ * command line */
+int uid;  
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,2,0)
+MODULE_PARM(uid, "i");
+#endif
+
+/* A pointer to the original system call. The reason 
+ * we keep this, rather than call the original function 
+ * (sys_open), is because somebody else might have 
+ * replaced the system call before us. Note that this 
+ * is not 100% safe, because if another module 
+ * replaced sys_open before us, then when we're inserted 
+ * we'll call the function in that module - and it 
+ * might be removed before we are.
+ *
+ * Another reason for this is that we can't get sys_open.
+ * It's a static variable, so it is not exported. */
+asmlinkage int (*original_call)(const char *, int, int);
+
+
+
+/* For some reason, in 2.2.3 current->uid gave me 
+ * zero, not the real user ID. I tried to find what went 
+ * wrong, but I couldn't do it in a short time, and 
+ * I'm lazy - so I'll just use the system call to get the 
+ * uid, the way a process would. 
+ *
+ * For some reason, after I recompiled the kernel this 
+ * problem went away. 
+ */
+asmlinkage int (*getuid_call)();
+
+
+
+/* The function we'll replace sys_open (the function 
+ * called when you call the open system call) with. To 
+ * find the exact prototype, with the number and type 
+ * of arguments, we find the original function first 
+ * (it's at fs/open.c). 
+ *
+ * In theory, this means that we're tied to the 
+ * current version of the kernel. In practice, the 
+ * system calls almost never change (it would wreck havoc 
+ * and require programs to be recompiled, since the system
+ * calls are the interface between the kernel and the 
+ * processes).
+ */
+asmlinkage int our_sys_open(const char *filename, 
+                            int flags, 
+                            int mode)
+{
+  int i = 0;
+  char ch;
+
+  /* Check if this is the user we're spying on */
+  if (uid == getuid_call()) {  
+   /* getuid_call is the getuid system call, 
+    * which gives the uid of the user who
+    * ran the process which called the system
+    * call we got */
+
+    /* Report the file, if relevant */
+    printk("Opened file by %d: ", uid); 
+    do {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,2,0)
+      get_user(ch, filename+i);
+#else
+      ch = get_user(filename+i);
+#endif
+      i++;
+      printk("%c", ch);
+    } while (ch != 0);
+    printk("\n");
+  }
+
+  /* Call the original sys_open - otherwise, we lose 
+   * the ability to open files */
+  return original_call(filename, flags, mode);
+}
+
+
+
+/* Initialize the module - replace the system call */
+int init_module()
+{
+  /* Warning - too late for it now, but maybe for 
+   * next time... */
+  printk("I'm dangerous. I hope you did a ");
+  printk("sync before you insmod'ed me.\n");
+  printk("My counterpart, cleanup_module(), is even"); 
+  printk("more dangerous. If\n");
+  printk("you value your file system, it will ");
+  printk("be \"sync; rmmod\" \n");
+  printk("when you remove this module.\n");
+
+  /* Keep a pointer to the original function in 
+   * original_call, and then replace the system call 
+   * in the system call table with our_sys_open */
+  original_call = sys_call_table[__NR_open];
+  sys_call_table[__NR_open] = our_sys_open;
+
+  /* To get the address of the function for system 
+   * call foo, go to sys_call_table[__NR_foo]. */
+
+  printk("Spying on UID:%d\n", uid);
+
+  /* Get the system call for getuid */
+  getuid_call = sys_call_table[__NR_getuid];
+
+  return 0;
+}
+
+
+/* Cleanup - unregister the appropriate file from /proc */
+void cleanup_module()
+{
+  /* Return the system call back to normal */
+  if (sys_call_table[__NR_open] != our_sys_open) {
+    printk("Somebody else also played with the ");
+    printk("open system call\n");
+    printk("The system may be left in ");
+    printk("an unstable state.\n");
+  }
+
+  sys_call_table[__NR_open] = original_call;
+}  
+]]></programlisting>
+</example>
+
+
+</sect1>
+
+
+
+<!--
+vim: tw=128
+-->
