@@ -1,0 +1,147 @@
+= How to Perform at Backup of a Simple LAMP Server.
+
+Outline:
+
+* What Do we need to back up?
+	** /home
+	** /etc
+	** /var/www
+	** MySQL/MariaDB
+* How to we back it up?
+	** Network Storage and Cloud
+	** Physical Media
+	** Scripts
+	** Bakula
+* How do we restore from backup?
+* How do we automate the process?
+	** Crontabs
+
+
+== Revision History
+[cols="<,<,<,<",options="header",]
+|==========================================================================================================================================================
+|Revision |Date |Person |Note
+|Revision 1.0 |2016-02-24 |Revised by: Jason Evans | Initial writing and compiling
+|==========================================================================================================================================================
+		
+== Introduction
+
+Losing data is no laughing matter. Disks fails, servers crash, and sometimes mistakes happen. How do we avoid catastrophic losses of data? We make backups! This guide is an attempt to show the Linux newbie how to back up a simple web server, but it's not limited to that. Using the techniques in this quide, you can back up your LAMP server to network, cloud, or physical storage. While it's written for a LAMP server specifically, this guide is meant to be more than just a dry howto for a specific type of server. Linux is flexible and easy to adapt to a number of uses. Where you learn one skill, you can apply it to a thousand other issues.
+
+== License Information
+
+This work is licensed under the Creative Commons Attribution-ShareAlike 4.0 International License. To view a copy of this license, visit http://creativecommons.org/licenses/by-sa/4.0/.
+
+== Disclaimers
+
+No liability for the contents of this documents can be accepted by the author, the http://www.tldp.org/[Linux Documentation Project] or anyone else. Use the concepts, examples and other content at your own risk. There may be errors and inaccuracies that may have unexpected results. Proceed with caution and although errors are unlikely, the author take no responsibility for them.
+
+You are strongly recommended to take a backup of your system before major installation and backups at regular intervals. In addition, you are strongly recommended to use a sacrificial VM when experimenting.
+
+== Credits
+
+Thanks to Larisa Alekseeva for your support and to the http://trilug.org[Triangle Linux Users Group] for helping me get a foothold in Linux.
+
+Thanks to http://www.charlescurley.com/[Charles Curley] for creating the original http://tldp.org/HOWTO/Linux-Complete-Backup-and-Recovery-HOWTO/index.html[Linux Complete Backup and Recovery HOWTO]
+
+Thanks to Ubuntu for the https://help.ubuntu.com/lts/serverguide/backup-shellscripts.html[tar script].
+
+== Feedback
+
+Feedback is most certainly welcome for this document. Without your corrections, suggestions and other input, this document wouldn't exist. Please send your additions, comments and criticisms to me at: jason.s.evans@gmail.com
+
+== Translations
+
+Volunteers are welcome.
+
+== Overview
+
+== Preparation
+
+In order to You will need a computer or server running CentOS or Ubuntu in a LAMP (Linux, Apache, MySQL, PHP) configuration. You may apply the strategies discussed to many other distributions such as Red Hat Enterprise Linux, Fedora, Debian, or one of their derivatives. This guide touches on physical servers and VM's (virtual machines).
+
+Note: 
+Do your normal backups on their regular schedule. This HOWTO is useless if you don't do that.
+
+=== How can I replicate backup the examples:
+
+All examples in this HOWTO will be performed on fresh installations of https://www.digitalocean.com/community/tutorials/how-to-install-linux-apache-mysql-php-lamp-stack-on-centos-7[CentOS 7] and https://www.digitalocean.com/community/tutorials/how-to-install-linux-apache-mysql-php-lamp-stack-on-ubuntu-14-04[Ubuntu 14.04 LTS]. You can use the linked HOWTO's to bring your test system up to the same level if you wish. I will also create a small MySQL database using steps from https://codex.wordpress.org/Installing_WordPress#Using_the_MySQL_Client[Wordpress] in order to show how to backup and restore it.
+
+== Where do we begin?
+
+=== What do I need to back up?
+
+There are three directories that absolutely must be backed up: `/home`, `/var/www`, and `/etc` as well as the MySQL database.
+
+==== Files to be backed up.
+
+The following shell script uses tar to create an archive file on a remotely mounted NFS file system. The archive filename is determined using additional command line utilities.
+
+[source,bash]
+----
+#!/bin/bash
+####################################
+#
+# Compress files script
+#
+####################################
+
+# What to backup. 
+backup_files="/home /var/spool/mail /etc /root /boot /opt" // <1>
+
+# Where to backup to.
+dest="/mnt/backup" // <2>
+
+# Create archive filename.
+day=$(date +%A)
+hostname=$(hostname -s)
+archive_file="$hostname-$day.tgz"
+
+# Print start status message.
+echo "Backing up $backup_files to $dest/$archive_file"
+date
+echo
+
+# Backup the files using tar.
+tar czf $dest/$archive_file $backup_files
+
+# Print end status message.
+echo
+echo "Backup finished"
+date
+
+# Long listing of files in $dest to check file sizes.
+ls -lh $dest
+----
+<1> The directories listed here will be backed up by this script recursively.
+<2> This is the directory where the backup file will be placed at the end.
+
+==== Backing up MySQL.
+
+This step assumes that you already have administrative access to the database that you want to backup. The following command has three parts, the `username`, the `database_to_backup`, and the name of the file to backup.
+
+----
+mysqldump -u username -p database_to_backup > backup_name.sql
+----
+
+In the following example, the owner is `root` and the database is called `wordpress`.
+
+----
+jsevans@26599ca1e943:~$ mysqldump -u root -p wordpress > wordpress.sql
+Enter password:
+jsevans@26599ca1e943:~$ ls -l wordpress.sql
+-rw-rw-r-- 1 jsevans jsevans 1864993 Mar  3 13:28 wordpress.sql
+----
+
+After the backup is completed, we can the compress it like we did with the other files.
+
+----
+tar czf backup_name.tgz backup_name.sql
+----
+
+Now that we have a backup of our website and other important files, where should we keep them?
+
+== Backup storage
+
+"Where should I keep my backups?", is a questions with a lot of different possible answers. It is best to keep a few of the latest backups in an easy to reach place in case they are needed soon.
+
