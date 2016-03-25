@@ -41,8 +41,12 @@ mv \
     REF/palmdevqs \
     REF/ls_quickref \
     REF/Joe-Command-Reference \
+    FAQ/Linux-FAQ \
+    FAQ/sig11 \
+    FAQ/Threads-FAQ \
+    FAQ/WordPerfect-Linux-FAQ \
 
-# -- and toss aside the really ancient crap
+# -- and toss aside the neolithically-ancient crap
 #
 TODELETE=todelete-$( date +%F )
 test -d "${TODELETE}" \
