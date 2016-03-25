@@ -38,8 +38,11 @@ mv \
     HOWTO/Consultants-HOWTO.html \
     HOWTO/WikiText-HOWTO \
     HOWTO/Security-Quickstart-Redhat-HOWTO \
+    REF/palmdevqs \
+    REF/ls_quickref \
+    REF/Joe-Command-Reference \
 
-# -- and populate the really ancient crap
+# -- and toss aside the really ancient crap
 #
 TODELETE=todelete-$( date +%F )
 test -d "${TODELETE}" \
