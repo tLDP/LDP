@@ -1,0 +1,1184 @@
+<!doctype linuxdoc system>
+
+<article>
+<title>RedHat Linux KickStart HOWTO
+
+<author>Martin Hamilton <tt/&lt;martinh@gnu.org>/
+<date>v0.2, 11 January 1999
+
+<abstract>
+Archived: 2004-05-17 at the request of the author by Emma Jane Hogbin
+(Technical Review Coodinator). Additional information 
+can be obtained from: <url name="Red Hat Linux Customization Guide"
+url="http://www.redhat.com/docs/manuals/linux/RHL-9-Manual/custom-guide/part-install-info.html">
+
+<p>
+This HOWTO briefly describes how to use the RedHat Linux
+<em>KickStart</em> system to rapidly install large numbers of
+identical Linux boxes.  For advanced users, we describe how to modify
+the KickStart installation procedure to do your own thing, and give a
+quick guide to building RPM packages of your own.
+</abstract>
+
+<toc>
+
+
+<sect>Copyright<p>
+
+Copyright (c) 1998 Martin Hamilton, All rights reserved.  This is free
+documentware; you can redistribute it and/or modify it under the terms of
+version 2 or later of the <url name="GNU General Public License"
+url="http://www.gnu.org/copyleft/gpl.html">.<p>
+
+
+<sect>Homepage<p>
+
+If you got this document from a Linux HOWTO mirror site or a CD-ROM,
+you might want to check back to the <url name="KickStart HOWTO home
+page" url="http://wwwcache.ja.net/dev/kickstart/"> to see if there's a
+newer version around.<p>
+
+
+<sect>Introduction<p>
+
+RedHat Linux version 5 comes with a a little-known (and until now, not
+hugely documented) feature called <em>KickStart</em>.  This lets you
+automate most/all of a RedHat Linux installation, including:<p>
+
+<itemize>
+<item> Language selection
+<item> Network configuration and distribution source selection
+<item> Keyboard selection
+<item> Boot loader installation (e.g. lilo)
+<item> Disk partitioning and filesystem creation
+<item> Mouse selection
+<item> X Window system server configuration
+<item> Timezone selection
+<item> Selection of an (initial) root password
+<item> Which packages to install
+</itemize><p>
+
+Eagle eyed RedHat users will probably have realised by now that these
+are essentially the main steps involved in the manual installation of
+a RedHat Linux system.  KickStart makes it possible for you to script
+the regular installation process, by putting the information you would
+normally type at the keyboard into a configuration file.<p>
+
+<em>But wait - there's more :-)</em><p>
+
+Having finished the normal installation process, KickStart also lets
+you specify a list of shell level commands which you would like to be
+executed.  This means that you can automatically install extra local
+software not distributed as part of RedHat Linux (yes, there are even
+more free software programs than the ones you get with the RedHat
+distribution.  Some can't be distributed by RedHat on legal grounds,
+e.g. the <tt>ssh</tt> and <tt>PGP</tt> encryption systems) and carry
+out any tidying up you may need to do in order to get a fully
+operational system.<p>
+
+
+<sect>Prerequisites<p>
+
+There are two approaches to a KickStart install - one is to simply
+copy your KickStart configuration file to a RedHat boot floppy.  The
+other is to use a regular boot floppy and get your KickStart config
+file off the network.<p>
+
+In both cases, you'll need:
+
+<enum>
+<item> Intel (i386) class machines - KickStart appears to only work
+  on these at the time of writing.
+<item> KickStart config file - we'll talk about this in the next
+  section.
+<item> RedHat boot disk - preferably from the <em>updates</em>
+  directory, to take advantage of any fixes/driver updates.
+<item> DNS entries for the IP addresses you'll be using - optional,
+  but will stop the installation from prompting you for your
+  machine's domain name.
+</enum><p>
+
+If you want to fetch your config file over the network, you'll need to
+export it via NFS - this is the only access method supported at the
+moment.  The config file lets you specify a different NFS server to
+fetch the RedHat distribution itself from.<p>
+
+You can configure a static IP address for your machine - e.g. a special
+one reserved for KickStart installations.  Alternatively, if you don't
+want to hard code an IP address in the config file you can tell KickStart
+to use a BOOTP/DHCP server to fetch this.  Some servers will allocate new
+addresses in a given range automatically, e.g. <url name="the CMU BOOTP
+server with dynamic addressing extensions"
+  url="ftp://ftp.ntplx.net/pub/networking/bootp">.<p>
+
+More information on NFS and BOOTP/DHCP is in Appendix A.<p>
+
+
+<sect>Setting up a boot floppy<p>
+
+Essentially, all you have to do is copy your KickStart config file
+to <em>/ks.cfg</em> on the RedHat boot floppy, e.g.<p>
+
+<tscreen><verb>
+  mcopy ks.cfg a:
+</verb></tscreen><p>
+
+However - the RedHat boot floppy is pretty full, and you may find that
+you have to delete some of the other files to make room for the
+KickStart config file.  I was able to make enough room for mine by
+deleting the various message files normally displayed by the
+<tt>SYSLINUX</tt> boot loader, e.g.<p>
+
+<tscreen><verb>
+  mdel a:\*.msg
+</verb></tscreen><p>
+
+Another approach would be to throw away the drivers for some of the
+hardware you don't have - see the section on modifying the boot
+floppy below.<p>
+
+You may also want to edit <em>syslinux.cfg</em>, the <tt>SYSLINUX</tt>
+config file.  This also lives in the top level directory of the RedHat
+boot floppy.  For instance, the following <em>syslinux.cfg</em> will
+cause KickStart mode to be entered into automatically as the machine
+boots up, without the normal delay:<p>
+
+<tscreen><verb>
+  default ks
+  prompt 0
+  label ks
+    kernel vmlinuz
+    append ks=floppy initrd=initrd.img
+</verb></tscreen><p>
+
+Note that you almost probably want to base your boot and supplementary
+floppies on the most recent disk images available in the
+<em>updates/i386</em> on your local RedHat mirror site.  Older images
+may be buggy or have driver support for less hardware.<p>
+
+
+<sect>The KickStart config file<p>
+
+There are three main sections to the config file:<p>
+
+<enum>
+<item> System info, e.g. disk partitioning and network config
+<item> RedHat packages to install
+<item> Post-installation shell commands to run
+</enum<p>
+
+There are some other possibilities which we won't talk about here, but
+<bf>might</bf> work.  For more information check out the sample
+KickStart config in <em>misc/src/install/ks.samp</em> and
+<em>doc/README.ks</em> under the top level <em>i386</em> RedHat
+distribution directory on your CD-ROM or local RedHat mirror site.<p>
+
+
+<sect1>System info<p>
+
+The available directives which I've been using are:<p>
+
+<descrip>
+<tag/lang/Language configuration, e.g. for English
+<tscreen><verb>
+lang en
+</verb></tscreen>
+<tag/network/Network configuration, e.g. to use BOOTP/DHCP
+<tscreen><verb>
+network --bootp
+</verb></tscreen>
+<tag/nfs/NFS server and directory to install from, e.g.
+<tscreen><verb>
+nfs --server chicken.swedish-chef.org /mnt/cdrom
+</verb></tscreen>
+to use the NFS server <em>chicken.swedish-chef.org</em> and try to
+mount the RedHat distribution from the directory <em>/mnt/cdrom</em>.
+<tag/keyboard/Select keyboard type, e.g. for UK keyboards
+<tscreen><verb>
+keyboard uk
+</verb></tscreen>
+<tag/zerombr/Clear the Master Boot Record - removes any existing
+operating system boot loader from your disk
+<tag/clearpart/Clear existing partitions - e.g. to remove all existing
+disk partitions prior to installation
+<tscreen><verb>
+clearpart --all
+</verb></tscreen>
+<tag/part/Partition the disk, e.g. to make a root filesystem of
+  500MB
+<tscreen><verb>
+part / --size 500
+</verb></tscreen>
+<tag/install/Make a fresh installation of RedHat Linux.
+<tag/mouse/Set the mouse being used, e.g. for a PS/2 or compatible
+"bus mouse"
+<tscreen><verb>
+mouse ps/2
+</verb></tscreen>
+<tag/timezone/Set the timezone, e.g. for local time in the UK
+<tscreen><verb>
+timezone --utc Europe/London
+</verb></tscreen>
+<tag/rootpw/Set the initial root password, based on a previously
+derived encrypted password
+<tscreen><verb>
+rootpw --iscrypted XaacoeGPmf/A.
+</verb></tscreen>
+<tag/lilo/Install the LILO boot loader, e.g. in the Master Boot Record
+<tscreen><verb>
+lilo --location mbr
+</verb></tscreen>
+<tag/%packages/Packages to install - see below.
+<tag/%post/Post-installation shell commands - see below.
+</descrip><p>
+
+Note that the directory where KickStart is looking for the RedHat
+distribution should have a subdirectory <em>RedHat</em>, which
+contains the RedHat distribution tree for the platform in question.
+In the above example, we should see something like the following files
+and directories:<p>
+
+<tscreen><verb>
+/mnt/cdrom/RedHat
+/mnt/cdrom/RedHat/base
+/mnt/cdrom/RedHat/contents
+/mnt/cdrom/RedHat/i386
+/mnt/cdrom/RedHat/instimage
+/mnt/cdrom/RedHat/RPMS
+/mnt/cdrom/RPM-PGP-KEY
+</verb></tscreen><p>
+
+If you're installing off a CD-ROM rather than off the network, the
+contents should look something like this:<p>
+
+<tscreen><verb>
+RedHat
+RedHat/base
+RedHat/contents
+RedHat/i386
+RedHat/instimage
+RedHat/RPMS
+RPM-PGP-KEY
+</verb></tscreen><p>
+
+If you have the RedHat distribution for multiple architectures (e.g.
+on an NFS server - they're too big to fit more than one architecture's
+version onto a single CD-ROM), you'll notice that each distribution
+has the same files and directories under a subdirectory, e.g.<p>
+
+<tscreen><verb>
+alpha/RPM-PGP-KEY
+i386/RPM-PGP-KEY
+sparc/RPM-PGP-KEY
+</verb></tscreen><p>
+
+There should be a file <tt>architecture</tt>/Redhat/<tt>architecture</tt>,
+e.g. <em>i386/Redhat/i386</em>.<p>
+
+If you want to create your own encrypted passwords, it's very easy
+using Perl, e.g.<p>
+
+<tscreen><verb>
+% perl -e 'print crypt("schmurrdegurr", "Xa") . "\n";'p
+</verb></tscreen><p>
+
+Other options (or mooted options), which I've not tried:<p>
+
+<descrip>
+<tag/cdrom/Install off CD-ROM rather than network.
+<tag/device/Explicitly declare device details, e.g.
+<tscreen><verb>
+device ethernet 3c509 --opts "io=0x330, irq=7"
+</verb></tscreen>
+Alternative values of <tt>device</tt> include <tt>scsi</tt> for SCSI
+controllers and <tt>cdrom</tt> for proprietary CD-ROM drives.
+<tag/upgrade/Upgrade an existing installation rather than make
+  a fresh installation.
+<tag/xconfig/Configure X Window server, graphics card and monitor.
+e.g.
+<tscreen><verb>
+xconfig --server "Mach64" --monitor "tatung cm14uhe"
+</verb></tscreen>
+</descrip><p>
+
+I've not delved too deeply into this last one, because I'm not ever
+planning to run X on the console of any of my KickStarted machines.
+I'm told that running <tt>xconfig</tt> within KickStart itself is a
+bit flaky, but the same functionality is also available from the
+command line via <tt>Xconfigurator</tt> - so you might be best off
+leaving this to the post-installation script.<p>
+
+Here's how this first part of a KickStart config file looks when we
+put all the bits together:<p>
+
+<tscreen><verb>
+lang en
+network --static --ip 198.168.254.253 --netmask 255.255.255.0
+  --gateway 198.168.254.1 --nameserver 198.168.254.2
+nfs --server chicken.swedish-chef.org /mnt/cdrom
+keyboard uk
+zerombr yes
+clearpart --all
+part / --size 500
+part swap --size 120
+install
+mouse ps/2
+timezone --utc Europe/London
+rootpw --iscrypted XaacoeGPmf/A.
+lilo --location mbr
+</verb></tscreen><p>
+
+Note that some of the RedHat documentation refers to an invocation
+of the <tt>network</tt> directive which doesn't actually work in
+practice: <tt>network --option</tt>.  The correct invocation is to
+put <tt>network</tt> followed by <tt>--static</tt>, <tt>--bootp</tt>
+or <tt>--dhcp</tt>.  Be aware that the BOOTP and DHCP options are
+different - to the extent that they even use different code.<p>
+
+You can add the <tt>--grow</tt> parameter to a <tt>part</tt>
+directive to indicate that it's OK to grow the partition beyond
+the size you specify.  It probably only makes sense to have one
+partition tagged with <tt>--grow</tt>.<p>
+
+
+<sect1>Packages to install<p>
+
+The start of the packages section of the KickStart config file is
+indicated by the presence of a <tt>%packages</tt> directive on a line
+of its own.  This is followed by one or both of two types of package
+specifier - individual packages may be installed by giving the name of
+their RPM (excluding the version and platform information), and groups
+of packages may be installed by giving their group name.<p>
+
+Here's a sample <tt>packages</tt> section for a KickStart config file:
+
+<tscreen><verb>
+%packages
+@ Base
+netkit-base
+bind-utils
+ncftp
+rdate
+tcp_wrappers
+traceroute
+cmu-snmp
+</verb></tscreen><p>
+
+So, what are these groups ?  Well, there are a number of groups
+defined by default in a file called <em>base/comps</em> under the
+RedHat distribution's top level directory.  Here are the ones which
+were current at the time of writing:<p>
+
+<itemize>
+<item> Base
+<item> Printer Support
+<item> X Window System
+<item> Mail/WWW/News Tools
+<item> DOS/Windows Connectivity
+<item> File Managers
+<item> Graphics Manipulation
+<item> X Games
+<item> Console Games
+<item> X multimedia support
+<item> Console Multimedia
+<item> Print Server
+<item> Networked Workstation
+<item> Dialup Workstation
+<item> News Server
+<item> NFS Server
+<item> SMB (Samba) Connectivity
+<item> IPX/Netware(tm) Connectivity
+<item> Anonymous FTP/Gopher Server
+<item> Web Server
+<item> DNS Name Server
+<item> Postgres (SQL) Server
+<item> Network Management Workstation
+<item> TeX Document Formatting
+<item> Emacs
+<item> Emacs with X windows
+<item> C Development
+<item> Development Libraries
+<item> C++ Development
+<item> X Development
+<item> Extra Documentation
+</itemize><p>
+
+You'll notice that they correspond to the various configurations which
+you're prompted for during a manual installation.  Note that some of
+the packages in a given package group are duplicated in other groups,
+and that you can install multiple groups of packages without this
+causing problems.  Each group's entry in the <em>comps</em> listing
+looks similar to this:<p>
+
+<tscreen><verb>
+0 Extra Documentation
+sag
+lpg
+howto
+faq
+man-pages
+end
+</verb></tscreen><p>
+
+It seems that groups with a <em>1</em> next to their name (the first
+line above) are selected for installation by default.  You can customise
+the Linux installation process even further by creating your own groups
+or redefine existing ones by editing this file.<p>
+
+
+<sect1>Post-installation shell commands<p>
+
+This is probably the best feature of all, and something which there is
+no direct equivalent to in the manual installation process.  What we
+can do here is specify a sequence of shell level commands which should
+be executed after the main installation (disk partitioning, package
+installation, and so on) is complete.<p>
+
+The beginning of this section is signified by the <tt>%post</tt>
+directive in the KickStart config file.  In what follows you can take
+advantage of all of the utilities which have been installed on your
+newly built Linux system, e.g.<p>
+
+<tscreen><verb>
+%post
+ln -s /etc/rc.d/init.d /etc/init.d
+ln -s /etc/rc.d/rc.local /etc/rc.local
+ln -s /usr/bin/md5sum /usr/bin/md5
+ln -s /usr/bin/perl /usr/local/bin/perl
+chmod ug-s /bin/linuxconf
+mkdir /var/tmp/tmp
+perl -spi -e 's!image=/boot/vmlinuz-.*!image=/boot/vmlinuz!' /etc/lilo.conf
+rm /etc/rc.d/rc*.d/*sendmail
+</verb></tscreen><p>
+
+You can also use I/O redirection and here documents:<p>
+
+<tscreen><verb>
+cat <<EOF >>/etc/passwd
+squid:*:102:3500:Squid Proxy:/usr/squid:/bin/bash
+EOF
+
+cat <<EOF >>/etc/group
+cache:x:3500:
+EOF
+</verb></tscreen><p>
+
+Modify the run-time startup scripts:<p>
+
+<tscreen><verb>
+cat <<EOF >>/etc/rc.local
+echo 8192 > /proc/sys/kernel/file-max
+echo 32768 > /proc/sys/kernel/inode-max 
+
+[ -x /usr/sbin/sshd ] && /usr/sbin/sshd
+[ -x /usr/sbin/cfd ] && /usr/sbin/cfd
+
+EOF
+</verb></tscreen><p>
+
+Set up <em>crontab</em> entries:<p> 
+
+<tscreen><verb>
+cat <<EOF >/tmp/crontab.root
+# Keep the time up to date
+0,15,30,45 * * * * /usr/sbin/ntpdate -s eggtimer 2>&1 >/dev/null
+# Recycle Exim log files
+1 0 * * * /usr/exim/bin/exicyclog
+# Flush the Exim queue
+0,15,30,45 * * * * /usr/exim/bin/exim -q
+EOF
+
+crontab /tmp/crontab.root
+rm /tmp/crontab.root
+</verb></tscreen><p>
+
+And even install other RPMs which you made yourself:<p>
+
+<tscreen><verb>
+rpm -i ftp://chicken.swedish-chef.org/rpms/squid.rpm
+rpm -i ftp://chicken.swedish-chef.org/rpms/ssh.rpm
+rpm -i ftp://chicken.swedish-chef.org/rpms/exim.rpm
+rpm -i ftp://chicken.swedish-chef.org/rpms/cfengine.rpm
+rpm -i ftp://chicken.swedish-chef.org/rpms/linux.rpm
+
+ssh-keygen -b 1024 -f /etc/ssh_host_key -N ""
+depmod -a
+</verb></tscreen><p>
+
+Note that you can achieve the same effect by making your own RPMs
+containing the commands you want executed - see below for more
+information.  Give them a carefully chosen name and you can force them
+to be installed first (e.g. name starts with 'aaa') or last (e.g.
+name starts with 'zzz').<p>
+
+Be aware that a less painful way of doing root crontab entries is to
+create them as files in one or more of the directories
+<em>/etc/cron.hourly</em>, <em>/etc/cron.daily</em>,
+<em>/etc/cron.weekly</em> and <em>/etc/cron.monthly</em>.<p>
+
+More information about making your own RPMs is available in Appendix B.<p>
+
+
+<sect>Installation itself<p>
+
+Boot the to-be-installed machine off your RedHat boot floppy as usual,
+but instead of pressing <tt>RETURN</tt> at the <tt>SYSLINUX</tt>
+prompt, type <tt>linux ks</tt>.<p>
+
+If you're lucky, this will be all you have to type!<p>
+
+If you customised your RedHat boot floppy as outlined above, you won't
+even need to do this bit :-)<p>
+
+Since we're really just automating the normal steps involved in a
+RedHat installation, the normal dialogs may appear if/when KickStart
+gets confused about what to do next.  The most likely case is that
+your network interface won't be detected automatically, and you'll be
+prompted for its IRQ and I/O address space.  KickStart tends to need
+help for ISA bus cards, but detects PCI bus cards automatically.<p>
+ 
+You can keep an eye on what KickStart is doing by by switching virtual
+consoles as usual:<p>
+
+<itemize>
+<item> Alt-F1 - installation dialog
+<item> Alt-F2 - shell prompt
+<item> Alt-F3 - install log (messages from install program)
+<item> Alt-F4 - system log (messages from kernel, etc.)
+<item> Alt-F5 - other messages
+</itemize><p>
+
+
+<sect>Mounting the boot/supp disks<p>
+
+The RedHat boot disk <em>boot.img</em> is in MS-DOS format, using the
+<tt>SYSLINUX</tt> program to boot up.  The supplementary disk
+<em>supp.img</em> is a Linux <tt>ext2</tt> filesystem.  If you have
+support for the loopback filesystem in your Linux kernel, you can mount
+both of these files in your filesystem and hack at them:<p>
+
+<tscreen><verb>
+# mkdir -p /mnt/boot /mnt/supp
+# mount -o loop -t msdos boot.img /mnt/boot
+# mount -o loop supp.img /mnt/supp
+</verb></tscreen><p>
+
+Now you should be able to see and manipulate the files on the boot and
+supplementary disk under <em>/mnt/boot</em> and <em>/mnt/supp</em>
+respectively.  Phew!  Note that older versions of <tt>mount</tt> may
+not be able to handle the <tt>-o loop</tt> option.  In these cases
+you'll need to explicitly use <tt>losetup</tt> to configure the
+loopback device for each file, e.g.<p>
+
+<tscreen><verb>
+# losetup /dev/loop0 boot.img
+# mount -t msdos /dev/loop0 /mnt/boot
+</verb></tscreen><p>
+
+You might also need to explicitly use the <tt>-t ext2</tt> option when
+mounting an <tt>ext2</tt> filesystem like the one on the supplementary disk.
+But, it looks like people with modern Linux distributions shouldn't have to
+worry about this.<p>
+
+Of course, if you don't want to mess around too much, you can cut a
+corner and manipulate actual floppy disks rather than these floppy
+disk images.  If time is important, you'll probably prefer to use the
+loopback devices, since you can hack around with the disk images
+without incurring the latency associated with a genuine floppy disk
+read/write.<p>
+
+
+<sect>Modifying the RedHat installer<p>
+
+If you want to mess around with the installation procedure itself, the
+source code can be found on the RedHat CD-ROM or your local RedHat
+mirror site.  It's in <em>misc/src/install</em> under the
+<em>i386</em> distribution top level directory.<p>
+
+If you examine the RedHat boot disk you'll see that, in addition to
+the Linux kernel <em>vmlinuz</em>, there's a large file
+<em>initrd.img</em>:<p>
+
+<tscreen><verb>
+- -rwxr-xr-x   1 root     root          559 May 11 15:48 boot.msg
+- -rwxr-xr-x   1 root     root          668 May 11 15:48 expert.msg
+- -rwxr-xr-x   1 root     root          986 May 11 15:48 general.msg
+- -rwxr-xr-x   1 root     root       968842 May 11 15:48 initrd.img
+- -rwxr-xr-x   1 root     root         1120 May 11 15:48 kickit.msg
+- -r-xr-xr-x   1 root     root         5352 May 11 15:48 ldlinux.sys
+- -rwxr-xr-x   1 root     root          875 May 11 15:48 param.msg
+- -rwxr-xr-x   1 root     root         1239 May 11 15:48 rescue.msg
+- -rwxr-xr-x   1 root     root          402 May 11 15:48 syslinux.cfg
+- -rwxr-xr-x   1 root     root       444602 May 11 15:48 vmlinuz
+</verb></tscreen><p>
+
+You guessed it, this is another <tt>ext2</tt> filesystem saved as a file
+- - but with a twist.  It's actually compressed as well.  You can uncompress
+it and then mount the result, e.g.<p>
+
+<tscreen><verb>
+# gzip -dc /mnt/boot/initrd.img >/tmp/initrd.ext2
+# mkdir /mnt/initrd
+# mount -o loop /tmp/initrd.ext2 /mnt/initrd
+</verb></tscreen><p>
+
+Probably the most important part of this filesystem is the collection
+of loadable kernel modules which are included with the boot disk.  If
+you need to merge in a new version of a driver, you'll need to either
+replace <em>vmlinuz</em> with a new kernel which has this statically
+linked, or replace it in the modules collection.  What's more, you may
+need to throw other modules away to make room.<p>
+
+The modules collection is the file <em>modules/modules.cgz</em>.
+Wondering what that might be ?  It's actually a compressed
+<tt>cpio</tt> archive, believe it or not!  And you thought nobody used
+<tt>cpio</tt> any more...  Actually RPM itself uses <tt>cpio</tt>
+internally, too.  Here's how to hack around with it:<p>
+
+<tscreen><verb>
+# gzip -dc /mnt/initrd/modules/modules.cgz >/tmp/modules.cpio
+# cpio -itv <modules.cpio >modules.listing
+# mkdir modules
+# cpio -idumv <../modules.cpio
+</verb></tscreen><p>
+
+I don't believe that there is currently a way under Linux (at least in
+mainstream distributions) to transparently access compressed
+filesystems.  Let me know if you know better!<p>
+
+If you change anything, remember to:<p>
+
+<enum>
+<item> Use <tt>cpio</tt> to recreate the archive.  How to do this is
+  left as an exercise for the reader...
+<item> Use <tt>gzip</tt> to compress the resulting archive.
+<item> Copy it to <em>/mnt/initrd</em>, or wherever you put the
+  uncompressed <em>initrd.img</em> archive.
+<item> Unmount <em>/mnt/initrd</em> (or whatever you called it).
+<item> Compress the new <em>initrd.img</em> using <tt>gzip</tt>
+  again.
+<item> Copy the resulting archive onto the boot disk image -
+  <em>/mnt/boot/initrd.img</em> in our example.
+<item> Unmount the boot disk image, e.g. <em>/mnt/boot</em>.  
+</enum><p>
+
+Finally, you can now create new boot floppies using this modified boot
+disk setup, e.g.<p>
+
+<tscreen><verb>
+# cat boot.img >/dev/fd0
+</verb></tscreen><p>
+
+
+<sect>FAQs/Wish list<p>
+
+<bf>Q:</bf> After KickStart installation, my machine won't boot up.
+The BIOS complains with a message like <tt>Missing operating system</tt>.<p>
+
+<bf>A:</bf> Sounds like the partition with the root filesystem on isn't
+bootable.  Use <tt>fdisk</tt> to toggle its bootable status.<p>
+
+<bf>Q:</bf> After the floppy boots, I get the message:
+ <tt>Error opening files for kickstart copy: File exists</tt>.<p>
+
+<bf>A:</bf> Use a more recent version of <em>boot.img</em> and
+<em>supp.img</em> - look in the <em>updates</em> directory of your
+local RedHat mirror site.  There was a bug in some older versions
+of these for RedHat 5.1.<p>
+
+<bf>Q:</bf> Can you have all outstanding patches (update RPMs) applied
+automatically too ?  How ?<p>
+
+<bf>A1:</bf> Copy the RPMs you want installing to the RPMS directory
+from which the installation is going to take place, get rid of the
+older RPMs, and update the file <em>RedHat/base/hdlist</em> with the
+new RPM details.  See Appendix C for a script from Eric Doutreleau to do
+this for you.  If you do this yourself, remember to run <em>genhdlist</em>
+afterwards!<p>
+
+<bf>A2:</bf> Try this Perl script: <url name="patchup"
+url="http://wwwcache.ja.net/dev/patchup/">.  This compares the RPMs
+your system has installed with those in a nominated directory and
+reports on the ones it thinks need updating.  It can even install them
+for you if you trust it to.<p>
+
+<bf>A3:</bf> <url name="rpm2hml" url="http://rufus.w3.org/linux/rpm2html/">
+has a much more powerful (12MB of C code vs. a page of Perl!) version of A2.<p>
+
+<bf>Q:</bf> A single config file on the install server for all of the clients,
+perhaps as a fallback after trying <em>IPADDR-kickstart</em> ?<p>
+
+<bf>A1:</bf> Use the BOOTP/DHCP 'boot file' parameter <em>bf</em> to set
+the filename.<p>
+
+<bf>A2:</bf> Add a a record <tt>bf=/kickstart/ks.cfg</tt> to the relevant
+entry in <em>/etc/bootptab</em>.
+
+<bf>Q:</bf> More flexibility when things go wrong - e.g. prompt for alternate
+locations if distribution not found on CD-ROM.<p>
+
+<bf>A:</bf> ?<p>
+
+<bf>Q:</bf> Explicit exclusion of packages - e.g. everything apart from
+<em>sendmail</em>.<p>
+
+<bf>A:</bf> Rebuild the <bf>BASE</bf> package without sendmail.<p>
+
+<bf>Q:</bf> Choose which services are started automatically on boot-up by the
+run-level scripts under <em>/etc/rc.d/</em>.<p>
+
+<bf>A:</bf> The <em>chkconfig</em> utility lets you configure which
+services are run automatically on boot-up.  You can run this in your
+post-installation script section, e.g. to run <em>ypbind</em> in run
+levels 3, 4 and 5:<p>
+
+<tscreen><verb>
+chkconfig --level 345 ypbind on
+</verb></tscreen><p>
+
+and it will start the ypbind level on the 345 level.
+
+<bf>Q:</bf> When executing the shell commands in the <tt>%post</tt> section,
+bring any output up in another virtual console rather than overwriting the
+main screen.  <em>Could be done in the shell commands section using
+<tt>open</tt>?</em>.<p>
+
+<bf>A:</bf> No problem - do something like this:<p>
+
+<tscreen><verb>
+  exec >/dev/tty5
+</verb></tscreen><p>
+
+<bf>Q:</bf> Does the filesystem creation code check for bad blocks ?<p>
+
+<bf>A:</bf> If you switch to the virtual console where the filesystem
+creation output is being displayed, you won't see any mention of the
+'read-only' test being performed.  Looks like the answer is no.<p>
+
+<bf>Q:</bf> Can I arrange things so some of my machines are configured
+differently from others ?<p>
+
+<bf>A:</bf> You could move the host dependent stuff into the
+scripted section of the KickStart config - e.g. only install a given
+RPM if on a given machine.  It would be useful to have a conditional
+installation feature in the packages section of the config file,
+e.g. switching on architecture, or hostname/domain name/IP address.<p>
+
+<bf>Q:</bf> Are there any changes between RedHat 5.1 and 5.2 ?<p>
+
+<bf>A1:</bf> Lots of changes in the installer, but mostly bug fixes
+or cosmetic improvements.  No impact on KickStart as far as I can
+tell - from a <em>diff -rcs</em> of the two <em>misc/src/install</em>
+directories.<p>
+
+<bf>A2:</bf> RH5.2 now apparently includes the automatic IP allocation/DHCP
+patches to <tt>bootpd</tt>, but they have left out the documentation
+which tells you how to use it.
+
+<bf>Q:</bf> (How) can you clear a specific partition or partitions ?
+e.g. to leave <em>/home</em> but zap <em>/</em>.<p>
+
+<bf>A:</bf> You can't - yet!<p>
+
+<bf>Q:</bf> Can you arrange to have your partitions created across
+multiple drives ?  e.g. <em>/</em> on <tt>sda</tt> and <em>/home</em>
+on <tt>sdb</tt>.<p>
+
+<bf>A:</bf> Don't think so - looks like you only get access to the
+first drive from the partitioning tool.<p>
+
+<bf>Q:</bf> Is it possible to specify existing partitions to be
+included in the mount table, or is it only possible to specify the
+creation of new partitions that will then be included?<p>
+
+<bf>A:</bf> ?<p>
+
+<bf>Q:</bf> After running <tt>mkkickstart</tt>, where is the file
+it creates?<p>
+
+<bf>A:</bf> It doesn't create a file - it dumps the KickStart
+config to <tt>stdout</tt>.<p>
+
+<bf>Q:</bf> In virtual console 4 (Alt-F4) I get <tt>Unable to load NLS
+charset cp437(nls_cp437)</tt>.  What does this mean ?  Should I be
+worried ?<p>
+
+<bf>A:</bf> Sounds like you're trying to mount a CD-ROM burned with
+the Joliet (Unicode extensions to ISO 9660.  In theory the filenames
+on the CD-ROM might get munched and not make it through to Linux
+correctly.  In practice it doesn't seem to cause any problems -
+could be a spurious dependency ?<p>
+
+<bf>Q:</bf> Why am i getting the X Window System installed ? I didn't
+put it in my list of packages.<p>
+
+<bf>A:</bf> The <tt>XFree86-VGA16</tt> RPM is a 'base' component, and
+as such always gets installed - unless you change the definition of
+the base class.<p>
+
+<bf>Q:</bf> In my post-installation script, can I use the packages
+which have been installed by now to do funky things not possible with
+the limited tools on the floppies ?<p>
+
+<bf>A:</bf> Yep - e.g. if you chose to install Perl when you put your
+KickStart config together, almost anything is possible in about five
+lines :-)<p>
+
+
+<sect>Credits<p>
+
+Thanks to Eric Doutreleau for the info about <em>chkconfig</em>, the
+<tt>SYSLINUX</tt> config file hack, and the Perl script for updating
+your distribution server's RPMs.  Thanks to Robert Kaminsky for
+extensive investigations.  Thanks to Piete Brooks, Flavia Regina
+Munhoz, Tom Toffoli, Bob Robbins, Charlie Brady and Ragen Herrington,
+for their comments and questions.<p>
+
+
+<sect>Appendix A - Configuring BOOTP/DHCP and NFS<p>
+
+If you're wondering what on earth this BOOTP and DHCP stuff is, more
+information is available at <url name="the DHCP WWW site"
+url="http://www.dhcp.org/">.  NFS is documented separately in detail
+in the NFS HOWTO, and there's a DHCP mini-HOWTO too.  I've tried to
+provide enough details here to help you get started, whilst not
+treating the topics in depth - let me know if you think this is
+overkill.<p>
+
+In the BOOTP/DHCP + NFS configuration we're discussing, the KickStart
+config file should be NFS mountable by the machine being installed
+from <em>/kickstart/IPADDR-kickstart</em> on the BOOTP/DHCP server,
+where <em>IPADDR</em> is the IP address of the new machine, e.g.
+<em>/kickstart/198.168.254.254-kickstart</em> for the machine
+<em>198.168.254.254</em>.<p>
+
+You should be able to override this location by returning
+the <tt>bf</tt> parameter (boot file) in your BOOTP/DHCP response.  It
+may even be possible to have this NFS mounted off another machine
+entirely.<p>
+
+To NFS export some directories from an existing Linux box, create the
+file <em>/etc/exports</em> with contents something like:<p>
+
+<tscreen><verb>
+/kickstart *.swedish-chef.org(ro,no_root_squash)
+/mnt/cdrom *.swedish-chef.org(ro,no_root_squash)
+</verb></tscreen><p>
+
+Note that if you didn't register the IP addresses you're going to be
+using in the DNS, you may be told to get lost by the NFS server and/or
+the RPC portmapper.  In this you can probably get away with putting
+IP address/netmask pairs in the config files, e.g.<p>
+
+<tscreen><verb>
+/kickstart 198.168.254.0/255.255.255.0(ro,no_root_squash)
+</verb></tscreen><p>
+
+and in <em>/etc/hosts.allow</em>:<p>
+
+<tscreen><verb>
+ALL: 194.82.103.0/255.255.255.0: ALLOW
+</verb></tscreen><p>
+
+This is because most Linux distributions use TCP wrappers to do
+access control for some or all of the NFS related daemons.  Be aware
+that the <em>/etc/exports</em> syntax tends to be different on other
+Unix variants - the NFS servers bundled with Linux distributions
+tend to offer a much wider range of options than the ones shipped
+with other versions of Unix.
+
+Be aware that if you include a root password in your KickStart config
+file, or NFS export directories containing sensitive information, you
+should take care to expose this information to as few people as
+possible.  This can be done by making the NFS export permissions as
+fine grained as you can, e.g. by specifying a particular host or
+subnet to export to rather than a whole domain.  If you keep a special
+IP address free for KickStart installations, everything's nice and
+simple, but you'll have to change it later - or reconfigure the
+machine to get its IP address via BOOTP/DHCP.<p>
+
+Most NFS servers require you to tell <tt>mountd</tt> and <tt>nfsd</tt>
+(on some versions of Unix they're prefixed with a <tt>rpc.</tt>) that
+the <em>/etc/exports</em> file has changed - usually by sending a
+<tt>SIGHUP</tt>.  There's often a program or script called
+<tt>exportfs</tt>, which will do this for you, e.g.<p>
+
+<tscreen><verb>
+# exportfs -a
+</verb></tscreen><p>
+
+If you didn't have NFS up and running when this machine was booted,
+the directories may not be exported automatically.  Try rebooting, or
+running the following programs as root:<p>
+
+<tscreen><verb>
+# portmap
+# rpc.nfsd
+# rpc.mountd
+</verb></tscreen><p>
+
+As noted, on some systems the <tt>rpc.</tt> prefix isn't used.  In
+most modern Unix distributions, these programs can be found in the
+<em>/usr/sbin</em> or <em>/usr/libexec</em> directories.  These might
+not be in your path already, e.g. if you used <tt>su</tt> to become
+<em>root</em>.  The <tt>portmap</tt> program is also sometimes called
+<tt>rpcbind</tt>, e.g. on Solaris, some versions of <tt>nfsd</tt>
+require a command line argument specifying the number of instances of
+the server to run, and you may find you also need to run another
+daemon called <tt>biod</tt>.  The above should suffice on most (all?)
+Linux systems.<p>
+
+If you're using the CMU BOOTP server with DHCP and dynamic addressing
+extensions referred to earlier, a sample <em>/etc/bootptab</em> entry
+(<em>/etc/bootptab</em> is the normal location of the BOOTP/DHCP
+configuration file) would look something like this:<p>
+
+<tscreen><verb>
+  .dynamic-1:ip=198.168.254.128:T254=0x30:T250="ds=198.168.254.2:
+  dn=swedish-chef.org:sm=255.255.255.0:gw=198.168.254.1:
+  dl=0xFFFFFFFF":
+</verb></tscreen><p>
+
+(wrapped for clarity)<p>
+
+This says to allocate IP addresses dynamically on encountering new
+machines, starting at <em>198.168.254.128</em> and continuing for the
+next 48 (the hexadecimal value <em>30</em>) addresses.  Each client
+will be passed back the value of <em>T250</em>.  In this case that
+sets:<p>
+
+<itemize>
+<item> the DNS server <tt>ds</tt> to <em>198.168.254.2</em>
+<item> the domain name <tt>dn</tt> to <em>swedish-chef.org</em>
+<item> the subnet mask <tt>sm</tt> to <em>255.255.255.0</em>
+<item> the default gateway <tt>gw</tt> to <em>198.168.254.1</em>
+<item> the lease length <tt>dl</tt> (how long the address is
+  valid for) to "forever"
+</itemize><p>
+
+There seem to be a number of other versions of this server kicking
+around which do not support dynamic addressing.  For these, you would
+have to list the hardware (typically Ethernet MAC) address of each
+to-be-installed machine in <em>/etc/bootptab</em>, and the entries
+would look something like this:<p>
+
+<tscreen><verb>
+bork.swedish-chef.org:ip=198.168.254.128:ha=0000E8188E56:
+  ds=198.168.254.2:dn=swedish-chef.org:sm=255.255.255.0:
+  gw=198.168.254.1:dl=0xFFFFFFFF":
+</verb></tscreen><p>
+
+(wrapped for clarity)<p>
+
+Note that the parameter <tt>ha</tt> corresponds to the hardware
+address of the machine being installed.<p>
+
+
+<sect>Appendix B - Making your own RPMs<p>
+
+The RPM package format is already very well documented, particularly
+in the book <em>Maximum RPM</em> by Ed Bailey, which you can download
+from the <url url="http://www.rpm.org/" name="RPM WWW site"> - also
+available from all good book stores!  This is just a couple of quick
+hints for people in a hurry.<p>
+
+RPM packages are built from a <em>spec</em> file.  This consists (in a
+similar fashion to the KickStart config file) of a recipe of steps
+that need to be taken in order to build the package - it's expected
+that you'll have to build it from source, potentially for multiple
+platforms, and may need to apply patches before compiling.  Once built
+and installed, a binary RPM will be created from the files and
+directories you specify as being associated with the package.  It's
+important to note that RPM has no idea of which files and directories
+are related to a given package - you have to tell it.
+
+Here's a sample specification for a custom RPM of the <url name="Squid
+WWW cache server" url="http://squid.nlanr.net/">:<p>
+
+<tscreen><verb>
+Summary: Squid Web Cache server
+Name: squid
+Version: 1.NOVM.22
+Release: 1
+Copyright: GPL/Harvest
+Group: Networking/Daemons
+Source: squid-1.NOVM.22-src.tar.gz
+Patch: retry-1.NOVM.20.patch
+%description
+This is just a first attempt to package up the Squid Web Cache for easy
+installation on our RedHat Linux servers
+
+%prep
+%setup
+%build
+configure --prefix=/usr/squid
+perl -spi -e 's!#( -DALLOW_HOSTNAME_UNDERSCORES)!$1!' src/Makefile
+make
+
+%install
+make install
+
+%files
+/usr/squid
+</verb></tscreen><p>
+
+Here's how to build this RPM:<p>
+
+<tscreen><verb>
+% mkdir -p SOURCES BUILD SRPMS RPMS/i386
+% cp ~/squid-1.NOVM.22-src.tar.gz SOURCES
+% cp ~/retry-1.NOVM.20.patch SOURCES
+% rpm -ba squid-1.NOVM.22+retry-1.spec
+</verb></tscreen><p>
+
+This will automatically create a subdirectory under the <em>BUILD</em>
+directory, into which it'll unpack the source code and then apply the
+patch (there are a number of options available for patching - check
+the book for details).  Now, RPM will automatically build the package
+by running <tt>configure</tt> and then <tt>make</tt>, install it using
+<tt>make install</tt>, and take a snapshot of the files under
+<em>/usr/squid</em>.  It's the latter which will form the binary RPM
+of the Squid software.<p>
+
+Note that we can insert arbitrary shell commands into the unpacking,
+building and installing processes, e.g. the call to <tt>perl</tt>
+which tweaks one of Squid's compile-time parameters.<p>
+
+The final binary RPM will be left under the <em>RPMS</em> directory in
+the platform specific subdirectory <em>i386</em>.  In this case it
+will be called <em>squid-1.NOVM.22-1.i386.rpm</em>.  Note that the
+filename is created by concatenating the values of the following
+parameters from the spec file: <tt>Name</tt>, <tt>Version</tt> and
+<tt>Release</tt> - plus the hardware platform in question,
+<em>i386</em> in this case.  Try to bear this in mind when creating
+your own RPMs, to avoid giving them overly long or painful names!<p>
+
+It's also worth bearing in mind that you can build RPMs without having
+to rebuild the whole software package, e.g.<p>
+
+<tscreen><verb>
+Summary: Linux 2.0.36 kernel + filehandle patch + serial console patch
+Name: linux
+Version: 2.0.36+filehandle+serial_console
+Release: 1
+Copyright: GPL
+Group: Base/Kernel
+Source: linux-2.0.36+filehandle+serial_console.tar.gz
+%description
+This is just a first attempt to package up the Linux kernel with patches
+for installation on our RedHat Linux servers
+
+%prep
+echo
+
+%setup
+echo
+
+%build
+echo
+
+%install
+echo
+
+%post
+/sbin/lilo
+
+%files
+/lib/modules/2.0.36
+/boot/vmlinuz
+</verb></tscreen><p>
+
+In this case we simply create an RPM based on the
+<em>/boot/vmlinuz</em> file and the contents of the directory
+<em>/lib/modules/2.0.36</em>, and execute <em>/sbin/lilo</em> after
+the package has been installed on a target machine.  Let me know if
+you know much neater way of writing the spec file than this.<p>
+
+
+<sect>Appendix C - Munging your own RPMs into the distribution<p>
+
+Here is Eric's script for munging updated RPMs into the RedHat
+distribution area:
+
+<tscreen><verb>
+#!/usr/bin/perl
+#
+$redhatdir="/cdrom/i386";
+$rpmdir="/cdrom/i386/RedHat/RPMS/";
+$updatedir="/cdrom/updates/";
+@OTHERDIR=($updatedir);
+foreach $dir (@OTHERDIR)
+	{
+	print "update for $dir\n";
+	system(" find $dir -name \"*.rpm\" -exec cp {} $rpmdir \\; ");
+	}
+chdir($contribdir) || die "peux pas aller dans $contribdir $!\n";
+system("chmod -R 755 $redhatdir");
+chdir($rpmdir) || die "problem to go in $rpmdir $!\n";
+#
+# remove the old file
+#
+opendir(DIR,'.');
+@package=grep(/\.rpm$/,readdir(DIR));
+foreach $file (@package)
+	{
+        $file =~ /(.*)\-([\d+|\.]+\w*)\-(\d+)\.[i386|noarch].*/;
+	$nom=$1;
+	$version=$2;
+	$buildvers=$3;
+	if ($NOM{$nom})
+		{
+		$version2=$VERSION{$nom};
+		$buildver2=$BUILDVERS{$nom};
+		$file2=$FILE{$nom};
+		$nom2=$NOM{$nom};
+		if ( $version2 gt $version )
+			{
+			print "$file2 is newer than $file\n";
+			unlink($file);
+			}
+		else 
+			{
+			if ( $version2 lt $version )
+				{
+				print "$file is newer than $file2\n";
+				unlink($file2);
+				$VERSION{$nom}=$version;
+               			$BUILDVERS{$nom}=$buildvers;
+               			$FILE{$nom}=$file;
+              			$NOM{$nom}=$nom;
+				}
+			else
+				{
+				if ( $buildver2 > $buildvers )
+						{
+                     			   print "$file2 : $buildver2 est mieux que $file : $buildvers\n";
+					   unlink($file);
+						}
+				else
+						{
+					print "$file2 : $buildver2 is older than $file : $buildvers\n";
+					    unlink($file2);
+	                                    $VERSION{$nom}=$version;
+       			                    $BUILDVERS{$nom}=$buildvers;
+                                	    $FILE{$nom}=$file;
+                                            $NOM{$nom}=$nom;
+						}
+				}
+			}
+		}
+	else
+		{
+		$VERSION{$nom}=$version;
+                $BUILDVERS{$nom}=$buildvers;
+                $FILE{$nom}=$file;
+                $NOM{$nom}=$nom;
+		}
+	}
+
+# we do the hard thing here
+#
+system("$redhatdir/misc/src/install/genhdlist $redhatdir");
+</verb></tscreen><p>
+
+</article>
