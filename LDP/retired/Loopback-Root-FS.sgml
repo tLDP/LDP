@@ -1,0 +1,743 @@
+<!DOCTYPE LINUXDOC SYSTEM>
+
+<article>
+
+<title>The Loopback Root Filesystem HOWTO
+<author>by Andrew M. Bishop, <tt><htmlurl url="mailto:amb@gedanken.demon.co.uk" name="amb@gedanken.demon.co.uk"></tt>
+<date>v1.1, 24 September 1999
+
+<abstract>
+This HOWTO explains how to use the Linux loopback device to create a Linux
+native filesystem format installation that can be run from a DOS partition
+without re-partitioning.  Other uses of this same technique are also discussed.
+</abstract>
+
+<toc>
+
+<sect>Introduction
+
+<p>
+
+<sect1>Copyright
+
+<p>
+The Loopback Root Filesystem HOWTO
+Copyright (C) 1998,99  Andrew M. Bishop (amb@gedanken.demon.co.uk).
+
+This documentation is free documentation; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+The GNU General Public License is available from <htmlurl url="http://www.fsf.org/" name="http://www.fsf.org/">
+or, write to the Free Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111 USA
+
+<sect1>Revision History
+
+<p>
+<descrip>
+<tag>Version 1.0.0</tag>Initial Version (June 1998)
+<tag>Version 1.0.1-1.0.3</tag>Slight Modifications, kernel version changes, typos etc. (1998 - July 1999)
+<tag>Version 1.1</tag>Added Copyright Information and Re-Submitted (September 1999)
+</descrip>
+
+<sect>Principles of Loopback Devices and Ramdisks
+
+<p>
+First I will describe some of the general principles that are used in the
+setting up of a loopback filesystem as the root device.
+
+
+<sect1>Loopback Devices
+
+<p>
+A <bf>loopback device</bf> in Linux is a virtual device that can be used like any
+other media device.
+
+<p>
+Examples of normal media devices are hard disk partitions like
+<tt>/dev/hda1</tt>, <tt>/dev/hda2</tt>, <tt>/dev/sda1</tt>, or entire disks like
+the floppy disk <tt>/dev/fd0</tt> etc.  They are all devices that can be used to
+hold a files and directory structures.  They can be formatted with the
+filesystem that is required (ext2fs, msdos, ntfs etc.) and then mounted.
+
+<p>
+The loopback filesystem associates a file on another filesystem as a complete
+device.  This can then be formatted and mounted just like any of the other
+devices listed above.  To do this the device called <tt>/dev/loop0</tt> or
+<tt>/dev/loop1</tt> etc is associated with the file and then this new virtual
+device is mounted.
+
+
+<sect1>Ramdisk Devices
+
+<p>
+In Linux it is also possible to have another type of virtual device mounted as a
+filesystem, this is the <bf>ramdisk device</bf>.
+
+<p>
+In this case the device does not refer to any physical hardware, but to a
+portion of memory that is set aside for the purpose.  The memory that is
+allocated is never swapped out to disk, but remains in the disk cache.
+
+<p>
+A ramdisk can be created at any time by writing to the ramdisk device
+<tt>/dev/ram0</tt> or <tt>/dev/ram1</tt> etc.  This can then be formatted and
+mounted in the same way that the loopback device is.
+
+<p>
+When a ramdisk is used to boot from (as is often done on Linux installation
+disks or rescue disks) then the disk image (the entire contents of the disk as a
+single file) can be stored on the boot floppy in a compressed form.  This is
+automatically recognised by the kernel when it boots and is uncompressed into
+the ramdisk before it is mounted.
+
+
+<sect1>The Initial Ramdisk Device
+
+<p>
+The <bf>initial ramdisk</bf> device in Linux is another important mechanism that
+we need to be able to use a loopback device as a the root filesystem.
+
+<p>
+When the initial ramdisk is used the filesystem image is copied into memory and
+mounted so that the files on it can be accessed.  A program on this ramdisk
+(called <tt>/linuxrc</tt>) is run and when it is finished a different device is
+mounted as the root filesystem.  The old ramdisk is still present though and is
+mounted on the directory <tt>/initrd</tt> if present or available through the
+device <tt>/dev/initrd</tt>.
+
+<p>
+This is unusual behaviour since the normal boot sequence boots from the
+designated root partition and keeps on running.  With the initial ramdisk option
+the root partition is allowed to change before the main boot sequence is
+started.
+
+
+<sect1>The Root Filesystem
+
+<p>
+The root filesystem is the device that is mounted first so that it appears as
+the directory called <tt>/</tt> after booting.
+
+<p>
+There are a number of complications about the root filesystem that are due to
+the fact that it contains all files.  When booting the <tt>rc</tt> scripts are
+run, these are either the files in <tt>/etc/rc.d</tt> or <tt>/etc/rc?.d</tt>
+depending on the version of the <tt>/etc/init</tt> program.
+
+<p>
+When the system has booted it is not possible to unmount the root partition or
+change it since all programs will be using it to some extent.  This is why the
+initial ramdisk is so useful because it can be used so that the final root
+partition is not the same as the one that is loaded at boot time.
+
+
+<sect1>The Linux Boot Sequence
+
+<p>
+To show how the initial ramdisk operates in the boot sequence, the order of
+events is listed below.
+
+<p>
+<enum>
+<item>The kernel is loaded into memory, this is performed by <tt>LILO</tt> or
+<tt>LOADLIN</tt>.  You can see the <tt>Loading...</tt> message as this happens.
+<item>The ramdisk image is loaded into memory, again this is performed by
+<tt>LILO</tt> or <tt>LOADLIN.</tt> You can see the <tt>Loading...</tt> message
+again as this happens.
+<item>The kernel is initialised, including parsing the command line options and
+setting of the ramdisk as the root device.
+<item>The program <tt>/linuxrc</tt> is run on the initial ramdisk.
+<item>The root device is changed to that specified in the kernel parameter.
+<item>The init program <tt>/etc/init</tt> is run which will perform the user
+configurable boot sequence.
+</enum>
+
+This is just a simplified version of what happens, but is sufficient to explain
+how the kernel starts up and where the initial ramdisk is used.
+
+
+<sect>How To Create a Loopback Root Device
+
+<p>
+Now that the general principles are explained the method of creating the
+loopback device can be explained.
+
+
+<sect1>Requirements
+
+<p>
+To create the loopback root device will require a number of things.
+
+<p>
+<itemize>
+<item>A working Linux system.
+<item>A way to copy large files onto the target DOS partition.
+</itemize>
+
+Most important is access to an installed Linux system.  This is because the loop
+device can only be created under Linux.  This will mean that it is not possible
+to bootstrap a working system from nothing.  The requirements of the Linux
+system that you use is that you can compile a kernel on it.
+
+<p>
+Once the loopback device is created it will be a large file.  I have used an 80
+MB files, but while this was sufficient for an X terminal it may not be enough
+if you want to use it for much else.  This file must be copied onto the DOS
+partition, so either a network or a lot of floppy disks must be used.
+
+<p>
+The software that you will require includes
+
+<itemize>
+<item><tt>LOADLIN</tt> version 1.6 or above
+<item>A version of <tt>mount</tt> that supports loopback devices
+<item>A version of the kernel that supports the required options.
+</itemize>
+
+All of these should be standard for recent Linux installations.
+
+
+<sect1>Creating the Linux Kernel
+
+<p>
+I created the loopback device using Linux kernel version 2.0.31, other versions
+should also work, but they must have at least the options listed below.
+
+<p>
+The kernel options that you will need to enable are the following:
+<itemize>
+<item>RAM disk support (<tt>CONFIG_BLK_DEV_RAM</tt>).
+<item>Initial RAM disk (initrd) support (<tt>CONFIG_BLK_DEV_INITRD</tt>).
+<item>Loop device support (<tt>CONFIG_BLK_DEV_LOOP</tt>).
+<item>fat fs support (<tt>CONFIG_FAT_FS</tt>).
+<item>msdos fs support (<tt>CONFIG_MSDOS_FS</tt>).
+</itemize>
+
+The first two are for the RAM disk device itself and the initial ram disk
+device.  The next one is the loop back filesystem option.  The last two are the
+msdos filesystem support which is required to mount the DOS partitition.
+
+<p>
+Compiling a kernel without modules is the easiest option, although if you do
+want modules then it should be possible although I have not tried it.  If
+modules are used then you should make sure that you have the options above
+compiled in and not as modules themselves.
+
+<p>
+Depending on the kernel version that you have you may need to apply a kernel
+patch.  It is a very simple one that allows the loopback device to be used as
+the root filesystem.
+<itemize>
+<item>Kernel versions before 2.0.0; I have no information about these.
+<item>Kernel version 2.0.0 to 2.0.34; you need to apply the kernel patch for
+      2.0.x kernels as shown below.
+<item>Kernel version 2.0.35 to 2.0.x; no kernel patch is required.
+<item>Kernel version 2.1.x; you need to apply the kernel patch for 2.0.x or
+      2.2.x kernels as shown below, depending on the exact 2.1.x version.
+<item>Kernel version 2.2.0 to 2.2.10; you need to apply the kernel patch for
+      2.2.x kernels as shown below.
+<item>Kernel version 2.3.x; you need to apply the kernel patch for 2.2.x kernels
+      as shown below.
+</itemize>
+
+<p>
+For 2.0.x kernels the file <tt>/init/main.c</tt> needs to have a single line
+added to it as shown by the modified version below.  The line that says
+<tt>"loop", 0x0700</tt> is the one that was added.
+
+<p>
+<tscreen><verb>
+static void parse_root_dev(char * line)
+{
+	int base = 0;
+	static struct dev_name_struct {
+		const char *name;
+		const int num;
+	} devices[] = {
+		{ "nfs",     0x00ff },
+		{ "loop",    0x0700 },
+		{ "hda",     0x0300 },
+
+...
+
+		{ "sonycd",  0x1800 },
+		{ NULL, 0 }
+	};
+
+...
+
+}
+</verb></tscreen>
+
+<p>
+For 2.2.x kernels the file <tt>/init/main.c</tt> needs to have three lines added
+to it as shown by the modified version below.  The line that says <tt>"loop",
+0x0700</tt> and the ones either side of it are the ones that were added.
+
+<p>
+<tscreen><verb>
+static struct dev_name_struct {
+	const char *name;
+	const int num;
+} root_dev_names[] __initdata = {
+#ifdef CONFIG_ROOT_NFS
+	{ "nfs",     0x00ff },
+#endif
+#ifdef CONFIG_BLK_DEV_LOOP
+        { "loop",    0x0700 },
+#endif
+#ifdef CONFIG_BLK_DEV_IDE
+	{ "hda",     0x0300 },
+
+...
+
+	{ "ddv", DDV_MAJOR << 8},
+#endif
+	{ NULL, 0 }
+};
+</verb></tscreen>
+
+Once the kernel is configured it should be compiled to produce a <tt>zImage</tt>
+file (<tt>make zImage</tt>).  This file will be <tt>arch/i386/boot/zImage</tt>
+when compiled.
+
+
+<sect1>Creating the Initial Ramdisk Device
+
+<p>
+The initial ramdisk is most easily created as a loopback device from the start.
+You will need to do this as root, the commands that you need to execute are
+listed below, they are assumed to be run from root's home directory
+(<tt>/root</tt>).
+
+<p>
+<tscreen><verb>
+mkdir /root/initrd
+dd if=/dev/zero of=initrd.img bs=1k count=1024
+mke2fs -i 1024 -b 1024 -m 5 -F -v initrd.img
+mount initrd.img /root/initrd -t ext2 -o loop
+cd initrd
+[create the files]
+cd ..
+umount /root/initrd
+gzip -c -9 initrd.img &gt; initrdgz.img
+</verb></tscreen>
+
+There are a number of steps to this, but they can be described as follows.
+<enum>
+<item>Create a mount point for the initial ramdisk (an empty directory).
+<item>Create an empty file of the size required.  Here I have used 1024kB, you may
+need less or more depending on the contents, (the size is the last parameter).
+<item>Make an ext2 filesystem on the empty file.
+<item>Mount the file onto the mount point, this uses the loopback device.
+<item>Change to the mounted loopback device.
+<item>Create the files that are required (see below for details).
+<item>Move out of the mounted loopback device.
+<item>Unmount the device.
+<item>Create a compressed version for use later.
+</enum>
+
+<bf>Contents Of The Initial Ramdisk</bf>
+
+The files that you will need on the ramdisk are the minimum requirements to be
+able to execute any commands.
+
+<itemize>
+<item><tt>/linuxrc</tt> The script that is run to mount the msdos file system
+(see below).
+<item><tt>/lib/*</tt> The dynamic linker and the libraries that the programs
+need.
+<item><tt>/etc/*</tt> The cache used by the dynamic linker (not strictly needed,
+but does stop it complaining).
+<item><tt>/bin/*</tt> A shell interpreter (<tt>ash</tt> because it is smaller
+than <tt>bash</tt>.  The <tt>mount</tt> and <tt>losetup</tt> programs for
+handling the DOS disk and setting up the loopback devices.
+<item><tt>/dev/*</tt> The devices that will be used.  You need
+<tt>/dev/zero</tt> for <tt>ld-linux.so</tt>, <tt>/dev/hda*</tt> to mount the
+msdos disk and <tt>/dev/loop*</tt> for the lopback device.
+<item><tt>/mnt</tt> An empty directory to mount the msdos disk on.
+</itemize>
+
+The initial ramdisk that I used is listed below, the contents come to about
+800kB when the overhead of the filesystem are taken into account.
+
+<p>
+<tscreen><verb>
+total 18
+drwxr-xr-x   2 root     root         1024 Jun  2 13:57 bin
+drwxr-xr-x   2 root     root         1024 Jun  2 13:47 dev
+drwxr-xr-x   2 root     root         1024 May 20 07:43 etc
+drwxr-xr-x   2 root     root         1024 May 27 07:57 lib
+-rwxr-xr-x   1 root     root          964 Jun  3 08:47 linuxrc
+drwxr-xr-x   2 root     root        12288 May 27 08:08 lost+found
+drwxr-xr-x   2 root     root         1024 Jun  2 14:16 mnt
+
+./bin:
+total 168
+-rwxr-xr-x   1 root     root        60880 May 27 07:56 ash
+-rwxr-xr-x   1 root     root         5484 May 27 07:56 losetup
+-rwsr-xr-x   1 root     root        28216 May 27 07:56 mount
+lrwxrwxrwx   1 root     root            3 May 27 08:08 sh -&gt; ash
+
+./dev:
+total 0
+brw-r--r--   1 root     root       3,   0 May 20 07:43 hda
+brw-r--r--   1 root     root       3,   1 May 20 07:43 hda1
+brw-r--r--   1 root     root       3,   2 Jun  2 13:46 hda2
+brw-r--r--   1 root     root       3,   3 Jun  2 13:46 hda3
+brw-r--r--   1 root     root       7,   0 May 20 07:43 loop0
+brw-r--r--   1 root     root       7,   1 Jun  2 13:47 loop1
+crw-r--r--   1 root     root       1,   3 May 20 07:42 null
+crw-r--r--   1 root     root       5,   0 May 20 07:43 tty
+crw-r--r--   1 root     root       4,   1 May 20 07:43 tty1
+crw-r--r--   1 root     root       1,   5 May 20 07:42 zero
+
+./etc:
+total 3
+-rw-r--r--   1 root     root         2539 May 20 07:43 ld.so.cache
+
+./lib:
+total 649
+lrwxrwxrwx   1 root     root           18 May 27 08:08 ld-linux.so.1 -&gt; ld-linux.so.1.7.14
+-rwxr-xr-x   1 root     root        21367 May 20 07:44 ld-linux.so.1.7.14
+lrwxrwxrwx   1 root     root           14 May 27 08:08 libc.so.5 -&gt; libc.so.5.3.12
+-rwxr-xr-x   1 root     root       583795 May 20 07:44 libc.so.5.3.12
+
+./lost+found:
+total 0
+
+./mnt:
+total 0
+</verb></tscreen>
+
+The only complex steps about this are the devices in <tt>dev</tt>.  Use the
+<tt>mknod</tt> program to create them, use the existing devices in <tt>/dev</tt>
+as a template to get the required parameters.
+
+
+<bf>The /linuxrc file</bf>
+
+The <tt>/linuxrc</tt> file on the initial ramdisk is required to do all of the
+preparations so that the loopback device can be used for the root partition when
+it exits.
+<p>
+The example below tries to mount <tt>/dev/hda1</tt> as an msdos partition and
+if it succeeds then sets up the files <tt>/linux/linuxdsk.img</tt> as
+<tt>/dev/loop0</tt> and <tt>/linux/linuxswp.img</tt> as <tt>/dev/loop1</tt>.
+
+<p>
+<tscreen><verb>
+#!/bin/sh
+
+echo INITRD: Trying to mount /dev/hda1 as msdos
+
+if /bin/mount -n -t msdos /dev/hda1 /mnt; then
+
+   echo INITRD: Mounted OK
+   /bin/losetup /dev/loop0 /mnt/linux/linuxdsk.img
+   /bin/losetup /dev/loop1 /mnt/linux/linuxswp.img
+   exit 0
+
+else
+
+   echo INITRD: Mount failed
+   exit 1
+
+fi
+</verb></tscreen>
+
+The first device <tt>/dev/loop0</tt> will become the root device and the second
+one <tt>/dev/loop1</tt> will become the swap space.
+
+<p>
+If you want to be able to write to the DOS partition as a non-root user when you
+have finished then you should use <tt>mount -n -t msdos /dev/hda1 /mnt -o
+uid=0,gid=0,umask=000,quiet</tt> instead.  This will map all accesses to the DOS
+partition to root and set the permissions appropriately.
+
+
+<sect1>Creating The Root Device
+
+<p>
+The root device that you will be using is the file <tt>linuxdsk.img</tt>.  You
+will need to create this in the same way that the initial ramdisk was created,
+but bigger.  You can install any Linux installation that you like onto this
+disk.
+
+<p>
+The easiest way might be to copy an existing Linux installation into it.  An
+alternative is to install a new Linux installation onto it.
+
+<p>
+Assuming that you have done this, there are some minor changes that you must
+make.
+
+<p>
+The <tt>/etc/fstab</tt> file must reference the root partition and the
+swap using the two loopback devices that are setup on the initial ramdisk.
+
+<p>
+<tscreen><verb>
+/dev/loop0     /      ext2   defaults 1 1
+/dev/loop1     swap   swap   defaults 1 1
+</verb></tscreen>
+
+This will ensure that when the real root device is used the kernel will not be
+confused about where the root device is.  It will also allow the swap space to
+be added in the same way a swap partition is normally used.  You should remove
+any other reference to a root disk device or swap partition.
+
+<p>
+If you want to be able to read the DOS partition after Linux has started then
+you will need to make a number of extra small changes.
+
+<p>
+Create a directory called <tt>/initrd</tt>, this is where the initial ramdisk
+will be mounted once the loopback root filesystem is mounted.
+<p>
+Create a symbolic link called <tt>/DOS</tt> that points to <tt>/initrd/mnt</tt>
+where the real DOS parition will be mounted.
+<p>
+Add a line into the rc file that mounts the disks.  This should run the command
+<tt>mount -f -t msdos /dev/hda1 /initrd/mnt</tt>, this will create a 'fake'
+mount of the DOS partition so that all programs (like <tt>df</tt>) will know that
+the DOS partition is mounted and where to find it.  If you used different
+options in the <tt>/linuxrc</tt> file that obviously you should use them here
+also.
+
+<p>
+There is no need to have a Linux kernel on this root device since that is
+already loaded earlier.  If you are using modules however then you should
+include them on this device as normal.
+
+
+<sect1>Creating the Swap Device
+
+<p>
+The root device that you will be using is the file <tt>linuxswap.img</tt>.  The
+swap device is very simple to create.  Create an empty file as was done for the
+initial ramdisk and then run <tt>mkswap linuxswap.img</tt> to intialise it.
+
+<p>
+The size of the swap space will depend on what you plan to do with the installed
+system, but I would recommend between 8MB and the amount of RAM that you have.
+
+
+<sect1>Creating the MSDOS Directory
+
+<p>
+The files that are going to be used need to be moved onto the DOS partition.
+
+<p>
+The files that are required in the DOS directory called <tt>C:\LINUX</tt> are
+the following:
+
+<itemize>
+<item><tt>LINUXDSK.IMG</tt> The disk image that will become the root device.
+<item><tt>LINUXSWP.IMG</tt> The swap space.
+</itemize>
+
+<sect1>Creating the Boot Floppy
+
+<p>
+The boot floppy that is used is just a normal DOS format bootable floppy.
+<p>
+This is created using <tt>format a: /s</tt> from DOS.
+
+<p>
+Onto this disk you will need to create an <tt>AUTOEXEC.BAT</tt> file (as below)
+and copy the kernel, compressed initial ramdisk and <tt>LOADLIN</tt> executable.
+
+<itemize>
+<item><tt>AUTOEXEC.BAT</tt> The DOS automatically executed batch file.
+<item><tt>LOADLIN.EXE</tt> The <tt>LOADLIN</tt> program executable.
+<item><tt>ZIMAGE</tt> The Linux kernel.
+<item><tt>INITRDGZ.IMG</tt> The compressed initial ramdisk image.
+</itemize>
+
+The <tt>AUTOEXEC.BAT</tt> file should contain just one line as below.
+
+<tscreen><verb>
+\loadlin \zImage initrd=\initrdgz.img root=/dev/loop0 ro
+</verb></tscreen>
+
+This specifies the kernel image to use, the initial ramdisk image, the root
+device after the initial ramdisk has finished and that the root partition is to
+be mounted read-only.
+
+<sect>Booting the System
+
+<p>
+To boot from this new root device all that is required is that the floppy disk
+prepared as described above is inserted for the PC to boot from.
+
+<p>
+You will see the following sequence of events.
+<enum>
+<item>DOS boots
+<item>AUTOEXEC.BAT starts
+<item>LOADLIN is run
+<item>The Linux kernel is copied into memory
+<item>The initial ramdisk is copied into memory
+<item>The Linux kernel is started running
+<item>The <tt>/linuxrc</tt> file on the initial ramdisk is run
+<item>The DOS partition is mounted and the root and swap devices set up
+<item>The boot sequence continues from the loopback device
+</enum>
+
+When this is complete you can remove the boot floppy and use the Linux system.
+
+<sect1>Possible Problems With Solutions
+
+<p>
+There are a number of stages where this process could fail, I will try to
+explain what they are and what to check.
+
+<p>
+DOS booting is easy to recognise by the message that it prints <tt>MS-DOS
+Starting ...</tt> on the screen.  If this is not seen then the floopy disk is
+either not-bootable or the PC is not bootable from the floppy disk drive.
+
+<p>
+When the <tt>AUTOEXEC.BAT</tt> file is run the commands in it should be echoed
+to the screen by default.  In this case there is just the single line in the
+file that starts <tt>LOADLIN</tt>.
+
+<p>
+When <tt>LOADLIN</tt> executes it will do two very visible things, firstly it
+will load the kernel into memory, secondly it will copy the ramdisk into memory.
+Both of these are indicated by a <tt>Loading...</tt> message.
+
+<p>
+The kernel starts by uncompressing itself, this can give <bf>crc</bf> errors if
+the kernel image is corrupted.  Then it will start running the initialisation
+sequence which is very verbose with diagnostic messages.  Loading of the initial
+ramdisk device is also visible during this phase.
+
+<p>
+When the <tt>/linuxrc</tt> file is run there is no diagnostic messages, but you
+can add these yourself as an aid to debugging.  If this stage fails to set up
+the loopback device as the root device then you may see a message that there is
+no root device and the kernel aborts.
+
+<p>
+The normal boot sequence of the new root device will now continue and this is
+quite verbose.  There may be problems about the root device being mounted
+read-write, but the <tt>LOADLIN</tt> command line option '<tt>ro</tt>' should
+stop that.  Other problems that can occur are that the boot sequence is confused
+about where the root device is, this is probably due to a problem with
+<tt>/etc/fstab</tt>.
+
+<p>
+When the boot sequence has completed, the remaining problem is that programs are
+confused about whether the DOS partition is mounted or not.  This is why it is a
+good idea to use the fake mount command described earlier.  This makes life a
+lot easier if you want to access the files on the DOS device.
+
+
+<sect1>Reference Documents
+
+<p>
+The documents that I used to create my first loopback root filesystem were:
+
+<p>
+<itemize>
+<item>The Linux kernel source, in particular <tt>init/main.c</tt>
+<item>The Linux kernel documentation, in particular
+<tt>Documentation/initrd.txt</tt> and <tt>Documentation/ramdisk.txt</tt>.
+<item>The <tt>LILO</tt> documentation.
+<item>The <tt>LOADLIN</tt> documentation
+</itemize>
+
+
+<sect>Other Loopback Root Device Possibilities
+
+<p>
+Once the principle of booting a filesystem in a file on a DOS partition has been
+established there are many other things that you can now do.
+
+
+<sect1>DOS Hard-disk Only Installation
+
+<p>
+If it is possible to boot Linux from a file on a DOS harddisk by using a boot
+floppy then it is obviously also possible to do it using the harddisk itself.
+<p>
+A configuration boot menu can be used to give the option of running
+<tt>LOADLIN</tt> from within the <tt>AUTOEXEC.BAT</tt>.  This will give a much
+faster boot sequence, but is otherwise identical.
+
+
+<sect1>LILO Booted Installation
+
+<p>
+Using <tt>LOADLIN</tt> is only one option for booting a Linux kernel.  There is
+also <tt>LILO</tt> that does much the same but without needing DOS.
+<p>
+In this case the DOS format floppy disk can be replaced by an ext2fs format one.
+Otherwise the details are very similar, with the kernel and the initial ramdisk
+being files on that disk.
+<p>
+The reason that I chose the <tt>LOADLIN</tt> method is that the arguments that
+need to be given to <tt>LILO</tt> are slightly more complex.  Also it is more
+obvious to a casual observer what the floppy disk is since it can be read under
+DOS.
+
+
+<sect1>VFAT / NTFS Installation
+
+<p>
+I have tried the NTFS method, and have had no problems with it.  The NTFS
+filesystem driver is not a standard kernel option in version 2.0.x, but is
+available as a patch from <htmlurl
+url="http://www.informatik.hu-berlin.de/~loewis/ntfs/"
+name="http://www.informatik.hu-berlin.de/~loewis/ntfs/">.  In version 2.2.x the
+NTFS driver is included as standard in the kernel.
+<p>
+The only changes for the VFAT or NTFS options are in the initial ramdisk, the
+file <tt>/linuxrc</tt> needs to mount a file system of type vfat or ntfs rather
+that msdos.
+<p>
+I know of no reason why this should not also work on a VFAT partition.
+
+
+<sect1>Installing Linux without Re-partitioning
+
+<p>
+The process of installing Linux on a PC from a standard distribution requires
+booting from a floppy disk and re-partitioning the disk.  This stage could
+instead be accomplished by a boot floppy that creates an empty loopback device
+and swap file.  This would allow the installation to proceed as normal, but it
+would install into the loopback device rather than a partition.
+<p>
+This could be used as an alternative to a <tt>UMSDOS</tt> installation, it would
+be more efficient in disk usage since the minimum allocation unit in the ext2
+filesystem is 1kB instead of up to 32kB on a DOS partition.  It can also be used
+on VFAT and NTFS formatted disks which are otherwise a problem.
+
+
+<sect1>Booting From a Non-bootable device
+
+<p>
+This method can also be used to boot a Linux system from a device that is not
+normally bootable.
+
+<p>
+<itemize>
+<item>CD-Rom
+<item>Zip Disks
+<item>Parallel port disk drives
+</itemize>
+
+Obviously there are many other devices that could be used, NFS root filesystems
+are already included in the kernel as an option, but the method described here
+might also be used instead.
+
+</article>

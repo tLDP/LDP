@@ -1,0 +1,881 @@
+<!DOCTYPE article PUBLIC "-//OASIS//DTD DocBook V3.1//EN">
+
+<article id="index">
+  <title>Ext2fs Undeletion of Directory Structures mini-HOWTO</title>
+
+  <artheader>
+
+    <author>
+
+      <firstname>Tomas</firstname>
+      <surname>Ericsson</surname>
+      <affiliation>
+        <address>
+          <email>tomase@matematik.su.se</email>
+        </address>
+      </affiliation>
+
+    </author>
+
+    <revhistory>
+
+      <revision>
+        <revnumber>v0.1.1</revnumber>
+        <date>14 November 2000</date>
+        <authorinitials>T.E.</authorinitials>
+        <revremark>Initial release.</revremark>
+      </revision>
+
+    </revhistory>
+
+    <abstract>
+
+      <para>
+        This document is supposed to be as an complementary to the
+        <emphasis>Ext2fs-Undeletion mini-HOWTO</emphasis> written by
+        Aaron Crane. I really recommend you to carefully study that one before
+        reading this.
+      </para>
+
+      <para>
+        Here I will describe a straight forward way of recovering whole
+        directory structures, instead of file by file, that have been removed
+        by a misplaced <emphasis>rm -rf</emphasis>.
+      </para>
+
+    </abstract>
+
+  </artheader>
+
+
+
+
+  <sect1 id="intro">
+    <title>Introduction</title>
+
+    <sect2>
+      <title>Disclaimer</title>
+
+      <para>
+        The author is not responsible for damages due actions taken based on
+        this document. You will do everything at your own risk.
+      </para>
+
+    </sect2>
+
+    <sect2>
+      <title>License</title>
+
+      <para>
+        This document may be distributed only subject to the terms and
+        conditions set forth in the LDP license available at
+        <ulink url="http://www.linuxdoc.org/manifesto.html">
+          http://www.linuxdoc.org/manifesto.html
+        </ulink>
+      </para>
+
+    </sect2>
+
+    <sect2>
+      <title>Feedback</title>
+
+      <para>
+        Any kind of feedback is welcome. Corrections of errors in this text are
+        of great interest. If someone find things described here useful I really
+        would appreciate to hear that from you.
+      </para>
+
+    </sect2>
+
+    <sect2>
+      <title>New versions of this document</title>
+
+      <para>
+        The latest version of this document will be found at
+        <ulink url="http://www.matematik.su.se/~tomase/ext2fs-undeletion/">
+        http://www.matematik.su.se/~tomase/ext2fs-undeletion/</ulink>
+      </para>
+
+    </sect2>
+
+    <sect2>
+      <title>Acknowledgements</title>
+
+      <para>
+        Thanks to the following persons for correctures etc (in alphabetic
+        order).
+      </para>
+
+      <itemizedlist>
+        <listitem><para>Gabriel Kihlman</para></listitem>
+        <listitem><para>Richard Nyberg</para></listitem>
+        <listitem><para>Mats Oldin</para></listitem>
+        <listitem><para>Tobias Westerblom</para></listitem>
+      </itemizedlist>
+
+    </sect2>
+
+    <sect2>
+      <title>Background</title>
+
+      <para>
+        This text has been written while solving my own undeletion problems that
+        I had some time ago. I was about to move some directories from one disk
+        to another. The problem was that the extra disk went corrupted directly
+        after the move for some reason.
+      </para>
+
+      <para>
+        So I wanted to get the moved directories back from my original disk.
+        There were totally about 40000 files to recover and I did not feel very
+        much like to search and rename each one of them by hand.
+      </para>
+
+      <para>
+        I wanted to get back the whole structure of directories. The same
+        situation would have appeared if I had made an
+        <emphasis>rm -rf</emphasis> to those directories.
+      </para>
+
+    </sect2>
+
+
+
+
+  </sect1>
+
+  <sect1 id="precond">
+    <title>Preconditions</title>
+
+    <para>
+      It is really important that you unmount the affected partition immediately
+      before doing anything else with it. If you have copied around some files
+      in this partition after the accident, then the chance for this method to
+      work has lowered a lot.
+    </para>
+
+    <para>
+      Also you must have a quite new kernel, because the
+      2.0.x and below zeroes indirect blocks, which will
+      not make this process to work for files with more than 12 blocks of data.
+    </para>
+
+    <para>
+      I will describe one method of recovery and I will not leave out much for
+      error handling. If you suspect that some step described below went wrong,
+      I do not recommend you to go any further.
+    </para>
+
+  </sect1>
+
+
+
+
+  <sect1 id="prep">
+    <title>Preparation</title>
+
+    <para>
+      Unmount the partition where you got your deleted files at. I will denote
+      that partition with /dev/hdx1.
+    </para>
+
+    <para>
+      <programlisting>
+        # umount /dev/hdx1</programlisting>
+    </para>
+
+    <para>
+      Check the size in blocks of /dev/hdx1.
+    </para>
+
+    <para>
+      <programlisting>
+        # fdisk -l /dev/hdx</programlisting>
+    </para>
+
+    <para>
+      Now you need to have an extra partition of the same size as
+      /dev/hdx1, to be able to act safely. Suppose that you
+      have an empty harddrive located at /dev/hdy.
+    </para>
+
+    <para>
+      <programlisting>
+        # fdisk /dev/hdy</programlisting>
+    </para>
+
+    <para>
+      Create a partition with the same size as /dev/hdx1.
+      Here <emphasis>size</emphasis> is the size in blocks (each block is
+      1024 kB) of /dev/hdx1 taken from above.
+    </para>
+
+    <note>
+      <para>
+        I am using <emphasis>fdisk</emphasis> version 2.10f
+        and if you have another version the <emphasis>fdisk</emphasis>
+        interaction below may not be the same.
+      </para>
+    </note>
+
+    <para>
+      <programlisting>
+        fdisk: n      &#60;- Add a new partition.
+        fdisk: p      &#60;- Primary partition.
+        fdisk:        &#60;- Just press return to chose the default first cylinder.
+        fdisk: +sizeK &#60;- Make a partition of the same size as /dev/hdx1.
+        fdisk: w      &#60;- Write table to disk and exit.</programlisting>
+    </para>
+
+    <para>
+      Now copy the content of the original partition to that extra one.
+    </para>
+
+    <para>
+      <programlisting>
+        # dd if=/dev/hdx1 of=/dev/hdy1 bs=1k</programlisting>
+    </para>
+
+    <para>
+      This process may take quite a long time dependent of how big the partition
+      is. You can get the job done faster by increasing the blocksize,
+      <emphasis>bs</emphasis>, but then you need to get the division of the
+      partition by <emphasis>bs</emphasis> to have a remainder of zero.
+    </para>
+
+    <para>
+      From now on we will only work with that copy of the source partition to
+      be able to step back if something goes wrong.
+    </para>
+
+  </sect1>
+
+
+
+
+  <sect1 id="find">
+    <title>Finding inodes for deleted directories</title>
+
+    <para>
+      We will try to find out the inode numbers of the deleted directories.
+    </para>
+
+    <para>
+      <programlisting>
+        # debugfs /dev/hdy1</programlisting>
+    </para>
+
+    <para>
+      Walk to that place in the structure where the directories were located
+      before the deletion. You can use <emphasis>ls</emphasis> and
+      <emphasis>cd</emphasis> inside <emphasis>debugfs</emphasis>.
+    </para>
+
+    <para>
+      <programlisting>
+        debugfs: ls -l</programlisting>
+    </para>
+
+    <para>
+      Example of output from the above command.
+    </para>
+
+    <para>
+      <programlisting>
+        179289  20600      0      0       0 17-Feb-100 18:26 file-1
+        918209  40700    500    500    4096 16-Jan-100 15:18 file-2
+        160321  41777      0      0    4096  3-Jun-100 06:13 file-3
+        177275  60660      0      6       0  5-May-98  22:32 file-4
+        229380 100600    500    500   89891 19-Dec-99  15:40 file-5
+        213379 120777      0      0      17 16-Jan-100 14:24 file-6</programlisting>
+    </para>
+
+    <para>
+      Description of the fields.
+    </para>
+
+    <orderedlist>
+
+      <listitem>
+        <para>
+          Inode number.
+        </para>
+      </listitem>
+
+      <listitem>
+
+        <para>
+          First two (or one) numbers represents the kind of inode we got:
+        </para>
+
+        <para>2 = Character device</para>
+        <para>4 = Directory</para>
+        <para>6 = Block device</para>
+        <para>10 = Regular file</para>
+        <para>12 = Symbolic link</para>
+
+        <para>
+          Last four numbers are the usual Unix rights.
+        </para>
+
+      </listitem>
+
+      <listitem>
+        <para>
+          Owner in number representation.
+        </para>
+      </listitem>
+
+      <listitem>
+        <para>
+          Group in number representation.
+        </para>
+      </listitem>
+
+      <listitem>
+        <para>
+          Size in bytes.
+        </para>
+      </listitem>
+
+      <listitem>
+        <para>
+          Date (Here we can see the Y2K bug =)).
+        </para>
+      </listitem>
+
+      <listitem>
+        <para>
+          Time.
+        </para>
+      </listitem>
+
+      <listitem>
+        <para>
+          Filename.
+        </para>
+      </listitem>
+
+    </orderedlist>
+
+    <para>
+      Now dump the mother directory to disk. Here <emphasis>inode</emphasis> is
+      the corresponding inode number (do not forget the '&#60;' and '&#62;').
+    </para>
+
+    <para>
+      <programlisting>
+        debugfs: dump &#60;inode&#62; debugfs-dump</programlisting>
+    </para>
+
+    <para>
+      Get out of <emphasis>debugfs</emphasis>.
+    </para>
+
+    <para>
+      <programlisting>
+        debugfs: quit</programlisting>
+    </para>
+
+  </sect1>
+
+
+
+
+  <sect1 id="analyse">
+    <title>Analyse of directory dump</title>
+
+    <para>
+      View the dumped inode in a readable format.
+    </para>
+
+    <para>
+      <programlisting>
+        # xxd debugfs-dump | less</programlisting>
+    </para>
+
+    <para>
+      Every entry consist of five fields. For the first two fields the bytes
+      representing the field comes in backward order. That means the first byte
+      is the least significant.
+    </para>
+
+    <para>
+      Description of the fields.
+    </para>
+
+    <orderedlist>
+
+      <listitem>
+        <para>
+          Four bytes - Inode number.
+        </para>
+      </listitem>
+
+      <listitem>
+        <para>
+          Two bytes - Directory entry length.
+        </para>
+      </listitem>
+
+      <listitem>
+        <para>
+          One byte - Filename length (1-255).
+        </para>
+      </listitem>
+
+      <listitem>
+
+        <para>
+          One byte - File type (0-7).
+        </para>
+
+        <para>0 = Unknown</para>
+        <para>1 = Regular file</para>
+        <para>2 = Directory</para>
+        <para>3 = Character device</para>
+        <para>4 = Block device</para>
+        <para>5 = FIFO</para>
+        <para>6 = SOCK</para>
+        <para>7 = Symbolic link</para>
+
+      </listitem>
+
+      <listitem>
+        <para>
+          Filename (1-255 characters).
+        </para>
+      </listitem>
+
+    </orderedlist>
+
+    <para>
+      If an entry in the directory is to be deleted, then the second field at
+      the entry before will be increased by the value of the deleted entrys
+      second field.
+    </para>
+
+    <para>
+      If a filename is renamed to a shorter one, then the third field will be
+      decreased.
+    </para>
+
+    <para>
+      The first entry you will see is the directory itself, represented by a
+      dot.
+    </para>
+
+    <para>
+      Suppose that we have the following directory entry.
+    </para>
+
+    <para>
+      <programlisting>
+         c1 02 0e 00 40 00 05 01 'u' 't' 'i' 'l' 's'</programlisting>
+    </para>
+
+    <para>
+      Then the inode would be e02c1 in hexadecimal representation or 918209 in
+      decimal. The next entry would be located after 64 bytes (40 in hex). We
+      see that the filename consist of 5 bytes ("utils") and the file type (01)
+      is a regular file.
+    </para>
+
+    <para>
+      Now recalculate the directories inode numbers in decimal representation.
+    </para>
+
+    <para>
+      If you do not like to calculate this by hand I have made a small program
+      in C that will do this for you. The program takes as input a directory
+      dump (created by <emphasis>debugfs</emphasis> as described in
+      <xref linkend="find">). The output (at stdout) consist of each entrys
+      inode number and filename.
+    </para>
+
+    <para>
+      Before you run the program you need to load the dump into a hexeditor and
+      change the <emphasis>directory entry length</emphasis> field at the entry
+      before the one you want to get back. But it is simple. If we name the
+      field before to <emphasis>x</emphasis> and the field at the entry you want
+      to get back to <emphasis>y</emphasis>. Then change <emphasis>x</emphasis>
+      to <emphasis>x - y</emphasis>.
+    </para>
+
+    <para>
+      The program called <emphasis>e2dirana</emphasis> (ext2fs directory
+      analyse) can be found at
+      <ulink url="http://www.matematik.su.se/~tomase/ext2fs-undeletion/">
+      http://www.matematik.su.se/~tomase/ext2fs-undeletion/</ulink>
+    </para>
+
+  </sect1>
+
+
+
+
+  <sect1 id="locate">
+    <title>Locating deleted inodes</title>
+
+    <para>
+      Get a list of all deleted inodes.
+    </para>
+
+    <para>
+      <programlisting>
+        # echo lsdel | debugfs /dev/hdy1 &#62; lsdel.out</programlisting>
+    </para>
+
+    <para>
+      One problem here is that <emphasis>debugfs</emphasis> will not give the
+      inode numbers to files that are zero in size (you probably have some in
+      your /etc directory for instance). I will tell how to solve this problem
+      in <xref linkend="recalc"> and <xref linkend="final">.
+    </para>
+
+    <para>
+      Load "lsdel.out" into a texteditor. The list of inodes should be sorted in
+      time. Try to remember exactly what time you did that
+      <emphasis>rm -rf</emphasis>. Probably it was the the last items you
+      deleted and then they will be located at the bottom of the list, because it
+      is sorted in time. Delete all lines that has nothing of interest. Save as
+      "lsdel.out-selected".
+    </para>
+
+    <para>
+      Now we will cut away everything except the inodes.
+    </para>
+
+    <para>
+      <programlisting>
+        # cut -b 1-8 lsdel.out-selected | tr -d " " &#62; inodes</programlisting>
+    </para>
+
+    <para>
+      To be sure, check that the deleted directories found above have their
+      inodes in the list.
+    </para>
+
+    <para>
+      <programlisting>
+        # grep ^inode$ inodes</programlisting>
+    </para>
+
+    <para>
+      Where <emphasis>inode</emphasis> is the corresponding inode number.
+    </para>
+
+  </sect1>
+
+
+
+
+  <sect1 id="activate">
+    <title>Activating inodes</title>
+
+    <para>
+      Now it is time for changing some flags of the deleted inodes.
+    </para>
+
+    <para>
+      Copy the following 6 lines into a file named "make-debugfs-input".
+    </para>
+
+    <para>
+      <programlisting>
+        #!/bin/sh
+        awk '{ print "mi &#60;" $1 "&#62;\n"\
+                     "\n\n\n\n\n\n\n"\
+                     "0\n"\
+                     "1\n"\
+                     "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n" }'</programlisting>
+    </para>
+
+    <para>
+      This will simulate the user input when editing the inodes manually.
+      We will set <emphasis>deletion time</emphasis> to 0
+      and <emphasis>link count</emphasis> to 1.
+    </para>
+
+    <note>
+      <para>
+        I am using <emphasis>debugfs</emphasis> version 1.18 and if you have
+        another version you should check if you need to adjust the number of
+        returns above.
+      </para>
+    </note>
+
+    <para>
+      Now change the inodes.
+    </para>
+
+    <para>
+      <programlisting>
+        # ./make-debugfs-input &#60; inodes | debugfs -w /dev/hdy1 | tail -c 40</programlisting>
+    </para>
+
+    <para>
+      If all went well it should end with "Triple Indirect Block [0] debugfs:".
+    </para>
+
+  </sect1>
+
+
+
+
+  <sect1 id="add">
+    <title>Adding directory entries</title>
+
+    <para>
+      Start up <emphasis>debugfs</emphasis> in read-write mode.
+    </para>
+
+    <para>
+      <programlisting>
+        # debugfs -w /dev/hdy1</programlisting>
+    </para>
+
+    <para>
+      Now you should add the deleted directories to the directory were they were
+      located before deletion.
+    </para>
+
+    <para>
+      <programlisting>
+        debugfs: link &#60;inode&#62; directoryname</programlisting>
+    </para>
+
+    <para>
+      Where <emphasis>inode</emphasis> is the inode number and
+      <emphasis>directoryname</emphasis> is the directoryname.
+    </para>
+
+    <para>
+      After you have added the links you will notice that the directories have
+      popped up in the current directory. You can now list their contents (from
+      <emphasis>debugfs</emphasis>).
+    </para>
+
+    <para>
+      But the size shown for each directory is zero and that need to be fixed,
+      otherwise they will look empty with <emphasis>ls</emphasis> from the
+      shell.
+    </para>
+
+    <para>
+      Get out of <emphasis>debugfs</emphasis>.
+    </para>
+
+    <para>
+      <programlisting>
+        debugfs: quit</programlisting>
+    </para>
+
+  </sect1>
+
+
+
+
+  <sect1 id="recalc">
+    <title>Recalculation</title>
+
+    <para>
+      Now it is time to call <emphasis>e2fsck</emphasis> to recalculate the
+      sizes and checksums.
+    </para>
+
+    <note>
+      <para>
+        I am using <emphasis>e2fsck</emphasis> version 1.18 and if you have
+        another version you should check if some parameters or interaction have
+        changed.
+      </para>
+    </note>
+
+    <para>
+      If you know that you do <emphasis>not</emphasis> have any files with the
+      size of zero that you want to recover you can do the following and skip
+      the rest of this section (Of course you can leave out the
+      <emphasis>y</emphasis> parameter, but then you need to answer all
+      questions by hand and it may take a lot of time.).
+    </para>
+
+    <para>
+      <programlisting>
+        # e2fsck -f -y /dev/hdy1 &#62; e2fsck.out 2&#62;&1</programlisting>
+    </para>
+
+    <para>
+      If you instead want the zero files back you have to answer
+      <emphasis>no</emphasis> to all questions about clearing entries and
+      <emphasis>yes</emphasis> to the other ones.
+    </para>
+
+    <para>
+      Copy the following 7 lines into a file named "e2fsck-wrapper".
+    </para>
+
+    <para>
+      <programlisting>
+        #!/usr/bin/expect -f
+        set timeout -1
+        spawn /sbin/e2fsck -f $argv
+        expect {
+            "Clear&#60;y&#62;? " { send "n" ; exp_continue }
+            "&#60;y&#62;? "      { send "y" ; exp_continue }
+        }</programlisting>
+    </para>
+
+    <para>
+      Run the script.
+    </para>
+
+    <para>
+      <programlisting>
+        # ./e2fsck-wrapper /dev/hdy1 &#62; e2fsck.out 2&#62;&1</programlisting>
+    </para>
+
+    <para>
+      Examine "e2fsck.out" to see what <emphasis>e2fsck</emphasis> thought about
+      your partition.
+    </para>
+
+    </sect1>
+
+
+
+
+  <sect1 id="lostnfnd">
+    <title>If /lost+found not empty</title>
+
+    <para>
+      Some of the directory and files may not pop-up at their right places.
+      Instead they will be located in /lost+found with names after their inode
+      numbers.
+    </para>
+
+    <para>
+      In this case the pointer at the ".." directory entry probably have been
+      increased and will point to one of the later entrys in the directory (of
+      some reason I do not know, maybe it is a fs bug).
+    </para>
+
+    <para>
+      Examine <emphasis>pass 3</emphasis> (where directory connectivity is
+      checked) of "e2fsck.out". There you will find which directories that are
+      affected. Dump those to disk (as described in <xref linkend="find">).
+    </para>
+
+    <para>
+      Run
+      <ulink url="http://www.matematik.su.se/~tomase/ext2fs-undeletion/">
+      <emphasis>e2dirana</emphasis></ulink>
+      both with and without the <emphasis>p</emphasis> parameter (it changes the
+      pointer at the ".." directory entry). Here <emphasis>dump</emphasis> is
+      the dumped directory.
+    </para>
+
+    <para>
+      <programlisting>
+        # e2dirana dump &#62; dump1
+        # e2dirana -p dump &#62; dump2</programlisting>
+    </para>
+
+    <para>
+      Compare the outputs.
+    </para>
+
+    <para>
+      <programlisting>
+        # diff dump1 dump2</programlisting>
+    </para>
+
+    <para>
+      If they are not the same there are missing files in that directory. Then
+      move those files from /lost+found to their right place. Here
+      <emphasis>dest</emphasis> is a symbolic link to the destination directory.
+      Put the output in a script and run it if you agree.
+    </para>
+
+    <para>
+      <programlisting>
+        # diff dump1 dump2 |\
+          tail -n $[`diff dump1 dump2 | wc -l`-1] | cut -b 3- |\
+          sed -e 's/^\([^ ]*\) \(.*\)$/mv lost+found\/#\1 dest\/"\2"/' |\
+          sed -e 's/!/"\\\!"/g'</programlisting>
+    </para>
+
+    <para>
+      Repeat all this until /lost+found is empty.
+    </para>
+
+  </sect1>
+
+
+
+
+  <sect1 id="final">
+    <title>Final touch</title>
+
+    <para>
+      If in <xref linkend="recalc"> you choosed to get files with the size of
+      zero back you now have a problem, because those files has a non-zero
+      deletion time and their link count is zero. That means that every time
+      <emphasis>e2fsck</emphasis> is running it will prompt to remove (clear)
+      those files.
+    </para>
+
+    <para>
+      The easy way to solve this is to copy the whole directory structure to
+      another place (it can be the same partition) and then delete the old
+      directory structure. Otherwise you will have to locate those inodes and
+      change them with <emphasis>debugfs</emphasis>.
+    </para>
+
+    <para>
+      Now if everything have went well, things should have been restored to its
+      original state before deletion. At least it did for me and in those tests
+      I have made while writing this. Be sure that you have brought up to the
+      preconditions described in <xref linkend="precond">.
+    </para>
+
+  </sect1>
+
+
+
+
+  <sect1 id="ref">
+    <title>References</title>
+
+    <para>
+      <emphasis>Linux Ext2fs Undeletion mini-HOWTO</emphasis>, v1.3
+    </para>
+
+    <itemizedlist>
+      <listitem><para>Aaron Crane</para></listitem>
+    </itemizedlist>
+
+    <para>
+      <emphasis>Design and Implementation of the Second Extended Filesystem</emphasis>,
+      <ulink url="http://e2fsprogs.sourceforge.net/ext2intro.html">
+      http://e2fsprogs.sourceforge.net/ext2intro.html</ulink>
+    </para>
+
+    <itemizedlist>
+      <listitem><para>Rémy Card, Laboratoire MASI--Institut Blaise Pascal</para></listitem>
+      <listitem><para>Theodore Ts'o, Massachussets Institute of Technology</para></listitem>
+      <listitem><para>Stephen Tweedie, University of Edinburgh</para></listitem>
+    </itemizedlist>
+
+    <para>
+      <emphasis>Kernel Source for Linux 2.2.16</emphasis>
+    </para>
+
+    <itemizedlist>
+      <listitem><para>linux/include/linux/ext2_fs.h</para></listitem>
+      <listitem><para>linux/fs/ext2/namei.c</para></listitem>
+    </itemizedlist>
+
+  </sect1>
+
+</article>
