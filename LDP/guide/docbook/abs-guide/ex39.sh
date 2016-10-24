@@ -24,7 +24,7 @@ updatedb /usr &amp;     # Must be run as root.
 
 wait
 # Don't run the rest of the script until 'updatedb' finished.
-# You want the the database updated before looking up the file name.
+# You want the database updated before looking up the file name.
 
 locate $1
 
