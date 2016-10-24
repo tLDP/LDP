@@ -106,7 +106,7 @@ static int device_release(struct inode *inode, struct file *file)
 
 	/* 
 	 * Decrement the usage count, or else once you opened the file, you'll
-	 * never get get rid of the module. 
+	 * never get rid of the module. 
 	 */
 	module_put(THIS_MODULE);
 
