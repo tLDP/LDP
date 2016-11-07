@@ -9,7 +9,7 @@
 <!-- This stylesheet calls Norman Walsh's 'docbook.xsl' stylesheet
      and therefore generates a SINGLE HTML FILE as output. -->
 
-<!-- Note the the *order* of the import statements below is important and
+<!-- Note the *order* of the import statements below is important and
      should not be changed. -->
 
 <!-- Change this to the path to where you have installed Norman

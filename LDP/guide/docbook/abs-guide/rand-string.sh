@@ -26,5 +26,5 @@ exit $?
 # bozo$ ./rand-string.sh my-password
 # 1bdd88c4
 
-#  No, this is is not recommended
+#  No, this is not recommended
 #+ as a method of generating hack-proof passwords.

@@ -150,7 +150,7 @@ maximum=${max}
 
 
 #  We need to generate only positive array subscripts,
-#+ so we need a displacement that that will guarantee
+#+ so we need a displacement that will guarantee
 #+ positive results.
 
 disp=$((0-minimum))

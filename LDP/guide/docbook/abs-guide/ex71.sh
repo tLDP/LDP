@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #  'echo' is fine for printing single line messages,
-#+  but somewhat problematic for for message blocks.
+#+  but somewhat problematic for message blocks.
 #   A 'cat' here document overcomes this limitation.
 
 cat &lt;&lt;End-of-message

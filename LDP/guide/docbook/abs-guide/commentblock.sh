@@ -20,7 +20,7 @@ echo
 #+ a block of working code for debugging purposes.
 #  This saves having to put a "#" at the beginning of each line,
 #+ then having to go back and delete each "#" later.
-#  Note that the use of of colon, above, is optional.
+#  Note that the use of colon, above, is optional.
 
 echo "Just before commented-out code block."
 #  The lines of code between the double-dashed lines will not execute.

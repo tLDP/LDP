@@ -368,7 +368,7 @@ exit 0   # CEOF:EOF
 
 
 # The grid in this script has a "boundary problem."
-# The the top, bottom, and sides border on a void of dead cells.
+# The top, bottom, and sides border on a void of dead cells.
 # Exercise: Change the script to have the grid wrap around,
 # +         so that the left and right sides will "touch,"      
 # +         as will the top and bottom.
