@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# (P) & (C) 2003 - 2011 by Dr. Peter Bieringer <pb@bieringer.de>
+# (P) & (C) 2003-2016 by Dr. Peter Bieringer <pb@bieringer.de>
 #
 # Generator script
 #
@@ -21,6 +21,7 @@
 #              renice whole script
 #              support also ldp.dsl stored in same directory as the script
 # 20110509/PB: add charset meta header on each html page to force UTF-8
+# 20161215/PB: remove VGWort URL appender
 
 loglevel=6
 
@@ -325,20 +326,20 @@ fi
 #[ $? -ne 0 ] && exit 1
 
 ## Add VGWort URL
-if [ -x ./adjust-html-vgwort.sh ]; then
-	case $file_input in
-	    'Linux+IPv6-HOWTO.sgml')
-		echo "NOTICE: add vgwort URL"
-		./adjust-html-vgwort.sh en
-		;;
-	    'Linux+IPv6-HOWTO.de.sgml')
-		echo "NOTICE: add vgwort URL"
-		./adjust-html-vgwort.sh de
-		;;
-	esac
-else
-	echo "NOTICE : can't add vgwort URL (missing adjust-html-vgwort.sh)"
-fi
+#if [ -x ./adjust-html-vgwort.sh ]; then
+#	case $file_input in
+#	    'Linux+IPv6-HOWTO.sgml')
+#		echo "NOTICE: add vgwort URL"
+#		./adjust-html-vgwort.sh en
+#		;;
+#	    'Linux+IPv6-HOWTO.de.sgml')
+#		echo "NOTICE: add vgwort URL"
+#		./adjust-html-vgwort.sh de
+#		;;
+#	esac
+#else
+#	echo "NOTICE : can't add vgwort URL (missing adjust-html-vgwort.sh)"
+#fi
 
 
 exit 0
