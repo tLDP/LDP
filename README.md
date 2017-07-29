@@ -1,3 +1,5 @@
+[![Build Status](https://semaphoreci.com/api/v1/random/ldp/branches/master/badge.svg)](https://semaphoreci.com/random/ldp)
+
 The Linux Documentation Project
 ===============================
 
