@@ -1,6 +1,11 @@
-name: CI
+name: LDP Builder
 
 on: [push]
+
+env:
+  LDPHOST: 152.19.134.151
+  LDPPORT: 122
+  LDPUSER: builder
 
 jobs:
   build:
@@ -9,7 +14,21 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - name: 🧱 Compiling Martins LDP Python Scripts
+
+    - name: 🔝 Building System Preparation 
+      run: |
+        sudo apt update
+        sudo apt -y install texlive-font-utils linuxdoc-tools-text linuxdoc-tools-latex docbook-dsssl docbook-xsl docbook-utils htmldoc htmldoc-common docbook-xsl html2text docbook5-xml docbook-xsl-ns jing asciidoc libxml2-utils python3-stdeb fakeroot python3-all python3-networkx python3-nose fop ldp-docbook-xsl ldp-docbook-dsssl docbook opensp dh-python
+      shell: bash
+
+    - name: Restoring Martins LDP Python Scripts from Cache
+      uses: actions/cache@v1
+      with:
+        path: python-tldp/deb_dist
+        key: python-tldp
+
+    - name: 🧱 Compiling Martins LDP Python Scripts if not Found in Cache
+      if: steps.python-tldp.outputs.cache-hit != 'true'
       run: |
         sudo apt-get update
         sudo apt-get -y install texlive-font-utils linuxdoc-tools-text linuxdoc-tools-latex docbook-dsssl docbook-xsl docbook-utils htmldoc htmldoc-common docbook-xsl html2text docbook5-xml docbook-xsl-ns jing asciidoc libxml2-utils python3-stdeb fakeroot python3-all python3-networkx python3-nose fop ldp-docbook-xsl ldp-docbook-dsssl docbook opensp dh-python
@@ -17,7 +36,48 @@ jobs:
         git clone https://github.com/tLDP/python-tldp
         cd python-tldp && rm -rf debian
         python3 setup.py --command-packages=stdeb.command bdist_deb
-        sudo dpkg -i deb_dist/python3-tldp_*_all.deb
         cd
-        ldptool --dump-cfg
+      shell: bash
+
+   - name: Installation of Martins LDP Python Scripts
+     run: |
+       sudo dpkg -i deb_dist/python3-tldp_*_all.deb
+       ldptool --dump-cfg
+     shell: bash
+
+   - name: Restoring SSH Key to Manage Documentation Repository
+     run: |
+       echo "$SSH_KEY" > ~/.ssh/ldpkey
+       chmod 0600 ~/.ssh/ldpkey
+       ssh-keyscan -p $LDPPORT -H $LDPHOST >> ~/.ssh/known_hosts
+     shell: bash
+     env:
+       SSH_KEY: ${{secrets.SSHK}}
+
+#   - name: Restoring Production (Master Branch) LDP Docs from Cache
+#     uses: actions/cache@v1
+#     with:
+#       path: MAIN
+#       key: ldpdocs-main
+
+#   - name: Restoring Production (Master Branch) LDP Docs from LDP WWW Server
+#     run:
+#       mkdir -p MAIN
+#       rsync --stats -rvclz --delete-before -e 'ssh -p $LDPPORT -i ~/.ssh/ldpkey' $LDPUSER@$LDPHOST:/home/builder/build/en/ MAIN/en
+#     shell: bash
+
+   - 🧱 LDP Documents Processing via Martins scripts
+     run:
+       mkdir BUILD
+       pwd
+       ls -alR
+       ldptool --loglevel info --builddir BUILD --configfile .github/builder.ldptool.cfg --pubdir MAIN --list
+       ldptool --loglevel info --builddir BUILD --configfile .github/builder.ldptool.cfg --pubdir MAIN --publish
+     shell: bash
+
+#   - name: 🔀 Built Documents Transfer for Master
+#     run:
+#       rsync --stats -rvclz --delete-before -e 'ssh -p $LDPPORT -i ~/.ssh/ldpkey' MAIN/en/ $LDPUSER@$LDPHOST:/home/builder/build/en
+#     shell: bash
+
 # happy end.
