@@ -19,5 +19,6 @@ Please take a part in our efforts.
 * Update documents and/or correct/extend existing ones
 * Submit a Pull Request
 * Check if our builder successfully renders your submission - if not, check why and resubmit
+* Check if your document is correctly rendered on https://tldp.org/test/ after builder shows you green light - if not, check why and resubmit
 * One of our admins will review your work
 * Publication on https://tldp.org/ is live :+1:
