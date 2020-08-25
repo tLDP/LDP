@@ -20,4 +20,4 @@ Please take a part in our efforts.
 * Submit a Pull Request
 * Check if our builder successfully renders your submission - if not, check why and resubmit
 * One of our admins will review your work
-* Publication on https://tldp.org/ is live :-)
+* Publication on https://tldp.org/ is live :+1:
