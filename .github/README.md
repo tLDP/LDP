@@ -13,7 +13,7 @@ The LDP is a loosely knit team of volunteers who provide documentation for many 
 
 ## Participation
 
-Please take part in our efforts.
+Please take a part in our efforts.
 
 * Fork our repository
 * Update documents and/or correct/extend existing ones
