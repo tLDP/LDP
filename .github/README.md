@@ -10,3 +10,14 @@ Pull Requests  | [![Build Status](https://drone.tldp.org/api/badges/tLDP/LDP/sta
 # The LDP
 
 The LDP is a loosely knit team of volunteers who provide documentation for many aspects of Linux. There are several forms of documentation: Guides, HOWTOs, man pages, and FAQs.
+
+## Participation
+
+Please take part in our efforts.
+
+* Fork our repository
+* Update documents and/or correct/extend existing ones
+* Submit a Pull Request
+* Check if our builder succesxfully renders your submission
+* One of our admins will review your work
+* Publication on https://tldp.org/ is live :-)
