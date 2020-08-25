@@ -9,7 +9,7 @@ Pull Requests  | [![Build Status](https://drone.tldp.org/api/badges/tLDP/LDP/sta
 
 # The LDP: https://tldp.org/
 
-The LDP is a loosely knit team of volunteers who provide documentation for many aspects of Linux. There are several forms of documentation: Guides, HOWTOs, man pages, and FAQs.
+The Linux Documentation Project is a loosely knit team of volunteers who provide documentation for many aspects of Linux. There are several forms of documentation: Guides, HOWTOs, man pages, and FAQs.
 
 ## Participation
 
