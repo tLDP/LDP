@@ -16,8 +16,8 @@ Pull Requests  | [![Build Status](https://drone.tldp.org/api/badges/tLDP/LDP/sta
 Please take a part in our efforts.
 
 * Fork our repository
-* Update documents and/or correct/extend existing ones
-* Submit a Pull Request
+* Update documents and/or correct/extend existing ones in your forked repository
+* Submit a Pull Request (if you do not know how, read for example: https://yangsu.github.io/pull-request-tutorial/)
 * Check if our builder successfully renders your submission - if not, check why and resubmit
 * Check if your document is correctly rendered on https://tldp.org/test/ after builder shows you green light - if not, check why and resubmit
 * One of our admins will review your work
