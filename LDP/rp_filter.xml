@@ -1,0 +1,196 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE article
+  PUBLIC "-//OASIS//DTD DocBook XML V4.1.2//EN" "http://www.oasis-open.org/docbook/xml/4.1.2/docbookx.dtd">
+<article lang="">
+   <para>rp_filter</para>
+   <para/>
+   <para>What is it?  What does it do?</para>
+   <para/>
+   <para>rp_filter stands for “reverse path filter” meaning the “reverse path” (reply) should be the same as the “forward path” (incoming) – based on an analysis of the available routing information.  The goal in its use is to mitigate the effect of malicious network traffic using spoofed source IP addresses (RFCs 3704 and 2827 can be used as references for background on the technology – search the web for rfc2827.txt and rfc3704.txt).  What rp_filter does is determined by the value it is set to and that in turn is determined by the interactions of three settings, all located under /proc/sys/net/ipv4/conf: an “all” setting, a “default” setting and a setting per interface (network card – either real or virtual).</para>
+   <para/>
+   <para>First of all, the value of the “effective” setting (see below and the rp_filter section of https://www.kernel.org/doc/Documentation/networking/ip-sysctl.txt) means:</para>
+   <orderedlist>
+      <listitem>
+         <para>0 - no validation, basically rp_filter is disabled</para>
+      </listitem>
+      <listitem>
+         <para>1 - strict validation per rfc 3704 - “... if the packet is received on the interface which would be used to forward the traffic to the source of the packet, it passes the check”.</para>
+      </listitem>
+      <listitem>
+         <para>2 - “loose” validation per rfc 3704 – “Each incoming packet's source address is also tested against the FIB and if the source address is not reachable via any interface the packet check will fail.” In other words, if any route is found for replying to the source address (including the default route) then that is acceptable.  The rfc notes that this is a misnomer because there is no “reverse path”.</para>
+      </listitem>
+   </orderedlist>
+   <para/>
+   <para>Looking at the three settings and their interaction:</para>
+   <orderedlist>
+      <listitem>
+         <para>Per <ulink url="https://www.theurbanpenguin.com/rp_filter-and-lpic-3-linux-security/">https://www.theurbanpenguin.com/rp_filter-and-lpic-3-linux-security/</ulink> the “default” setting is used for any new new devices added after the initial setup.</para>
+      </listitem>
+      <listitem>
+         <para>The setting for each interface allows different interfaces to be handled potentially differently than others depending on the interaction between it and the “all” setting.</para>
+      </listitem>
+      <listitem>
+         <para>The maximum value from either the “all” setting or the interface setting is what is in effect.  However, web posts indicate this may have changed over time, test before using.  An “all” setting of the following values has the given implications:</para>
+      </listitem>
+   </orderedlist>
+   <para/>
+   <para>What can rp_filter can help with.</para>
+   <orderedlist>
+      <listitem>
+         <para>Stopping further processing of traffic with “martian” source addresses.  Examples would be 127.?.?.? received on an external interface, a private IP address range from the Internet, an IP address in the experimental range.  See the above RFCs for further detail.</para>
+      </listitem>
+      <listitem>
+         <para>Preventing what could be called a “reflected” or “amplified” attack (as discussed in RFC3704).  An example would be an attacker knowing that the target site used 10.10.10.0/24 internally and sending traffic from the Internet with source IP addresses in the 10.10.10.0/24 range.  If the network wasn't protected, not only would it have to contend with the Internet traffic load but also internal replies to assumed valid systems on the internal network.</para>
+      </listitem>
+      <listitem>
+         <para>If the malicious traffic was requesting a tcp connection, the potential exhaustion of tcp stack resources waiting for connection setup replies from non-existent systems.  See <ulink url="https://www.theurbanpenguin.com/rp_filter-and-lpic-3-linux-security/">https://www.theurbanpenguin.com/rp_filter-and-lpic-3-linux-security/</ulink> for further discussion.</para>
+      </listitem>
+   </orderedlist>
+   <para/>
+   <para>What rp_filter can't help with.</para>
+   <orderedlist>
+      <listitem>
+         <para>The load of receiving the malicious traffic.</para>
+      </listitem>
+      <listitem>
+         <para>Spoofed traffic where the source IP address is at least theoretically valid (is or could be valid if the system exists either on the Internet or internally).  For theoretically valid internal addresses, the exhaustion of tcp stack resources is also not protected.</para>
+      </listitem>
+   </orderedlist>
+   <para/>
+   <para>Is it active?</para>
+   <para/>
+   <para>This is dependent on what the software source (Linux distribution for a given version) has done (and this changes over time) or on previous manual override of those settings.  There are at least three ways of determining the current configuration:</para>
+   <orderedlist>
+      <listitem>
+         <para>ip netconf show all | grep rp_filter        (shows “off”, “loose” or “strict”)</para>
+      </listitem>
+      <listitem>
+         <para>sysctl -ar '\.rp_filter'        (shows 0, 1 or 2 – see above)</para>
+      </listitem>
+      <listitem>
+         <para>find /proc/sys/net/ipv4/conf -name rp_filter | while read a; do echo $a; cat $a; done        (shows 0, 1 or 2 – see above)</para>
+      </listitem>
+   </orderedlist>
+   <para/>
+   <para>Problems it can cause.</para>
+   <para/>
+   <para>As mentioned by RFC 3704, with multi-homed systems and asymmetric routing - particularly for strict mode.  The latter is more exotic so a further examination of strict mode on multi-homed systems will be used to illustrate the issue.</para>
+   <para/>
+   <para>Assume a multi-homed system has two interfaces: eth0 (for 10.10.1.0/24 with node address 2) and eth1 (for 10.10.2.0/24 with node address 2) and that node 1 is the gateway for each subnet thus the following routing table:</para>
+   <orderedlist>
+      <listitem>
+         <para>default via 10.10.1.1 dev eth0</para>
+      </listitem>
+      <listitem>
+         <para>10.10.1.0/24 dev eth0 proto kernel scope link src 10.10.1.2</para>
+      </listitem>
+      <listitem>
+         <para>10.10.2.0/24 dev eth1 proto kernel scope link src 10.10.2.2</para>
+      </listitem>
+   </orderedlist>
+   <para>The following options are possible:</para>
+   <orderedlist>
+      <listitem>
+         <para>(inbound) traffic to 10.10.1.2 (eth0's IP address) from anywhere but 10.10.2.0/24: the default route is on the same interface as the inbound traffic meeting rp_filter criteria.</para>
+      </listitem>
+      <listitem>
+         <para>(inbound) traffic to 10.10.1.2 (eth0's IP address) from 10.10.2.0/24: comes in on eth0 but, because the system has a route to 10.10.2.0/24, the reply will attempt to go out eth1.  rp_filter will block this because of the “reply on different interface” situation.</para>
+      </listitem>
+      <listitem>
+         <para>traffic to 10.10.2.2 (eth1's IP address) from anywhere but 10.10.2.0/24: comes in on eth1 but, because the system either doesn't have a route to the source subnet (or the sourec subnet is 10.10.1.0/24) the default route and thus eth0 will attempt to be used. rp_filter will block this because of the “reply on different interface” situation.</para>
+      </listitem>
+      <listitem>
+         <para>traffic to 10.10.2.2 (eth1's IP address) from 10.10.2.0/24: comes in on eth1 and will go out on eth1 meeting rp_filter criteria.</para>
+      </listitem>
+   </orderedlist>
+   <para>For systems having additional interfaces the issues expand.  Traffic for any local interface other than the one having the default route (and not having a specific route in the routing table) will have replies directed to the default route thus violating rp_filter's strict mode criteria.</para>
+   <para/>
+   <para>Symptoms of the problem.</para>
+   <para/>
+   <para>These are possible symptoms, other issues such as destination offline should also be considered.</para>
+   <orderedlist>
+      <listitem>
+         <para>Can connect to an IP address from its subnet but not off subnet and there are no firewall rules or, if there are firewall rules, nothing is blocking the traffic.</para>
+      </listitem>
+      <listitem>
+         <para>Traffic for the local system comes in but doesn't make it to the local application.</para>
+      </listitem>
+      <listitem>
+         <para>Traffic arrives but doesn't get routed.  If there are firewall rules, nothing is blocking the traffic.</para>
+      </listitem>
+   </orderedlist>
+   <para/>
+   <para>Determining if rp_filter is the problem.</para>
+   <para/>
+   <para>Warning: An exception (see “Exception” below) may cause  the solutions listed here to fail to show an rp_filter issue if:</para>
+   <orderedlist>
+      <listitem/>
+      <listitem>
+         <para>nstat -az TcpExtIPReversePathFilter - shows a counter (first number) which increments</para>
+      </listitem>
+      <listitem>
+         <para>cat /proc/net/stat/rt_cache - check the "in_martian_src" column (the eighth column with the first column being 1) to see if it's incremented, man lnstat gives the definitions for all columns) – note it could be any row for that column since, per man lnstat, the number of rows reflects the number of cpus in the system.  For a system (such as a hypervisor) with a large number of cpus this may be unwieldy.  The hexadecimal numbers here don't necessarily agree with the other methods.</para>
+      </listitem>
+      <listitem>
+         <para>lnstat -k rt_cache:in_martian_src will show changes real time but not the count.</para>
+      </listitem>
+      <listitem>
+         <para>netstat -s | grep Filter – however, if forwarding (net.ipv4.ip_forward=1) is not enabled the entry won't be found.</para>
+      </listitem>
+      <listitem>
+         <para>Use ip route get &lt;remote IP&gt; to determine the interface which will be used, if it's different than the entry interface then rp_filter in strict mode will drop it.</para>
+      </listitem>
+      <listitem>
+         <para>Enable martian logging, use sysctl -a | grep martian to find the settings or echo 1 &gt; /proc/sys/net/ipv4/conf/&lt;interface&gt;/log_martians.  If the goal is to document all such drops then replace &lt;interface&gt; with “all” (without the quotes).  grep martian /var/log/syslog. any martians recorded will report: the date and time,  the source IP address of the martian, the IP address sending the packet and what interface it arrived on. </para>
+      </listitem>
+   </orderedlist>
+   <para/>
+   <para/>
+   <para>Exception</para>
+   <para/>
+   <para>The following diagram shows a scenario where the rp_filter counters on a system (hypervisor but could be any multi-homed system) exhibiting problems will either be zero or not change in response to attempted access.  In order to conserve space in the diagram, all references to packet sources and destinations should be understood to mean “IP address of specified interface”.  Situation:</para>
+   <para/>
+   <orderedlist>
+      <listitem>
+         <para>A client sends a ping to the hypervisor's br1 IP address</para>
+      </listitem>
+      <listitem>
+         <para>The router forwards it</para>
+      </listitem>
+      <listitem>
+         <para>The hypervisor is using loose mode rp_filter and there is a return path (the default route) for the packet therefore the rp_filter criteria is satisfied, no counter is incremented. However, the hypervisor has no specific route to the client and thus uses the default through br0. But, when the hypervisor swaps the source and destination IP address/port as a part of it's reply process, the br1 IP address becomes the source.</para>
+      </listitem>
+      <listitem>
+         <para>The packet is delivered to the router's eth1 port with source of br1 and destination of the client.</para>
+      </listitem>
+      <listitem>
+         <para>The router notes the br1 source on eth1 but the interface for replying to that address should be eth2.  Since rp_filter is using strict mode this is a violation of the reverse path and the packet is dropped.  The client never gets a reply.</para>
+      </listitem>
+   </orderedlist>
+   <para>
+	   <figure>
+		   <title>Exception></title>
+			<graphic fileref="rp_filterv2.jpg"></graphic>
+	   </figure>
+   </para>
+   <para>Solutions to a problem.</para>
+   <para/>
+   <para>Some possible solutions are:</para>
+   <orderedlist>
+      <listitem>
+         <para>Disable rp_filter either for the interface with the problem or system-wide.  Use the second and third options above under “Is it active” to find the solution appropriate to your issue.  Either change /etc/sysctrl.conf or use echo to change the value dynamically.</para>
+      </listitem>
+      <listitem>
+         <para>Create policy-based routing tables - for the below assume that:</para>
+      </listitem>
+   </orderedlist>
+   <orderedlist>
+      <listitem/>
+   </orderedlist>
+   <orderedlist>
+      <listitem/>
+   </orderedlist>
+   <orderedlist>
+      <listitem/>
+   </orderedlist>
+</article>
