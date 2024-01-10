@@ -1,21 +1,70 @@
-# (C) Serge Victor 2020, GPLv3 License
+---
+# (C) Serge Victor 2020-2024, GPLv3 License
+#
+# https://drone.tldp.org
 # 
-# recently build version of documents is available on permanent storage disk mounted on /LDP
+# 1) this file is protected, DO NOT TAMPER without permission from LDP authorised maintainers!
+#
+# 2) contact us or create an issue before thinking about any changes.
 
 kind: pipeline
 type: docker
 name: 🗃 LDP Builder
+
+workspace:
+  path: /builder/src
    
 steps:
-- name: Martin's builder
+- name: 🗃 Martin's builder - Pull Request only (partial build)
   image: tldp/builder:latest
+  volumes:
+  - name: LDP
+    path: /LDP
+  when:
+    event:
+      include:
+      - pull_request
   commands:
   - ldptool --dump-cfg
-  - rm -rf /LDP/BUILD
-  - rm -rf /LDP/MAIN
-  - mkdir -p /LDP/BUILD
-  - mkdir -p /LDP/MAIN
-  - rsync -av /LDP/WWW/en/ /LDP/MAIN
-  - ldptool --loglevel info --builddir /LDP/BUILD --configfile .github/builder-pr.ldptool.cfg --pubdir /LDP/MAIN --list
-  - ldptool --loglevel info --builddir /LDP/BUILD --configfile .github/builder-pr.ldptool.cfg --pubdir /LDP/MAIN --publish
-  - rsync -av --delete-after /LDP/MAIN/ /LDP/WWW/en
+  - rm -rf /LDP/PR
+  - mkdir -p /LDP/PR/BUILD
+  - rsync -av /LDP/en /LDP/PR
+  - ldptool --loglevel info --builddir /LDP/PR/BUILD --configfile .github/builder.ldptool.cfg --pubdir /LDP/PR/en --list
+  - ionice -c 3 chrt --idle 0 ldptool --loglevel info --builddir /LDP/PR/BUILD --configfile .github/builder.ldptool.cfg --pubdir /LDP/PR/en --publish
+  - git rev-parse HEAD > /LDP/PR/last-commit-id.txt
+  - date > /LDP/PR/build-date.txt
+
+- name: 🗃 Martin's builder - all revieved commits (full build)
+  image: tldp/builder:latest
+  volumes:
+  - name: LDP
+    path: /LDP
+  when:
+    event:
+      exclude:
+      - pull_request
+  commands:
+  - ldptool --dump-cfg
+  - mkdir -p /builder/src/BUILD
+  - mkdir -p /builder/src/PUBDIR
+  - ldptool --loglevel info --builddir /builder/src/BUILD --configfile .github/builder.ldptool.cfg --pubdir /builder/src/PUBDIR --list
+  - ionice -c 3 chrt --idle 0 ldptool --loglevel info --builddir /builder/src/BUILD --configfile .github/builder.ldptool.cfg --pubdir /builder/src/PUBDIR --publish
+  - rsync -av --delete-after /builder/src/PUBDIR/ /LDP/en
+  - git rev-parse HEAD > /LDP/last-commit-id.txt
+  - date > /LDP/build-date.txt
+
+volumes:
+- name: LDP
+  host:
+    path: /LDP
+
+trigger:
+  branch:
+  - master
+
+# the happy end.
+---
+kind: signature
+hmac: 45cf4fbf1b8f52a9096a444fb68ff415d101cab7812358bc0951ac87fadc7587
+
+...
