@@ -1,3 +1,5 @@
+#include <stdlib.h>
+#include <string.h>
 #include <menu.h>
 
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof(a[0]))

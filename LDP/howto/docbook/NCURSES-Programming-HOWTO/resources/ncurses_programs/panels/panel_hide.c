@@ -1,3 +1,4 @@
+#include <string.h>
 #include <panel.h>
 
 typedef struct _PANEL_DATA {

@@ -1,3 +1,5 @@
+#include <stdlib.h>
+#include <string.h>
 #include <curses.h>
 
 #define POSX 10
