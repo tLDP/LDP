@@ -16,7 +16,7 @@
 
 int print_menu();
 void print_byebye();
-void create_test_string();
+void create_test_string(char *test_array, int choice);
 void print_time(time_t startt, time_t endt, int mistakes);
 void print_in_middle(int startx, int starty, int width, char *string, WINDOW *win);
 

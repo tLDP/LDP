@@ -6,7 +6,7 @@
 
 int *nqueens(int num);
 int place(int current, int *position);
-int print(int *positions, int num_queens);
+void print(int *positions, int num_queens);
 void board(WINDOW *win, int starty, int startx, int lines, int cols, 
 	   int tile_width, int tile_height);
 
@@ -71,7 +71,7 @@ int place(int current, int *position)
 	return(1);
 }
 		
-int print(int *positions, int num_queens)
+void print(int *positions, int num_queens)
 {	int count;
 	int y = 2, x = 2, w = 4, h = 2;
 	static int solution = 1;

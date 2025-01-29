@@ -71,7 +71,7 @@ int main()
 					}
 				move(20, 0);
 				clrtoeol();
-				mvprintw(20, 0, temp);
+				mvprintw(20, 0, "%s", temp);
 				refresh();
 			}
 			break;
