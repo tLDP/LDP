@@ -42,7 +42,7 @@ int main(int argc, char *argv[])
 	getch();
 	endwin();
 
-	return;
+	return 0;
 }
 
 void magic(int **a, int n)

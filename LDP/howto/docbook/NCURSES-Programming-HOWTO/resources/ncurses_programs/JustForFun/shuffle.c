@@ -1,3 +1,5 @@
+#include <stdlib.h>
+#include <time.h>
 #include <curses.h>
 
 #define STARTX 9
