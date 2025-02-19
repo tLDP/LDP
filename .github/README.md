@@ -1,5 +1,4 @@
-Documentation | [![Build Status](https://drone.tldp.org/api/badges/tLDP/LDP/status.svg)](https://drone.tldp.org/tLDP/LDP)
-
+[![status-badge](https://builder-github.tldp.org/api/badges/3/status.svg)](https://builder-github.tldp.org/repos/3)
 ---
 
 ![LDP Logo](https://tldp.org/images/ldp.gif)
@@ -15,7 +14,7 @@ Please take a part in our efforts.
 * Fork our repository
 * Update documents and/or correct/extend existing ones in your forked repository
 * Submit a Pull Request (if you do not know how, read for example: https://yangsu.github.io/pull-request-tutorial/)
-* Check if our builder successfully renders your submission - if not, check why and resubmit
-* Check if your document is correctly rendered on https://tldp.org/test/ after builder shows you green light - if not, check why and resubmit
-* One of our admins will review your work
-* Publication on https://tldp.org/ is live :+1:
+* We will preliminary check your submission and run our builder to verify if it can be published. 
+* One of our admins will make a final review of your work - please be patient as it's not an automatic process.
+* Watch your PR, we will notify in comments if we need your cooperation.
+* Publication on https://tldp.org/ is live - thanks! :+1:
