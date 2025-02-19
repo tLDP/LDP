@@ -1,0 +1,102 @@
+---
+# (C) Dr Serge Victor 2020-2025, GPLv3 License
+# (C) The Linux Documentation Project 2020-2025, GPLv3 License
+# 
+# Recently build version of documents is available on permanent storage disk mounted read-only on /LDP-ro
+#
+# Contact us or create an issue before thinking about any changes!
+
+steps:
+#####
+
+### PUBLIC ACCESS VIA PULL REQUESTS ###
+
+- name: 🗃 Martin's builder - Pull Request only (partial build)
+  image: ghcr.io/tldp/docker-builder:trunk
+  when:
+    - event: pull_request
+      branch: master
+  commands:
+  - mkdir -p /woodpecker/BUILD
+  - mkdir -p /woodpecker/PUBDIR
+  - whoami
+  - pwd
+  - ldptool --dump-cfg
+  - rsync -av /LDP-ro/en/ /woodpecker/PUBDIR
+  - ldptool --loglevel info --builddir /woodpecker/BUILD --configfile $CI_WORKSPACE/.github/builder.ldptool.cfg --pubdir /woodpecker/PUBDIR --list
+  - ionice -c 3 chrt --idle 0 ldptool --loglevel info --builddir /woodpecker/BUILD --configfile $CI_WORKSPACE/.github/builder.ldptool.cfg --pubdir /woodpecker/PUBDIR --publish
+  - cd $CI_WORKSPACE
+  - git rev-parse HEAD > /woodpecker/PUBDIR/last-commit-id.txt
+  - cd /woodpecker/PUBDIR 
+  - python3 /bin/directory-indexer-single-level.py
+  - date > build-date.txt
+  - echo $CI_PIPELINE_URL > builder-uri.txt
+  - echo $CI_PIPELINE_NUMBER > builder-pipeline-number.txt
+  - echo $CI_PIPELINE_PARENT > builder-pipeline-parent.txt
+  - echo $CI_PIPELINE_FORGE_URL > builder-forge-uri.txt
+
+- name: ⇡⇡ Upload artifacts to our S3
+  image: ghcr.io/tldp/woodpecker-rclone:main
+  when:
+    - event: pull_request
+      branch: master
+  settings:
+    rclone_config: 
+      from_secret: RCLONE_RW
+    commandline: --verbose --copy-links sync /woodpecker/PUBDIR/ LDP:ldp-pr/${CI_PIPELINE_NUMBER}
+
+- name: ☭ Comment the PR with links to S3
+  image: quay.io/thegeeklab/wp-github-comment
+  when:
+    - event: pull_request
+      branch: master
+  settings:
+    api_key:
+      from_secret: GITHUB_PR
+    message: |
+      CI run completed successfully: ${CI_PIPELINE_URL}
+      Test rendering is available on: https://ldp-pr.tldp.org/${CI_PIPELINE_NUMBER}/
+      Please verify test rendering carefully before accepting this Pull Request!
+    update: true
+
+### ADMINS ONLY ACCESS - BUILD TO PRODUCTION ###
+
+# main builder
+- name: 🗃 Martin's builder - all revieved commits (full build)
+  image: ghcr.io/tldp/docker-builder:trunk
+  volumes:
+    - /LDP:/LDP
+  when:
+    - event: [ cron, manual, push, release, tag ]
+  commands:
+  - mkdir -p /woodpecker/BUILD
+  - mkdir -p /woodpecker/PUBDIR
+  - whoami
+  - pwd
+  - ldptool --dump-cfg
+  - ldptool --loglevel info --builddir /woodpecker/BUILD --configfile $CI_WORKSPACE/.github/builder.ldptool.cfg --pubdir /woodpecker/PUBDIR --list
+  - ionice -c 3 chrt --idle 0 ldptool --loglevel info --builddir /woodpecker/BUILD --configfile $CI_WORKSPACE/.github/builder.ldptool.cfg --pubdir /woodpecker/PUBDIR --publish
+  - ionice -c 3 chrt --idle 0 rsync -av --delete-after /woodpecker/PUBDIR/ /LDP/en
+  - cd $CI_WORKSPACE
+  - git rev-parse HEAD > /LDP/last-commit-id.txt
+  - cd /LDP
+  - date > build-date.txt
+  - echo $CI_PIPELINE_URL > builder-uri.txt
+  - echo $CI_PIPELINE_NUMBER > builder-pipeline-number.txt
+  - echo $CI_PIPELINE_PARENT > builder-pipeline-parent.txt
+  - echo $CI_PIPELINE_FORGE_URL > builder-forge-uri.txt
+
+# we want to have always actual copy of files in our S3 
+- name: ⇡⇡ Upload full build to our S3
+  image: ghcr.io/tldp/woodpecker-rclone:main
+  volumes:
+    - /LDP:/LDP
+  when:
+    - event: [ cron, manual, push, release, tag ]
+  settings:
+    rclone_config: 
+      from_secret: RCLONE_RW
+    commandline: --verbose --copy-links sync /LDP/ LDP:ldp
+
+###############
+# the happy end.
