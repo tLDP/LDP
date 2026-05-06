@@ -46,7 +46,7 @@ ls -l
 USER=${USERNAME:-$(whoami)}
 HOST=${HOSTNAME:-$(hostname)}
 
-#  Now excute the above command-line on the remote host,
+#  Now execute the above command-line on the remote host,
 #+ with all transmissions encrypted.
 
 ssh -l ${USER} ${HOST} " ls -l "

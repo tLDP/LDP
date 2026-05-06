@@ -25,7 +25,7 @@
 
 <!-- NOT IN LDP.DSL - This stylesheet supports the additional use of the
      "role" and "condition" attributes to the <author> tag. The XSLT template
-     is listed later in the stylesheet, but the text lables are listed
+     is listed later in the stylesheet, but the text labels are listed
      here in order to make localization of the stylesheet easier. Note
      that spaces *are* significant in the value, so you should have a
      space after the colon. -->
@@ -174,7 +174,7 @@
       <xsl:variable name="rtf">
         <xsl:apply-templates/>
       </xsl:variable>
-      <!-- Change the color bacground color in the line below. -->
+      <!-- Change the color background color in the line below. -->
       <table border="0" bgcolor="#E0E0E0" width="90%">
       <tr><td>
       <pre class="{name(.)}">
@@ -185,7 +185,7 @@
       </td></tr></table>
     </xsl:when>
     <xsl:otherwise>
-      <!-- Change the color bacground color in the line below. -->
+      <!-- Change the color background color in the line below. -->
       <table border="0" bgcolor="#E0E0E0" width="90%">
       <tr><td>
       <pre class="{name(.)}">

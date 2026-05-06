@@ -558,7 +558,7 @@ startpos=$?
 if [ "$startpos" -eq "$FAIL" ]          # Okay even if no $1.
 then   #         ^^^^^^^^^^^              Okay even if input -lt 0.
   echo "No starting square specified (or illegal input)."
-  let "startpos = $RANDOM % $SQUARES"   # 0 - 63 permissable range.
+  let "startpos = $RANDOM % $SQUARES"   # 0 - 63 permissible range.
 fi
 
 

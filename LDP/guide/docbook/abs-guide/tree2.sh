@@ -39,7 +39,7 @@ function dot { echo "            $*" |
 function tree {
   recurs="$1"           # How deep nested are we?
   prefix="$2"           # What do we display before file/dirname?
-  minsize="$3"          # What is the minumum file/dirsize?
+  minsize="$3"          # What is the minimum file/dirsize?
   dirname="$4"          # Which directory are we checking?
 
 # Get ($TOP) biggest subdirs/subfiles from TMP file.

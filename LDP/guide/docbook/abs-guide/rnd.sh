@@ -56,7 +56,7 @@ head -c4 /dev/urandom | od -N4 -tu4 | sed -ne '1s/.* //p'
 #+ it's the last one).
 #  It sees it is not matched by any &lt;range&gt;, so its job is done.
 
-#  In few word this sed commmand means:
+#  In few word this sed command means:
 #  "On the first line only, remove any character up to the right-most space,
 #+ then print it."
 
@@ -76,7 +76,7 @@ head -c4 /dev/urandom | od -N4 -tu4 | sed -ne '1s/.* //p'
 
 # =================================================================== #
 
-# An even simpler altenative to the above one-line script would be:
+# An even simpler alternative to the above one-line script would be:
 #           head -c4 /dev/urandom| od -An -tu4
 
 exit

@@ -17,7 +17,7 @@ kernels you must patch your kernel to export sys_call_table.
 
 WARNING: 
 	DONT TRY THIS ON PRODUCTION SYSTEMS, OR ANY OTHER SYSTEMS
-	WITH VALUEABLE DATA ON IT.
+	WITH VALUABLE DATA ON IT.
 
 
 If I had to write a Configure.help entry for this patch it would

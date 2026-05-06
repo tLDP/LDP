@@ -288,7 +288,7 @@ The md5sum program is documented as outputting three fields (and it
 does), but when read it appears as two fields (array elements).  This
 is caused by the lack of whitespace between the second and third field.
 So this function gropes the md5sum output and returns:
-	[0]	32 character checksum in hexidecimal (UCFS filename)
+	[0]	32 character checksum in hexadecimal (UCFS filename)
 	[1]	Single character: ' ' text file, '*' binary file
 	[2]	Filesystem (20th Century Style) name
 	Note: That name may be the character '-' indicating STDIN read.
@@ -372,7 +372,7 @@ DigestFile()
 		atime of directories changed by addition/deletion of files
 	[12]	Time of last modification
 		mtime of files changed by write, truncate, utime, mknod
-		mtime of directories changed by addtition/deletion of files
+		mtime of directories changed by addition/deletion of files
 	[13]	Time of last change
 		ctime reflects time of changed inode information (owner, group
 		permissions, link count
@@ -474,7 +474,7 @@ LocateFile()
 	esac
 	return 0
 # Which yields (if you are lucky, and have "stat" installed)
-# -*-*- Location Discriptor -*-*-
+# -*-*- Location Descriptor -*-*-
 #	Return code: 0
 #	Size of array: 15
 #	Contents of array
@@ -537,8 +537,8 @@ declare -a IDX_DIG
 # BIG-DIR # DIR_ENT=( $(cat /tmpfs/junk2) )
 # BIG-DIR # DigestFile -if /tmpfs/junk2 IDX_DIG
 DigestFile DIR_ENT IDX_DIG
-# Small (should) be able to parallize IndexList &amp; DigestFile
-# Large (should) be able to parallize IndexList &amp; DigestFile &amp; the assignment
+# Small (should) be able to parallelize IndexList &amp; DigestFile
+# Large (should) be able to parallelize IndexList &amp; DigestFile &amp; the assignment
 echo "The \"name\" (checksum) for the contents of ${PWD} is ${IDX_DIG[0]}"
 
 declare -a FILE_LOC

@@ -12,7 +12,7 @@ int main(int argc, char *argv[])
 	 * Third parameter number of characters to update. -1 means till 
 	 * end of line
 	 * Forth parameter is the normal attribute you wanted to give 
-	 * to the charcter
+	 * to the character
 	 * Fifth is the color index. It is the index given during init_pair()
 	 * use 0 if you didn't want color
 	 * Sixth one is always NULL 

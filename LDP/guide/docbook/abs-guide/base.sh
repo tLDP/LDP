@@ -10,7 +10,7 @@
 # Description
 #
 # Changes
-# 21-03-95 stv	fixed error occuring with 0xb as input (0.2)
+# 21-03-95 stv	fixed error occurring with 0xb as input (0.2)
 ###########################################################################
 
 # ==> Used in ABS Guide with the script author's permission.

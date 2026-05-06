@@ -31,7 +31,7 @@
 #	menu_win does not indicate how to exit. F1 exits the program.
 # Panels:
 #	panel_resize: It seg faulted when I was resizing. Probably
-#	the size had gone to negative value (I cant see the size being reduced,
+#	the size had gone to negative value (I can't see the size being reduced,
 #	only after I press the Enter do I see the new size).
 #	panel_simple: Exists as soon as I press any key.
 
@@ -57,7 +57,7 @@ tmp="tmp.out"
 
 # execMake: Function to execute 'make'
 # Arguments:
-# clean: Spcifies to do a 'make clean'
+# clean: Specifies to do a 'make clean'
 execMake()
 {
 	local clean;
@@ -670,7 +670,7 @@ Unable to run './tt'" >> $TEMP_FILE;
 # submenu: Generic function to process submenus (display submenu for a 
 #          category
 # Arguments: Title, run_function
-# run_function: This function is invoked when the 'Run' item is choosen
+# run_function: This function is invoked when the 'Run' item is chosen
 submenu()
 {
 	local cwdSubmenu;

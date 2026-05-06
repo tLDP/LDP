@@ -2171,4 +2171,4 @@ Additional Note
 
 Michael Zick points out that there is a "makeviz.bash" interactive
 Web site at rediris.es. Can't give the full URL, since this is not
-a publically accessible site.
+a publicly accessible site.

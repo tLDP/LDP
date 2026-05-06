@@ -35,7 +35,7 @@
   copy_routing_table () {
 # - - - - - - - - - - -
 #
-# -- accepts one paramater:
+# -- accepts one parameter:
 #
 #    $1:  table identifier for the routing table to create
 #

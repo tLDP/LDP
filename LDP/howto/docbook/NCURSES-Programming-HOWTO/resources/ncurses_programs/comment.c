@@ -23,7 +23,7 @@ int main(int argc, char *argv[])
   getmaxyx(stdscr, row, col);		/* find the boundaries of the screeen */
   while((ch = fgetc(fp)) != EOF)	/* read the file till we reach the end */
   {
-    getyx(stdscr, y, x);		/* get the current curser position */
+    getyx(stdscr, y, x);		/* get the current cursor position */
     if(y == (row - 1))			/* are we are at the end of the screen */
     {
       printw("<-Press Any Key->");	/* tell the user to press a key */
@@ -35,7 +35,7 @@ int main(int argc, char *argv[])
                                      	 * switch bold on */    
     {
       attron(A_BOLD);			/* cut bold on */
-      getyx(stdscr, y, x);		/* get the current curser position */
+      getyx(stdscr, y, x);		/* get the current cursor position */
       move(y, x - 1);			/* back up one space */
       printw("%c%c", '/', ch); 		/* The actual printing is done here */
     }

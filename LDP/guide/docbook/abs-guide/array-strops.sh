@@ -64,7 +64,7 @@ echo ${arrayZ[@]//iv/YY}    # one two three four fYYe fYYe
                             # Applied to all elements of the array.
 
 # Delete all occurrences of substring.
-# Not specifing a replacement defaults to 'delete' ...
+# Not specifying a replacement defaults to 'delete' ...
 echo ${arrayZ[@]//fi/}      # one two three four ve ve
 #               ^^          # Applied to all elements of the array.
 

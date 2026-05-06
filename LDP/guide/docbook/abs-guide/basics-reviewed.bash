@@ -182,7 +182,7 @@ echo ${@}                       # Same as above
 #   Elements of a Bash-Array may contain:
 #     * A whole number as a signed 32-bit (or larger) integer
 #     * A string
-#     * A string formated so that it appears to be a function name
+#     * A string formatted so that it appears to be a function name
 #     + with optional arguments
 ###
 #   Defined elements of a Bash-Array may be undefined (unset).

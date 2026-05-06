@@ -15,7 +15,7 @@ int main()
 	if(ch == KEY_F(1))		/* Without keypad enabled this will */
 		printw("F1 Key pressed");/*  not get to us either	*/
 					/* Without noecho() some ugly escape
-					 * charachters might have been printed
+					 * characters might have been printed
 					 * on screen			*/
 	else
 	{	printw("The pressed key is ");

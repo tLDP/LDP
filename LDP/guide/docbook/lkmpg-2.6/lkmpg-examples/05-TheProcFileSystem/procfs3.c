@@ -30,7 +30,7 @@ static unsigned long procfs_buffer_size = 0;
 static struct proc_dir_entry *Our_Proc_File;
 
 /**
- * This funtion is called when the /proc file is read
+ * This function is called when the /proc file is read
  *
  */
 static ssize_t procfs_read(struct file *filp,	/* see include/linux/fs.h   */
@@ -102,7 +102,7 @@ procfs_write(struct file *file, const char *buffer, size_t len, loff_t * off)
  *
  * This is the real function that checks file
  * permissions. The permissions returned by ls -l are
- * for referece only, and can be overridden here.
+ * for reference only, and can be overridden here.
  */
 
 static int module_permission(struct inode *inode, int op, struct nameidata *foo)
@@ -170,7 +170,7 @@ int init_module()
 	/* create the /proc file */
 	Our_Proc_File = create_proc_entry(PROC_ENTRY_FILENAME, 0644, NULL);
 	
-	/* check if the /proc file was created successfuly */
+	/* check if the /proc file was created successfully */
 	if (Our_Proc_File == NULL){
 		printk(KERN_ALERT "Error: Could not initialize /proc/%s\n",
 		       PROC_ENTRY_FILENAME);

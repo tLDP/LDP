@@ -27,7 +27,7 @@
 
     Does:
         When used on the right-hand-side of an assignment statement;
-        makes the substitions embedded in the protected string.
+        makes the substitutions embedded in the protected string.
 
     Notes:
         The strange names (_*) are used to avoid trampling on

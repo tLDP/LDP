@@ -3,7 +3,7 @@
 #
 # Script by nyal [nyal@voila.fr].
 # Used in ABS Guide with permission.
-# Recommented and reformatted by ABS Guide author.
+# Recommended and reformatted by ABS Guide author.
 # Version 1.1: Modified to work with gawk 3.1.3.
 #              (Will still work with earlier versions.)
 

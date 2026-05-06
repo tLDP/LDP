@@ -14,7 +14,7 @@
 
 /* 
  * Is the device open right now? Used to prevent
- * concurent access into the same device 
+ * concurrent access into the same device 
  */
 static int Device_Open = 0;
 
@@ -239,7 +239,7 @@ int init_module()
 {
 	int ret_val;
 	/* 
-	 * Register the character device (atleast try) 
+	 * Register the character device (at least try) 
 	 */
 	ret_val = register_chrdev(MAJOR_NUM, DEVICE_NAME, &Fops);
 
@@ -253,7 +253,7 @@ int init_module()
 	}
 
 	printk(KERN_INFO "%s The major device number is %d.\n",
-	       "Registeration is a success", MAJOR_NUM);
+	       "Registration is a success", MAJOR_NUM);
 	printk(KERN_INFO "If you want to talk to the device driver,\n");
 	printk(KERN_INFO "you'll have to create a device file. \n");
 	printk(KERN_INFO "We suggest you use:\n");

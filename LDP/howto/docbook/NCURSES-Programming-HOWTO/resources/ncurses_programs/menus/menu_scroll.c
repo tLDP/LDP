@@ -71,7 +71,7 @@ int main()
 	wrefresh(my_menu_win);
 	
 	attron(COLOR_PAIR(2));
-	mvprintw(LINES - 2, 0, "Use PageUp and PageDown to scoll down or up a page of items");
+	mvprintw(LINES - 2, 0, "Use PageUp and PageDown to scroll down or up a page of items");
 	mvprintw(LINES - 1, 0, "Arrow Keys to navigate (F1 to Exit)");
 	attroff(COLOR_PAIR(2));
 	refresh();

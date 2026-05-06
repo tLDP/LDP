@@ -37,7 +37,7 @@ int *nqueens(int num)
 
 	position[1] = 0; 
 	current = 1;	/* current queen is being checked	*/
-				/* position[current] is the coloumn*/
+				/* position[current] is the column*/
 	while(current > 0){
 		position[current] += 1;
 		while(position[current] <= num && !place(current, position) )

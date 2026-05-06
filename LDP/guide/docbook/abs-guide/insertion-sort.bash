@@ -26,7 +26,7 @@ typeset -a list
 if [ "$1" = "-t" ]; then
 DEBUG=1
         read -a list &lt; &lt;( od -Ad -w24 -t u2 /dev/urandom ) # Random list.
-#                    ^ ^  process substition
+#                    ^ ^  process substitution
 else
         read -a list
 fi

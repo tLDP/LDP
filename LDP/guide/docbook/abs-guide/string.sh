@@ -42,7 +42,7 @@ function strcat ()
 # Usage: strncat s1 s2 $n
 # 
 # Line strcat, but strncat appends a maximum of n characters from the value
-# of variable s2.  It copies fewer if the value of variabl s2 is shorter
+# of variable s2.  It copies fewer if the value of variable s2 is shorter
 # than n characters.  Echoes result on stdout.
 #
 # Example:
@@ -158,7 +158,7 @@ function strspn ()
 ###;;;autoload
 function strcspn ()
 {
-    # Unsetting IFS allows whitspace to be handled as normal chars. 
+    # Unsetting IFS allows whitespace to be handled as normal chars. 
     local IFS=
     local result="${1%%[${2}]*}"
  

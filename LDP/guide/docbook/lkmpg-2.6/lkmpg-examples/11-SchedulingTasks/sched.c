@@ -1,5 +1,5 @@
 /*
- *  sched.c - scheduale a function to be called on every timer interrupt.
+ *  sched.c - schedule a function to be called on every timer interrupt.
  *
  *  Copyright (C) 2001 by Peter Jay Salzman
  */
@@ -14,7 +14,7 @@
 #include <linux/kernel.h>	/* We're doing kernel work */
 #include <linux/module.h>	/* Specifically, a module */
 #include <linux/proc_fs.h>	/* Necessary because we use the proc fs */
-#include <linux/workqueue.h>	/* We scheduale tasks here */
+#include <linux/workqueue.h>	/* We schedule tasks here */
 #include <linux/sched.h>	/* We need to put ourselves to sleep 
 				   and wake up later */
 #include <linux/init.h>		/* For __init and __exit */

@@ -26,7 +26,7 @@ exchange()
 declare -a Countries  #  Declare array,
                       #+ optional here since it's initialized below.
 
-#  Is it permissable to split an array variable over multiple lines
+#  Is it permissible to split an array variable over multiple lines
 #+ using an escape (\)?
 #  Yes.
 
@@ -69,7 +69,7 @@ do
   done # End of inner loop
 
 # ----------------------------------------------------------------------
-# Paulo Marcel Coelho Aragao suggests for-loops as a simpler altenative.
+# Paulo Marcel Coelho Aragao suggests for-loops as a simpler alternative.
 #
 # for (( last = $number_of_elements - 1 ; last > 0 ; last-- ))
 ##                     Fix by C.Y. Hunt          ^   (Thanks!)

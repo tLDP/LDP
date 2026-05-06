@@ -39,7 +39,7 @@ int main()
 	my_panels[1] = new_panel(my_wins[1]); 	/* Push 1, order: stdscr-0-1 */
 	my_panels[2] = new_panel(my_wins[2]); 	/* Push 2, order: stdscr-0-1-2 */
 
-	/* Initialize panel datas saying that nothing is hidden */
+	/* Initialize panel data saying that nothing is hidden */
 	panel_datas[0].hide = FALSE;
 	panel_datas[1].hide = FALSE;
 	panel_datas[2].hide = FALSE;

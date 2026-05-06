@@ -85,7 +85,7 @@ int init_module()
 
 	/* 
 	 * Request IRQ 1, the keyboard IRQ, to go to our irq_handler.
-	 * SA_SHIRQ means we're willing to have othe handlers on this IRQ.
+	 * SA_SHIRQ means we're willing to have other handlers on this IRQ.
 	 * SA_INTERRUPT can be used to make the handler into a fast interrupt.
 	 */
 	return request_irq(1,	/* The number of the keyboard IRQ on PCs */
