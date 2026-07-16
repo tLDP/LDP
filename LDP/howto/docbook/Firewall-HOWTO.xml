@@ -1,0 +1,2073 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE article PUBLIC "-//OASIS//DTD DocBook XML V4.2//EN"
+"http://www.oasis-open.org/docbook/xml/4.2/docbookx.dtd">
+
+<article id="index">
+<articleinfo>
+<title>Firewall and Proxy Server HOWTO</title>
+
+<authorgroup>
+<author>
+	<firstname>Mark</firstname>
+	<surname>Grennan</surname>
+	<address>
+		<email>mark@grennan.com</email>
+	</address>
+</author>
+
+<othercredit>
+	<firstname>David</firstname>
+	<surname>Rudder</surname>
+	<contrib>Wrote the original version of this HOWTO.</contrib>
+</othercredit>
+</authorgroup>
+
+<abstract>
+<para>
+This document describes the basics of firewall systems and gives you
+some detail on setting up both a filtering and a proxy firewall on a
+Linux based system, using the tools in a modern distribution:
+nftables for packet filtering and firewalld for day-to-day management.
+</para>
+</abstract>
+
+<revhistory id="revhistory">
+	<revision>
+	<revnumber>v2.0</revnumber>
+	<date>2026-07-16</date>
+	<authorinitials>mg</authorinitials>
+	<revremark>Converted from LinuxDoc to DocBook XML. Rewritten for
+	the modern Linux firewall stack: nftables and firewalld replace
+	ipchains and ipfwadm, systemd replaces inetd, and the dead links
+	are finally gone. The ipchains-era text remains available in the
+	LDP git history.</revremark>
+	</revision>
+	<revision>
+	<revnumber>v0.80</revnumber>
+	<date>2000-02-26</date>
+	<authorinitials>mg</authorinitials>
+	<revremark>Last LinuxDoc revision, covering kernel 2.2, ipchains,
+	the TIS FWTK and SOCKS.</revremark>
+	</revision>
+</revhistory>
+</articleinfo>
+
+<tip>
+<title>For the Impatient</title>
+<para>
+For a quick start, jump to <link linkend="setup">Setting up the Linux
+Filtering Firewall</link>.
+</para>
+</tip>
+
+<sect1 id="introduction">
+<title>Introduction</title>
+
+<para>
+David Rudder wrote the original version of this Firewall-HOWTO, these
+many moons ago, and I'd still like to thank him for allowing me to
+update his work. I'd also like to thank Ian Gough for kindly assisting
+this dyslexic writer, and Anthony Ball, whose init scripts formed the
+basis of the examples in earlier versions.
+</para>
+
+<para>
+Firewalls have gained great popularity as the ultimate in Internet
+security. Like most hot subjects, they are also often misunderstood.
+This HOWTO will go over the basics of what a firewall is and how to
+set one up on Linux.
+</para>
+
+<para>
+When I first updated this document, the state of the art was a 486
+running Red Hat 6.1 with kernel 2.2 and ipchains. A quarter of a
+century later everything in that sentence is a museum piece, but the
+ideas have barely moved: you still decide what traffic you will
+allow, you still write rules to enforce that decision, and you still
+watch the logs. Only the tools have changed. Today the Linux kernel
+filters packets with <emphasis>nftables</emphasis>, and most
+distributions manage it through a friendly front end called
+<emphasis>firewalld</emphasis>. This version of the HOWTO covers
+both.
+</para>
+
+<sect2 id="feedback">
+<title>Feedback</title>
+<para>
+Any feedback is very welcome. <emphasis role="strong">PLEASE REPORT
+ANY INACCURACIES IN THIS PAPER!!!</emphasis> I am human, and prone to
+making mistakes. If you find a fix for anything, please send it to me.
+I will try to answer all e-mail, but I am busy, so don't get insulted
+if I don't.
+</para>
+<para>
+My email address is <email>mark@grennan.com</email>.
+</para>
+</sect2>
+
+<sect2 id="disclaimer">
+<title>Disclaimer</title>
+<para>
+<emphasis role="strong">I AM NOT RESPONSIBLE FOR ANY DAMAGES INCURRED
+DUE TO ACTIONS TAKEN BASED ON THIS DOCUMENT.</emphasis> This document
+is meant as an introduction to how firewalls and proxy servers work.
+I am not, nor do I pretend to be, a security expert. ;-) I am just
+some guy who has read too much and likes computers more than most
+people. Please, I am writing this to help people get acquainted with
+this subject, and I am not ready to stake my life on the accuracy of
+what is in here.
+</para>
+</sect2>
+
+<sect2 id="copyright">
+<title>Copyright</title>
+<para>
+Unless otherwise stated, Linux HOWTO documents are copyrighted by
+their respective authors. Linux HOWTO documents may be reproduced and
+distributed in whole or in part, in any medium physical or electronic,
+as long as this copyright notice is retained on all copies. Commercial
+redistribution is allowed and encouraged; however, the author would
+like to be notified of any such distributions.
+</para>
+<para>
+All translations, derivative works, or aggregate works incorporating
+any Linux HOWTO documents must be covered under this copyright notice.
+That is, you may not produce a derivative work from a HOWTO and impose
+additional restrictions on its distribution. Exceptions to these rules
+may be granted under certain conditions; please contact the Linux
+HOWTO coordinator.
+</para>
+<para>
+In short, we wish to promote dissemination of this information through
+as many channels as possible. However, we do wish to retain copyright
+on the HOWTO documents, and would like to be notified of any plans to
+redistribute the HOWTOs. If you have any questions, please email me.
+</para>
+</sect2>
+
+<sect2 id="reasons">
+<title>My Reasons for Writing This</title>
+<para>
+Several years ago, while working for the State of Oklahoma as their
+<quote>Internet Administrator</quote>, I was asked to <quote>put the
+State on the Internet</quote>, with no budget. (Note: there was no
+such title at the time. I was just the guy doing all the work.) The
+best way to make this happen was to use as much free software and junk
+hardware as I could. Linux and a bunch of old 486s were all I had to
+work with.
+</para>
+<para>
+Commercial firewalls were VERY overpriced and the documentation on how
+they worked was considered almost top secret. I found creating a
+firewall of my own was almost impossible.
+</para>
+<para>
+At my next job, I was asked to put in a firewall. Linux had just added
+firewall code. So again with no budget I started building a firewall
+with Linux. Six months later my firewall was in place and this
+document was updated.
+</para>
+<para>
+The economics have changed — every plastic router ships with
+some kind of firewall now — but the reason to build your own is
+the same as ever: when you build it yourself, you know exactly what it
+does, and you can make it do exactly what you want.
+</para>
+</sect2>
+
+<sect2 id="reading">
+<title>Further Reading</title>
+<itemizedlist>
+<listitem><para>
+<ulink url="https://wiki.nftables.org/">The nftables wiki</ulink>
+— the authoritative documentation for nftables.
+</para></listitem>
+<listitem><para>
+<ulink url="https://firewalld.org/">firewalld.org</ulink> —
+documentation for the firewalld daemon and
+<command>firewall-cmd</command>.
+</para></listitem>
+<listitem><para>
+<ulink url="https://www.netfilter.org/">netfilter.org</ulink> —
+home of the kernel packet filtering framework.
+</para></listitem>
+<listitem><para>
+<ulink url="https://www.squid-cache.org/">The Squid proxy
+server</ulink> — still going strong after all these years.
+</para></listitem>
+<listitem><para>
+<ulink url="https://www.wireguard.com/">WireGuard</ulink> — the
+modern way to build the VPNs this document mentions.
+</para></listitem>
+<listitem><para>
+The Linux Network Administrators Guide and the other networking
+documents at <ulink url="https://tldp.org/">tldp.org</ulink>.
+</para></listitem>
+</itemizedlist>
+</sect2>
+</sect1>
+
+<sect1 id="understanding">
+<title>Understanding Firewalls</title>
+
+<para>
+A firewall is a structure intended to keep a fire from spreading.
+Buildings have firewalls made of brick walls completely dividing
+sections of the building. In a car a firewall is the metal wall
+separating the engine and passenger compartments.
+</para>
+
+<para>
+Internet firewalls are intended to keep the flames of Internet hell
+out of your private LAN. Or, to keep the members of your LAN pure and
+chaste by denying them access to all the evil Internet temptations.
+;-)
+</para>
+
+<para>
+The first computer firewall was a non-routing Unix host with
+connections to two different networks. One network card connected to
+the Internet and the other to the private LAN. To reach the Internet
+from the private network, you had to log on to the firewall (Unix)
+server. You then used the resources of the system to access the
+Internet. For example, you could use X-windows to run a browser on the
+firewall system and have the display on your workstation. With the
+browser running on the firewall it has access to both networks.
+</para>
+
+<para>
+This sort of dual homed system (a system with two network connections)
+is great if you can TRUST ALL of your users. You can simply set up a
+Linux system and give an account on it to everyone needing Internet
+access. With this setup, the only computer on your private network
+that knows anything about the outside world is the firewall. No one
+can download to their personal workstations. They must first download
+a file to the firewall and then download the file from the firewall to
+their workstation.
+</para>
+
+<para>
+BIG NOTE: 99% of all break-ins start with gaining account level access
+on the system being attacked. Because of this I don't recommend this
+type of firewall. It is also very limiting.
+</para>
+
+<sect2 id="history">
+<title>A Short History of Linux Firewalling</title>
+<para>
+It helps to know the family tree, because you will still find articles
+(and old versions of this HOWTO) describing every generation of it:
+</para>
+<itemizedlist>
+<listitem><para>
+<command>ipfwadm</command> — kernels 1.2 through 2.0. A port of
+BSD's ipfw. Ancient history.
+</para></listitem>
+<listitem><para>
+<command>ipchains</command> — kernels 2.2. A rewrite that added
+user-defined chains. This is what versions 0.x of this document
+covered.
+</para></listitem>
+<listitem><para>
+<command>iptables</command> — kernels 2.4 and 2.6, and the
+workhorse of Linux firewalling for nearly two decades. It introduced
+stateful connection tracking, which changed rule writing completely.
+</para></listitem>
+<listitem><para>
+<command>nftables</command> — kernel 3.13 and later. The current
+system. One tool (<command>nft</command>) replaces iptables,
+ip6tables, arptables and ebtables, rulesets load atomically, and IPv4
+and IPv6 can share one set of rules. On current distributions even the
+<command>iptables</command> command is usually a compatibility shim
+that creates nftables rules underneath.
+</para></listitem>
+</itemizedlist>
+<para>
+On top of nftables most distributions add a management layer:
+<command>firewalld</command> on Fedora, Red Hat Enterprise Linux and
+their relatives (and available nearly everywhere else), or
+<command>ufw</command> on Ubuntu. These don't replace the kernel
+filter; they just generate rules for it and give you a friendlier way
+to talk about them. The next section will help you choose between
+them.
+</para>
+</sect2>
+
+<sect2 id="which-tool">
+<title>firewalld and nftables: Which Should You Use?</title>
+<para>
+<command>firewalld</command> is a small daemon that owns and manages
+the kernel's packet filter for you. Instead of writing rules, you
+describe your intent to the <command>firewall-cmd</command> tool:
+<emphasis>this</emphasis> interface faces the Internet,
+<emphasis>that</emphasis> one faces the LAN, allow these named
+services. firewalld turns that into nftables rules and maintains them
+over time. Along the way it gives you several conveniences you would
+otherwise build yourself:
+</para>
+<itemizedlist>
+<listitem><para>
+<emphasis>Zones</emphasis> — interfaces are grouped by trust
+level (external, internal, dmz, ...), and rules attach to the zone,
+not the interface. Move a cable, change one command.
+</para></listitem>
+<listitem><para>
+<emphasis>Named services</emphasis> — <literal>ssh</literal>,
+<literal>dns</literal>, <literal>https</literal> — instead of
+memorizing port numbers.
+</para></listitem>
+<listitem><para>
+Runtime changes that take effect instantly without dropping
+established connections, kept separate from the permanent
+configuration, so an experiment that goes wrong is undone by a
+reload.
+</para></listitem>
+<listitem><para>
+A D-Bus interface that other software — NetworkManager, libvirt,
+container engines — uses to request openings, which is why
+firewalld is the default on so many distributions. If you run such
+software, firewalld keeps everyone's rules coordinated.
+</para></listitem>
+</itemizedlist>
+<para>
+So for most machines — laptops, general-purpose servers, anything
+whose network life changes over time — firewalld is the right
+default, and it is what I recommend you set up first.
+</para>
+<para>
+Working with nftables directly is the better choice when:
+</para>
+<itemizedlist>
+<listitem><para>
+the machine is a <emphasis>dedicated</emphasis> firewall or router,
+and you want the entire policy in one file you can read top to
+bottom, comment, diff, and keep in version control;
+</para></listitem>
+<listitem><para>
+you need machinery firewalld doesn't expose well — sets and maps,
+flowtables, unusual NAT arrangements, per-rule counters and logging;
+</para></listitem>
+<listitem><para>
+the system is minimal and you'd rather not run a daemon just to hold
+rules the kernel enforces by itself; or
+</para></listitem>
+<listitem><para>
+you want to understand what is actually happening — everything
+firewalld does comes out as nftables rules in the end, and
+<command>nft list ruleset</command> is where you'll be looking when
+something misbehaves anyway.
+</para></listitem>
+</itemizedlist>
+<para>
+Whichever you choose, choose one — both tools expect to own the
+ruleset, and they will fight if you run them together. This document
+builds the same example firewall both ways: with firewalld in <link
+linkend="firewalld">Filtering Setup with firewalld</link>, and by
+hand in <link linkend="nftables">Filtering Setup with
+nftables</link>. Learn both: firewalld for convenience, nftables for
+understanding what is really happening.
+</para>
+</sect2>
+
+<sect2 id="politics">
+<title>Firewall Politics</title>
+<para>
+You shouldn't believe a firewall machine is all you need.
+<emphasis>Set policies first</emphasis>.
+</para>
+<para>
+Firewalls are used for two purposes:
+</para>
+<orderedlist>
+<listitem><para>to keep people (worms / crackers) out.</para></listitem>
+<listitem><para>to keep people (employees / children) in.</para></listitem>
+</orderedlist>
+<para>
+When I started working on firewalls I was surprised to learn the
+company I worked for was more interested in <quote>spying</quote> on
+their employees than keeping crackers out of their networks. At least
+in my state (Oklahoma) employers have the right to monitor phone calls
+and Internet activity as long as they inform the employees they are
+doing it.
+</para>
+<para>
+Big Brother is not government. Big Brother = Big Business.
+</para>
+<para>
+Don't get me wrong. People should work, not play at work. And I feel
+the work ethic has been eroding. However, I have also observed that
+management types are the biggest abusers of the rules they set. I have
+seen hourly workers reprimanded for using the Internet to look for bus
+routes to get to work, while the same manager used hours of work time
+looking for fine restaurants and nightclubs to take prospective
+customers.
+</para>
+<para>
+My fix for this type of abuse is to publish the firewall logs on a Web
+page for everyone to see.
+</para>
+<para>
+The security business can be scary. If you are the firewall manager,
+watch your back.
+</para>
+
+<sect3 id="policy">
+<title>How to Create a Security Policy</title>
+<para>
+I have seen some really highfalutin documentation on how to create a
+security policy. After many years of experience I say, don't believe
+a word of it. Creating a security policy is simple:
+</para>
+<orderedlist>
+<listitem><para>describe what you need to service</para></listitem>
+<listitem><para>describe the group of people you need to service</para></listitem>
+<listitem><para>describe which service each group needs access to</para></listitem>
+<listitem><para>for each service group, describe how the service should be kept secure</para></listitem>
+<listitem><para>write a statement making all other forms of access a violation</para></listitem>
+</orderedlist>
+<para>
+Your policy will become more complicated with time, but don't try to
+cover too much ground now. Make it simple and clear.
+</para>
+</sect3>
+</sect2>
+
+<sect2 id="types">
+<title>Types of Firewalls</title>
+<para>
+There are two types of firewalls:
+</para>
+<orderedlist>
+<listitem><para>
+Filtering firewalls — that block selected network packets.
+</para></listitem>
+<listitem><para>
+Proxy servers (sometimes called firewalls) — that make network
+connections for you.
+</para></listitem>
+</orderedlist>
+
+<sect3 id="filtering">
+<title>Packet Filtering Firewalls</title>
+<para>
+Packet filtering is the type of firewall built into the Linux kernel.
+</para>
+<para>
+A filtering firewall works at the network level. Data is only allowed
+to leave the system if the firewall rules allow it. As packets arrive
+they are filtered by their type, source address, destination address,
+and port information contained in each packet.
+</para>
+<para>
+Many network routers have the ability to perform some firewall
+services. Filtering firewalls can be thought of as a type of router.
+Because of this you need a deep understanding of IP packet structure
+to work with one.
+</para>
+<para>
+One thing has improved enormously since the ipchains days:
+<emphasis>connection tracking</emphasis> (also called stateful
+filtering). The old filters looked at every packet in isolation, and
+we resorted to ugly tricks like matching TCP packets without the SYN
+flag to guess whether a packet belonged to an established connection.
+The modern kernel remembers the connections flowing through it, so a
+single rule — <quote>accept packets belonging to established
+connections</quote> — replaces pages of careful guesswork. You
+will see this rule (<literal>ct state established,related
+accept</literal>) near the top of every nftables ruleset in this
+document.
+</para>
+<para>
+Because very little data is analyzed and logged, filtering firewalls
+take less CPU and create less latency in your network.
+</para>
+<para>
+Filtering firewalls do not provide for password controls. Users cannot
+identify themselves. The only identity a user has is the IP number
+assigned to their workstation. This can be a problem if you are going
+to use DHCP (dynamic IP assignments), because rules based on IP
+numbers will have to be adjusted as new IP numbers are assigned. If
+you find yourself writing per-user rules, that is usually a sign you
+want a proxy server instead — or at least static DHCP leases.
+</para>
+<para>
+Filtering firewalls are more transparent to the user. The user does
+not have to set up rules in their applications to use the Internet.
+With most proxy servers this is not true.
+</para>
+</sect3>
+
+<sect3 id="proxy-servers">
+<title>Proxy Servers</title>
+<para>
+Proxies are mostly used to control, or monitor, outbound traffic. Some
+application proxies cache the requested data. This lowers bandwidth
+requirements and decreases the access time for the same data for the
+next user. It also gives unquestionable evidence of what was
+transferred.
+</para>
+<para>
+There are two types of proxy servers:
+</para>
+<orderedlist>
+<listitem><para>
+Application proxies — that do the work for you.
+</para></listitem>
+<listitem><para>
+SOCKS proxies — that cross-wire ports.
+</para></listitem>
+</orderedlist>
+</sect3>
+
+<sect3 id="app-proxy">
+<title>Application Proxy</title>
+<para>
+The classic example is a person using SSH to log in to another
+computer and then using SSH from there to connect to the outside
+world. With an application proxy server the process is automated. As
+you connect to the outside world the client sends you to the proxy
+first. The proxy then connects to the server you requested (the
+outside world) and returns the data to you.
+</para>
+<para>
+Because proxy servers are handling all the communications, they can
+log everything they (you) do. For HTTP (web) proxies this includes
+every URL you see. For FTP proxies this includes every file you
+download. They can even filter out <quote>inappropriate</quote> words
+from the sites you visit or scan for viruses.
+</para>
+<para>
+Application proxy servers can authenticate users. Before a connection
+to the outside is made, the server can ask the user to log in first.
+To a web user this would make every site look like it required a
+login.
+</para>
+<para>
+One modern complication: most web traffic is now HTTPS, which is
+encrypted precisely so that machines in the middle cannot read it. A
+proxy can still see <emphasis>where</emphasis> your users are going
+(the hostname), but reading or filtering the content requires
+installing your own certificate authority on every client machine and
+intercepting the encryption — a serious step with serious
+security and privacy consequences. Think hard, and check your local
+laws, before doing that.
+</para>
+</sect3>
+
+<sect3 id="socks-proxy">
+<title>SOCKS Proxy</title>
+<para>
+A SOCKS server is a lot like an old switchboard. It simply cross-wires
+your connection through the system to another outside connection.
+</para>
+<para>
+The current version of the protocol, SOCKS5, supports authentication
+and UDP as well as TCP (the old version's inability to pass UDP was a
+real drawback, and I'm happy to finally strike that complaint from
+this document). Most web browsers and many other programs can talk to
+a SOCKS server directly, and if all you need is a quick personal
+tunnel, OpenSSH will act as one for you with <command>ssh -D
+1080 user@host</command>. For a permanent server, look at
+<ulink url="https://www.inet.no/dante/">Dante</ulink>.
+</para>
+</sect3>
+</sect2>
+</sect1>
+
+<sect1 id="architecture">
+<title>Firewall Architecture</title>
+
+<para>
+There are lots of ways to structure your network to protect your
+systems using a firewall.
+</para>
+
+<para>
+If you have a dedicated connection to the Internet through a router,
+you could plug the router directly into your firewall system. Or, you
+could go through a hub or switch to provide full access servers
+outside your firewall.
+</para>
+
+<sect2 id="arch-simple">
+<title>Simple Architecture</title>
+<para>
+In the most common home and small office setup today, your ISP hands
+you a single device (fiber ONT, cable modem, or router) and your Linux
+firewall sits between it and your LAN. If you also run servers you
+want reachable from the Internet, a third network card can provide a
+filtered DMZ. This gives you full control over your Internet services
+and still separates them from your regular network.
+</para>
+<screen>
+                  __________
+   _/\__/\_      |          |          _______________
+  |        |     | Firewall |  (LAN)  |               |
+ / Internet \----|  System  |--(SW)---| Workstation/s |
+ \_  _  _  _/    |__________|         |_______________|
+   \/ \/ \/           |
+                    (DMZ)
+                    (SW)
+</screen>
+</sect2>
+
+<sect2 id="arch-router">
+<title>Single Router Architecture</title>
+<para>
+If there is a router or modem between you and the Internet and you own
+the router, you can set up some hard filter rules in the router. If
+the router is owned by your ISP you may not have the needed controls,
+but you can ask your ISP to put in filters.
+</para>
+<screen>
+                  _________           __________
+   _/\__/\_      | Router  |         |          |          _______________
+  |        |     |   or    |  (DMZ)  | Firewall |  (LAN)  |               |
+ / Internet \----|  Modem  |--(SW)---|  System  |--(SW)---| Workstation/s |
+ \_  _  _  _/    |_________|    |    |__________|         |_______________|
+   \/ \/ \/                     |
+                            (Outside)
+                            (Server)
+</screen>
+</sect2>
+
+<sect2 id="arch-proxy">
+<title>Firewall with Proxy Server</title>
+<para>
+If you need to monitor where users of your network are going and your
+network is small, you can integrate a proxy server into your firewall.
+</para>
+<screen>
+                   __________
+    _/\__/\_      | Proxy /  |          _______________
+   |        |     | Firewall |  (LAN)  |               |
+  / Internet \----|  System  |--(SW)---| Workstation/s |
+  \_  _  _  _/    |__________|         |_______________|
+    \/ \/ \/
+</screen>
+<para>
+You can put the proxy server on your LAN as well. In this case the
+firewall should have rules to only allow the proxy server to connect
+to the Internet for the services it is providing. This way the users
+can get to the Internet only through the proxy.
+</para>
+<screen>
+                  __________
+   _/\__/\_      |          |          _______________
+  |        |     | Firewall |  (LAN)  |               |
+ / Internet \----|  System  |--(SW)----| Workstation/s |
+ \_  _  _  _/    |__________|    |    |_______________|
+   \/ \/ \/                      |     ______________
+                                 |    |              |
+                                 +----| Proxy Server |
+                                      |______________|
+</screen>
+</sect2>
+
+<sect2 id="arch-redundant">
+<title>Redundant Internet Configuration</title>
+<para>
+If you are going to run a high-availability service you may want to
+build your system using redundant routers and firewalls. (Check out
+the High Availability HOWTO.)
+</para>
+<para>
+By using round-robin DNS techniques to provide access to multiple web
+servers from one URL, and multiple ISPs, routers and firewalls using
+High Availability techniques, you can create a 100% uptime service.
+</para>
+<screen>
+   _/\__/\_                                     _/\__/\_
+  |        |                                   |        |
+ /  ISP #1  \______                 (WAN)_____/ Partners \
+ \_  _  _  _/      |                (SW)      \_  _  _  _/
+   \/ \/ \/        |               ___|____     \/ \/ \/
+                 __|___           |_______ |
+   _/\__/\_     |_____ |         |Firewall||          ______
+  |        |   |      ||  (DMZ)  | System ||  (LAN)  |      |
+ /  ISP #2  \--|Router||--(SW)---|  (VPN) ||--(SW)---| WS/s |
+ \_  _  _  _/  |______|     |    |________|     |    |______|
+   \/ \/ \/                 |         |         |     ______
+          |             (Outside)  (Shared)     |    |      |
+  ------  |             (Server)   (Server)     +----|Proxy |
+ | WS/s | |                                          |______|
+ | VPN  |-+
+ |______|
+</screen>
+<para>
+It is easy to let your network get out of hand. Keep control of every
+connection. In my day it only took a user with a modem to compromise
+your LAN; today it only takes a user with a phone hotspot.
+</para>
+</sect2>
+</sect1>
+
+<sect1 id="setup">
+<title>Setting up the Linux Filtering Firewall</title>
+
+<sect2 id="hardware">
+<title>Hardware Requirements</title>
+<para>
+Filtering firewalls don't require fancy hardware. They are little more
+than simple routers.
+</para>
+<para>
+All you need is:
+</para>
+<orderedlist>
+<listitem><para>
+almost any computer made this century — an old desktop, a small
+ARM board like a Raspberry Pi, a little fanless x86 box, or a virtual
+machine;
+</para></listitem>
+<listitem><para>
+two network connections (one for the Internet side, one for the LAN
+— add a third for a DMZ);
+</para></listitem>
+<listitem><para>
+a few gigabytes of disk, mostly for logs.
+</para></listitem>
+</orderedlist>
+<para>
+In 2000 I specified a 486-DX66 with 32 megabytes of memory for this
+job, and it worked. Packet filtering is cheap. The only time you need
+to think about hardware is if you are pushing multi-gigabit traffic,
+terminating VPNs for many users, or running a busy caching proxy
+— then buy the biggest box you can afford, because the proxy
+creates work for every connection it handles.
+</para>
+<para>
+As with any server, skip the monitor and keyboard once it's running
+and manage it over SSH from the LAN side.
+</para>
+</sect2>
+
+<sect2 id="software">
+<title>Software Requirements</title>
+<para>
+To create a filtering firewall, you don't need any special software.
+Any current Linux distribution will do. The kernel's netfilter/
+nftables framework has been standard for years — there is,
+mercifully, no longer any need to recompile your kernel and pick
+firewall options out of <command>make menuconfig</command>. (If you
+never had the pleasure, ask an old-timer. Bring coffee.)
+</para>
+<para>
+The examples in this document were written on a Red Hat family
+distribution (Fedora / RHEL / AlmaLinux / Rocky), where
+<command>firewalld</command> is installed and running by default.
+Everything in the nftables section works identically on any
+distribution.
+</para>
+<para>
+Verify that firewalld is installed and running:
+</para>
+<screen>
+firewall-cmd --state
+running
+</screen>
+<para>
+If the command is not found, install the package:
+</para>
+<screen>
+dnf install firewalld          (Red Hat family)
+apt install firewalld          (Debian family)
+</screen>
+<para>
+And if it is installed but not running, enable it, start it, and
+check again:
+</para>
+<screen>
+systemctl enable --now firewalld
+firewall-cmd --state
+running
+</screen>
+</sect2>
+
+<sect2 id="hardening">
+<title>Hardening the Linux System</title>
+<para>
+A firewall isn't any good if the system it is built on is left wide
+open to attacks. A <quote>bad guy</quote> could gain access through a
+non-firewall service and modify it for their own needs. Your firewall
+should be a firewall and nothing else: every service it runs is
+attack surface, and every open port is a doorway you have to defend.
+</para>
+<para>
+Install as little of the Linux system as you can. Start with a minimal
+or server installation and add only what you need. The less software
+you have loaded, the fewer holes, backdoors and/or bugs there will be
+to introduce security problems in your server.
+</para>
+
+<sect3 id="services-off">
+<title>Turning Off Unneeded Services</title>
+<para>
+The principle from the old days still holds, only the commands have
+changed. Where we once commented out lines in
+<filename>/etc/inetd.conf</filename> and sent a HUP to inetd, you now
+ask systemd what is running:
+</para>
+<screen>
+systemctl list-units --type=service --state=running
+ss -tlnp
+</screen>
+<para>
+The first command lists every running service. The second shows every
+port something is listening on, and which program owns it — and
+listeners are what matter, because they are what an attacker can
+reach. On a firewall the right answer is: <command>sshd</command>,
+and not much else.
+</para>
+<para>
+Typical candidates to turn off on a firewall include printing
+(<literal>cups</literal>), zero-configuration networking
+(<literal>avahi-daemon</literal>), Bluetooth
+(<literal>bluetooth</literal>), file sharing (<literal>smb</literal>,
+<literal>nmb</literal>, <literal>rpcbind</literal>,
+<literal>nfs-server</literal>), and modem management
+(<literal>ModemManager</literal>). None of these have any business on
+a firewall. For each one:
+</para>
+<screen>
+systemctl disable --now cups.service
+</screen>
+<para>
+<option>disable</option> keeps it from starting at boot;
+<option>--now</option> also stops it immediately. For a service you
+never want back — not even started by hand or dragged in as a
+dependency — use <command>systemctl mask</command> instead.
+Some services are activated by sockets rather than started at boot;
+list those with <command>systemctl list-sockets</command> and disable
+the <literal>.socket</literal> unit the same way.
+</para>
+<para>
+Better still, if you don't need it, don't just disable it —
+uninstall it (<command>dnf remove</command> or <command>apt
+purge</command>). Software that isn't on the disk can't be started by
+anyone. When you are done, run <command>ss -tlnp</command> again and
+make sure the list is as short as you meant it to be.
+</para>
+</sect3>
+
+<sect3 id="ssh-hardening">
+<title>Hardening What Remains</title>
+<para>
+Then harden the one service you are keeping. In
+<filename>/etc/ssh/sshd_config.d/50-hardening.conf</filename>:
+</para>
+<screen>
+PermitRootLogin no
+PasswordAuthentication no
+</screen>
+<para>
+and use SSH keys. NEVER EVER allow password logins to a firewall from
+the Internet side — better yet, use the firewall rules below to
+refuse SSH connections from the Internet side entirely, and only
+administer the machine from the LAN.
+</para>
+<para>
+Finally, turn on automatic security updates
+(<command>dnf-automatic</command> on the Red Hat family,
+<command>unattended-upgrades</command> on Debian). An unpatched
+firewall is a liability with a power cord.
+</para>
+</sect3>
+</sect2>
+
+<sect2 id="network-config">
+<title>Configuring the Network Addresses</title>
+<para>
+Now we arrive at the fun part of our setup. I'm not going to go deep
+into how to set up a LAN — read the Network Administrators Guide
+to solve your problems here.
+</para>
+<para>
+Your goal is to provide two network connections to your filtering
+firewall system. One on the Internet (unsecured side) and one on the
+LAN (secure side).
+</para>
+<para>
+Your private LAN should use one of the address ranges set aside for
+private networks (RFC 1918): <literal>10.0.0.0/8</literal>,
+<literal>172.16.0.0/12</literal>, or
+<literal>192.168.0.0/16</literal>. We will use
+<literal>192.168.1.0/24</literal> in our examples. Internet routers
+will not pass packets with these addresses, and your firewall will use
+NAT (masquerading) to translate them onto its own public address as
+traffic leaves. IPv6 changes this picture — every machine can
+have a real, routable address, and filtering rather than NAT is what
+keeps outsiders away — but that is a subject for another
+document; the rulesets below at least won't leave IPv6 wide open.
+</para>
+<screen>
+            24.94.1.123  __________    192.168.1.1
+      _/\__/\_        \ |          | /           _______________
+     |        |        \| Firewall |/           |               |
+    / Internet \--------|  System  |------------| Workstation/s |
+    \_  _  _  _/        |__________|            |_______________|
+      \/ \/ \/
+</screen>
+<para>
+The Internet-side interface gets its address from your ISP (by DHCP or
+PPPoE, usually). The LAN interface you assign yourself, like
+192.168.1.1 — this will be your gateway IP address for every
+machine on the LAN (192.168.1.2 through 192.168.1.254).
+</para>
+<note>
+<title>Your Interfaces Probably Aren't Named eth0</title>
+<para>
+This document uses the traditional names <literal>eth0</literal> and
+<literal>eth1</literal> in its examples, but different systems use
+different NIC names. Most modern distributions assign
+<quote>predictable</quote> names based on where the hardware lives:
+<literal>eno1</literal> for an onboard adapter,
+<literal>enp3s0</literal> for a card in a PCI slot,
+<literal>ens192</literal> in some virtual machines,
+<literal>wlp2s0</literal> for wireless. The names look odd, but they
+never change behind your back — under the old scheme, eth0 and
+eth1 could swap places at boot depending on which card the kernel
+found first, and on a firewall, having your trusted and untrusted
+interfaces trade names is a genuinely bad day. Run <command>ip
+link</command> to see what your system calls its interfaces, and
+substitute your names for <literal>eth0</literal> (Internet) and
+<literal>eth1</literal> (LAN) throughout the examples in this
+document.
+</para>
+</note>
+<para>
+Most distributions manage interfaces with NetworkManager. Assuming
+<literal>eth0</literal> is your Internet side and
+<literal>eth1</literal> your LAN side:
+</para>
+<screen>
+nmcli con mod eth1 ipv4.method manual \
+      ipv4.addresses 192.168.1.1/24
+nmcli con up eth1
+</screen>
+<para>
+The firewall must also be told to forward packets between its
+interfaces. Create <filename>/etc/sysctl.d/90-forward.conf</filename>
+containing:
+</para>
+<screen>
+net.ipv4.ip_forward = 1
+</screen>
+<para>
+and load it with <command>sysctl --system</command>. (If you use
+firewalld's masquerading, firewalld turns forwarding on for you, but I
+like it stated explicitly where I can see it.)
+</para>
+</sect2>
+
+<sect2 id="testing">
+<title>Testing Your Network</title>
+<para>
+Start by looking at your interfaces and routes:
+</para>
+<screen>
+ip addr
+ip route
+</screen>
+<para>
+You should see your public address on eth0, 192.168.1.1/24 on eth1, a
+default route pointing at your ISP, and a route for 192.168.1.0/24 on
+eth1.
+</para>
+<para>
+You should start by making sure every computer on your LAN can ping
+the inside address of your firewall system (192.168.1.1 in this
+example). If not, work on the network some more.
+</para>
+<para>
+Next, from the firewall, try to ping a well-known Internet system
+(<command>ping 9.9.9.9</command> works, and <command>ping
+www.example.com</command> also proves DNS). If it doesn't work, some
+part of your Internet connection is wrong. Look at your default
+gateway setting and your ISP connection.
+</para>
+<para>
+Now, with forwarding turned off (<command>sysctl
+net.ipv4.ip_forward=0</command>), verify that a workstation on your
+LAN <emphasis>cannot</emphasis> reach the Internet. Then turn
+forwarding back on and, once masquerading is configured in the next
+sections, verify that it can. You need to know your filtering is what
+stands between the two — test both directions, both ways.
+</para>
+</sect2>
+</sect1>
+
+<sect1 id="firewalld">
+<title>Filtering Setup with firewalld</title>
+
+<para>
+firewalld is the standard firewall manager on the Red Hat family of
+distributions and is available on nearly all others. It talks to
+nftables underneath, so everything it does you could also do by hand
+in the next section — but it packages the common cases nicely,
+and it can change rules at runtime without dropping established
+connections.
+</para>
+
+<sect2 id="firewalld-concepts">
+<title>Zones, Services, and Two Kinds of Changes</title>
+<para>
+firewalld thinks in <emphasis>zones</emphasis>: each network interface
+belongs to a zone, and each zone has a level of trust and a list of
+allowed services. For our two-interface firewall we need exactly the
+two zones firewalld ships for this purpose:
+</para>
+<itemizedlist>
+<listitem><para>
+<literal>external</literal> — for the Internet side.
+Masquerading is already enabled in this zone. Almost nothing is
+allowed in.
+</para></listitem>
+<listitem><para>
+<literal>internal</literal> — for the LAN side. Trusted for the
+common client services (DNS, DHCP, SSH, mDNS by default).
+</para></listitem>
+</itemizedlist>
+<para>
+A <emphasis>service</emphasis> is a named bundle of ports
+(<literal>ssh</literal> is 22/tcp, <literal>dns</literal> is 53/udp
+and 53/tcp, and so on). <command>firewall-cmd
+--get-services</command> lists them all.
+</para>
+<para>
+Every <command>firewall-cmd</command> change comes in two flavors:
+runtime (immediate, lost at reload) and permanent
+(<option>--permanent</option>, takes effect at the next
+<command>firewall-cmd --reload</command>). A good habit while
+experimenting: make runtime changes, test, and only then repeat the
+command with <option>--permanent</option>. If you lock yourself out
+with a runtime change, a reboot puts you back where you started.
+</para>
+</sect2>
+
+<sect2 id="firewalld-setup">
+<title>Setting Up the Two-Zone Firewall</title>
+<para>
+Bind each interface to its zone and make the LAN side the default for
+anything new:
+</para>
+<screen>
+firewall-cmd --permanent --zone=external --change-interface=eth0
+firewall-cmd --permanent --zone=internal --change-interface=eth1
+firewall-cmd --permanent --set-default-zone=internal
+firewall-cmd --reload
+firewall-cmd --get-active-zones
+external
+  interfaces: eth0
+internal
+  interfaces: eth1
+</screen>
+<para>
+Masquerading is already on in the external zone; that plus the
+forwarding sysctl is all it takes for your LAN to reach the Internet.
+Verify:
+</para>
+<screen>
+firewall-cmd --zone=external --query-masquerade
+yes
+</screen>
+<para>
+Now trim what the Internet side will accept. By default the external
+zone allows SSH. Following my own advice above, turn it off and
+administer from the LAN only:
+</para>
+<screen>
+firewall-cmd --permanent --zone=external --remove-service=ssh
+firewall-cmd --reload
+</screen>
+<para>
+And allow through the LAN side anything your workstations should be
+able to ask the firewall itself for — the defaults are usually
+right, but for example:
+</para>
+<screen>
+firewall-cmd --permanent --zone=internal --add-service=dns
+firewall-cmd --reload
+</screen>
+</sect2>
+
+<sect2 id="firewalld-forward">
+<title>Letting Services In: Port Forwarding</title>
+<para>
+Suppose you run a web server on a machine in your DMZ or LAN at
+192.168.1.11 (in the old days we published mail and web straight
+through the filter; the shape of the rule hasn't changed). Forward
+ports 80 and 443 from the outside interface to it:
+</para>
+<screen>
+firewall-cmd --permanent --zone=external \
+    --add-forward-port=port=80:proto=tcp:toport=80:toaddr=192.168.1.11
+firewall-cmd --permanent --zone=external \
+    --add-forward-port=port=443:proto=tcp:toport=443:toaddr=192.168.1.11
+firewall-cmd --reload
+</screen>
+<para>
+For finer control there are <emphasis>rich rules</emphasis>. For
+example, to accept SSH on the outside interface, but only from one
+trusted address, and log it:
+</para>
+<screen>
+firewall-cmd --permanent --zone=external --add-rich-rule='
+    rule family="ipv4" source address="203.0.113.50"
+    service name="ssh" log prefix="ssh-in " level="info" accept'
+firewall-cmd --reload
+</screen>
+</sect2>
+
+<sect2 id="firewalld-panic">
+<title>When Things Go Wrong</title>
+<para>
+See everything a zone is doing with:
+</para>
+<screen>
+firewall-cmd --zone=external --list-all
+</screen>
+<para>
+And if you believe you are actively being attacked and want to pull
+the plug on all traffic while you think:
+</para>
+<screen>
+firewall-cmd --panic-on
+</screen>
+<para>
+Remember <command>--panic-off</command>. Every connection, including
+your own SSH session, dies in panic mode — this is the modern
+version of my old advice to insert a DENY rule at the top of every
+chain while making changes, except now it's only for emergencies,
+because firewalld and nftables apply changes atomically. We've come a
+long way.
+</para>
+</sect2>
+</sect1>
+
+<sect1 id="nftables">
+<title>Filtering Setup with nftables</title>
+
+<para>
+Now the same firewall, written by hand. Even if you plan to use
+firewalld forever, read this section — when you look at
+<command>nft list ruleset</command> output at 3 a.m., you'll want to
+know what you're seeing.
+</para>
+
+<note>
+<para>
+Run either firewalld <emphasis>or</emphasis> your own nftables
+ruleset, not both. If you are switching to raw nftables, first:
+<command>systemctl disable --now firewalld</command>, then
+<command>systemctl enable --now nftables</command>.
+</para>
+</note>
+
+<sect2 id="nftables-concepts">
+<title>Tables, Chains, and Rules</title>
+<para>
+nftables organizes rules into <emphasis>tables</emphasis> (namespaces,
+belonging to a family — use <literal>inet</literal>, which
+covers IPv4 and IPv6 together), containing
+<emphasis>chains</emphasis> (lists of rules attached to a
+<emphasis>hook</emphasis> in the packet's path — input, forward,
+output, prerouting, postrouting), containing
+<emphasis>rules</emphasis> (match + verdict). If you knew ipchains or
+iptables, the mental model transfers directly; the syntax is just
+nicer.
+</para>
+<para>
+The one operational habit worth carrying over: never build a firewall
+by typing rules one at a time into a live system. In the ipchains days
+we bracketed our changes with DENY rules so packets couldn't leak
+through a half-built filter. nftables makes the whole problem go away:
+put the complete ruleset in a file and load it with <command>nft -f
+file</command> — the kernel swaps the entire ruleset atomically.
+Either the new firewall is in force, or the old one still is. There is
+no in-between.
+</para>
+</sect2>
+
+<sect2 id="nftables-ruleset">
+<title>A Complete Ruleset</title>
+<para>
+This is a full working configuration for the two-interface masquerading
+firewall in our diagram, in the spirit of the rc.firewall scripts from
+older versions of this document. Put it in
+<filename>/etc/nftables.conf</filename> (Debian family) or a file
+included from <filename>/etc/sysconfig/nftables.conf</filename> (Red
+Hat family):
+</para>
+<programlisting>
+#!/usr/sbin/nft -f
+#
+# Two-interface firewall: eth0 = Internet, eth1 = LAN (192.168.1.0/24)
+
+flush ruleset
+
+define WAN = eth0
+define LAN = eth1
+define LANNET = 192.168.1.0/24
+
+table inet filter {
+    chain input {
+        type filter hook input priority 0; policy drop;
+
+        # accept anything from ourselves and from established sessions
+        iif lo accept
+        ct state established,related accept
+        ct state invalid drop
+
+        # ICMP/ICMPv6 - don't break ping and path-MTU discovery
+        ip protocol icmp accept
+        meta l4proto ipv6-icmp accept
+
+        # services the LAN may ask the firewall itself for
+        iifname $LAN tcp dport ssh accept
+        iifname $LAN udp dport { domain, bootps } accept
+        iifname $LAN tcp dport domain accept
+
+        # nothing from the Internet side; log the attempts
+        iifname $WAN log prefix "fw-input-drop " counter drop
+    }
+
+    chain forward {
+        type filter hook forward priority 0; policy drop;
+
+        # LAN out to the world, and the replies back in
+        iifname $LAN oifname $WAN accept
+        ct state established,related accept
+
+        # port forward: web server on the LAN (see nat table below)
+        iifname $WAN oifname $LAN ip daddr 192.168.1.11 \
+            tcp dport { http, https } accept
+
+        log prefix "fw-forward-drop " counter drop
+    }
+
+    chain output {
+        type filter hook output priority 0; policy accept;
+    }
+}
+
+table ip nat {
+    chain prerouting {
+        type nat hook prerouting priority -100;
+
+        # publish the internal web server
+        iifname $WAN tcp dport { http, https } dnat to 192.168.1.11
+    }
+
+    chain postrouting {
+        type nat hook postrouting priority 100;
+
+        # masquerade the LAN as it leaves for the Internet
+        oifname $WAN ip saddr $LANNET masquerade
+    }
+}
+</programlisting>
+<para>
+Walk through what this does:
+</para>
+<itemizedlist>
+<listitem><para>
+<literal>policy drop</literal> on input and forward — the
+default is to refuse. Everything allowed is allowed by name. This is
+the single most important line in the file; it is the
+<quote>ultimate firewall, nothing can get through</quote> starting
+point of the old ipfwadm section, made permanent.
+</para></listitem>
+<listitem><para>
+<literal>ct state established,related accept</literal> —
+connection tracking. Replies come back in because we remember asking.
+This one rule replaces all the old anti-SYN trickery.
+</para></listitem>
+<listitem><para>
+The input chain accepts SSH and DNS only from the LAN interface.
+From the Internet side the firewall answers nothing at all.
+</para></listitem>
+<listitem><para>
+The forward chain lets the LAN out, lets replies back, and admits
+outside traffic only to the one published server. The nat table
+translates addresses to match: dnat publishes the web server, and
+masquerade rewrites LAN addresses onto the firewall's public address.
+</para></listitem>
+<listitem><para>
+The <literal>log prefix ... counter drop</literal> lines put every
+rejected packet in your logs, tagged, and count them. Read your logs
+— that is half of what a firewall is for. On a systemd machine:
+<command>journalctl -k -g fw-input-drop</command>.
+</para></listitem>
+</itemizedlist>
+</sect2>
+
+<sect2 id="nftables-loading">
+<title>Loading and Checking</title>
+<screen>
+nft -c -f /etc/nftables.conf     (syntax check only)
+nft -f /etc/nftables.conf        (load it, atomically)
+nft list ruleset                 (what is the kernel really doing?)
+systemctl enable nftables        (load it at every boot)
+</screen>
+<para>
+Test it and enjoy. Then test it again from the
+<emphasis>outside</emphasis>: from a machine on the Internet side (a
+phone hotspot is handy for this), port-scan your public address with
+<command>nmap</command> and confirm that the only things that answer
+are the things you meant to publish. Don't stop here — this is a
+sound starting ruleset, but I'm sure you have other services you will
+be providing. The nftables wiki covers everything this section
+doesn't.
+</para>
+</sect2>
+</sect1>
+
+<sect1 id="dpi">
+<title>Beyond Packet Filtering: Deep Packet Inspection</title>
+
+<para>
+Everything we have built so far judges packets by their envelopes:
+addresses, ports, protocols, connection state. <emphasis>Deep packet
+inspection</emphasis> (DPI) opens the envelope — it reassembles
+the traffic stream and looks at what is actually being said, so it
+can tell the difference between web traffic and a tunnel dressed as
+web traffic, or spot an attack inside a connection your rules
+rightly allowed.
+</para>
+
+<para>
+The Linux packet filter itself does only shallow versions of this.
+nftables can match raw payload bytes at fixed offsets, and the
+connection tracking helpers (FTP, SIP, TFTP) parse just enough of a
+control channel to predict the related connections they should
+expect — DPI with a very small <quote>D</quote>. Real
+inspection needs stream reassembly, and on Linux that lives in a
+userspace engine that works <emphasis>with</emphasis> the firewall
+rather than inside it.
+</para>
+
+<sect2 id="suricata">
+<title>Inline Inspection with Suricata and NFQUEUE</title>
+<para>
+<ulink url="https://suricata.io/">Suricata</ulink> is the engine to
+know. It detects protocols regardless of port, reassembles streams,
+and checks traffic against a large, freely updated rule set. The
+kernel hands it packets through a mechanism called NFQUEUE: an
+nftables rule queues packets to userspace, Suricata inspects each one
+and returns a verdict — accept or drop — before the packet
+moves on. Your filtering firewall becomes an intrusion prevention
+system with one added rule.
+</para>
+<para>
+Install it, fetch the current rules, and start it in inline mode:
+</para>
+<screen>
+dnf install suricata          (Red Hat family)
+apt install suricata          (Debian family)
+
+suricata-update
+suricata -q 0 -D
+</screen>
+<para>
+Then, in the forward chain of our ruleset, queue the traffic you want
+inspected:
+</para>
+<programlisting>
+# hand LAN&lt;-&gt;Internet traffic to Suricata (NFQUEUE 0) for inspection
+iifname $LAN oifname $WAN queue num 0 bypass
+ct state established,related queue num 0 bypass
+</programlisting>
+<para>
+Note the <literal>bypass</literal> flag: it means <quote>if nothing
+is listening on the queue, let the packet pass.</quote> That is a
+policy decision hiding in one word. With <literal>bypass</literal>,
+your network fails open if Suricata dies; without it, packets queue
+into the void and your network fails closed. On a home network you
+probably want open; guarding something valuable, you want closed.
+Decide it on purpose, not by default.
+</para>
+<para>
+Suricata starts life alerting rather than blocking — rules fire
+as log entries in <filename>/var/log/suricata/</filename>. Run it
+that way for a while, tune out the noise for your network, and only
+then promote the rules you trust from <literal>alert</literal> to
+<literal>drop</literal>. An IPS that cries wolf gets ignored, and an
+IPS that blocks payroll on Friday gets removed.
+</para>
+</sect2>
+
+<sect2 id="dpi-visibility">
+<title>Watching Rather than Blocking</title>
+<para>
+If what you want is to <emphasis>see</emphasis> what's on your wire
+rather than police it, the same deep inspection comes in analysis
+flavors: <ulink url="https://www.ntop.org/">ntopng</ulink> uses the
+open source nDPI library to classify traffic by application and show
+you who is talking to whom, and <ulink
+url="https://zeek.org/">Zeek</ulink> turns traffic into rich logs
+that answer questions like <quote>what did that workstation do at 3
+a.m.?</quote> These pair naturally with the logging rules already in
+our ruleset. The appliance distributions bundle all of this —
+IPFire's <quote>Intrusion Prevention</quote> checkbox is Suricata
+under the hood.
+</para>
+</sect2>
+
+<sect2 id="wireshark">
+<title>Seeing for Yourself: Wireshark</title>
+<para>
+The tools above run unattended and hand you summaries. Sometimes you
+want to sit down and look at the actual packets, one at a time, with
+your own eyes. <ulink url="https://www.wireshark.org/">Wireshark</ulink>
+is the tool for that — a graphical packet analyzer that captures
+traffic off an interface and decodes it into a readable, colour-coded,
+click-to-expand form. It understands hundreds of protocols, so instead
+of a wall of hex you see <quote>this is a DNS query for
+<literal>example.com</literal></quote> or <quote>this is the TLS
+handshake, and here is the server name it asked for.</quote> On a
+headless firewall its command-line twin <command>tshark</command> does
+the same job, and <command>tcpdump</command> is the venerable
+lightweight capture tool that is on nearly every system already.
+</para>
+<para>
+Capturing requires root (you are reading other people's traffic, after
+all). The simplest start is to point it at an interface and watch:
+</para>
+<screen>
+tcpdump -i eth1 -w /tmp/lan.pcap
+wireshark /tmp/lan.pcap
+</screen>
+<para>
+That captures on the LAN interface to a file, which you then open in
+Wireshark on your desktop — a good pattern, since you rarely want
+to install a full GUI on the firewall itself. Why go to the trouble?
+</para>
+<itemizedlist>
+<listitem><para>
+<emphasis>To learn.</emphasis> Nothing makes the abstractions in this
+document concrete like watching a real TCP connection open, carry
+data, and close, or seeing exactly what your machine says to the
+network the moment it boots. An hour with Wireshark teaches more about
+what your firewall is filtering than any amount of reading.
+</para></listitem>
+<listitem><para>
+<emphasis>To debug.</emphasis> When a rule doesn't behave, the packets
+tell you the truth. Are the connection's replies even arriving? Is that
+service really listening where you think? Wireshark ends arguments that
+logs only start.
+</para></listitem>
+<listitem><para>
+<emphasis>To investigate.</emphasis> When something looks wrong — a
+workstation chattering to an address you don't recognize, the rogue
+tunnel from the previous section — capturing its traffic shows you
+who it's talking to, how often, and how much, even when the contents
+are encrypted.
+</para></listitem>
+</itemizedlist>
+<para>
+A word of care, and of manners: capturing traffic means reading what
+your users are doing, and on a network you don't own that may be
+against the rules or against the law. Capture your own traffic freely;
+capture other people's only with authority to do so. And an encrypted
+stream stays encrypted in Wireshark too — you will see the
+envelopes clearly and the contents not at all, which, by now, should
+surprise you not one bit.
+</para>
+</sect2>
+
+<sect2 id="dpi-encryption">
+<title>What Encryption Leaves to Inspect</title>
+<para>
+Now the honest caveat, the same one from the proxy chapter: most
+traffic today is encrypted, and DPI cannot read what TLS was designed
+to hide. What remains visible — and it is more than you'd think
+— is the shape of the conversation: the hostname requested (the
+SNI field of the TLS handshake), the certificates offered, handshake
+fingerprints that identify the client software, and the timing and
+sizes of the traffic itself. Modern engines make good use of these;
+Suricata can match on SNI and certificate fields without decrypting
+anything. Reading the actual content, though, requires the full
+interception apparatus — your own certificate authority
+installed on every client — with all the risks described
+earlier. The overlay networks described in <link
+linkend="defeating">Defeating a Firewall</link> are a case in point:
+to DPI, a WireGuard tunnel is just well-behaved UDP with excellent
+posture. Deep inspection raises the cost of hiding; it does
+not repeal encryption.
+</para>
+</sect2>
+
+<sect2 id="tls-inspection">
+<title>Products for TLS Inspection</title>
+<para>
+If metadata is not enough and you truly need to see inside encrypted
+traffic, you can — but only by becoming a deliberate
+<quote>man in the middle</quote>. The mechanism is always the same,
+whatever the product: the inspecting device holds its own certificate
+authority (CA), and you install that CA as trusted on every client
+machine. When a client opens an HTTPS connection, the device
+intercepts it, mints a certificate for the requested site on the
+fly, and completes the TLS handshake itself. It decrypts, inspects
+(and can now feed the cleartext to Suricata, an antivirus scanner, or
+a logger), then makes its own separate encrypted connection onward to
+the real server. Because your CA is trusted, the client's browser
+shows a reassuring padlock — issued, in truth, by your firewall.
+</para>
+<para>
+The Linux-native option is the Squid proxy from the next chapter,
+using its <emphasis>SSL-Bump</emphasis> feature with a CA you
+generate. This is the interception engine underneath many small
+firewall builds, and it pairs with an ICAP scanner (such as
+<application>c-icap</application> with ClamAV) or a content filter
+like <application>e2guardian</application>.
+<application>mitmproxy</application> is an excellent tool for learning
+exactly how interception works and for lab use, though it is not an
+enterprise gateway.
+</para>
+<para>
+At larger scale, TLS inspection is a built-in feature rather than a
+build-it-yourself project:
+</para>
+<itemizedlist>
+<listitem><para>
+<emphasis>Next-generation firewalls</emphasis> do it as a policy
+setting — Palo Alto Networks (SSL Forward Proxy), Fortinet
+FortiGate (deep-inspection profiles), Cisco Secure Firewall, Check
+Point, Sophos, WatchGuard and SonicWall all decrypt, inspect and
+re-encrypt at the gateway. The community firewall distributions
+mentioned earlier, OPNsense and pfSense, reach the same result with
+Squid and an ICAP scanner.
+</para></listitem>
+<listitem><para>
+<emphasis>Secure web gateways and cloud/SASE services</emphasis> move
+the decrypting proxy off your premises entirely — Zscaler,
+Cloudflare Gateway, Netskope, Cisco Umbrella, Broadcom/Symantec
+(formerly Blue Coat) ProxySG and others push your CA to managed
+devices and route all web traffic through their inspection tier. For
+large organizations this has become the dominant model.
+</para></listitem>
+</itemizedlist>
+<para>
+Before you deploy any of this, weigh what it costs, because the price
+is not just the license:
+</para>
+<itemizedlist>
+<listitem><para>
+<emphasis>You become the crown jewels.</emphasis> The inspection
+point decrypts everyone's banking, health and password traffic in one
+place. That is the single most valuable target on your network, and
+if it is breached, so is everything that flowed through it.
+</para></listitem>
+<listitem><para>
+<emphasis>Certificate pinning breaks.</emphasis> Many mobile apps,
+software updaters and banking sites ship their expected certificate
+and refuse to talk to a middle-man that substitutes another. Every
+real deployment therefore maintains long bypass lists of destinations
+it will <emphasis>not</emphasis> decrypt — for function as much
+as for privacy.
+</para></listitem>
+<listitem><para>
+<emphasis>It can make security worse.</emphasis> The US-CERT
+advisory TA17-075A found that many interception products validated
+the upstream server's certificate poorly, so the padlock they showed
+the user was a promise the product itself had not verified. If you
+run one, its own TLS behaviour is now part of your attack surface,
+and TLS 1.3 with Encrypted Client Hello is steadily removing even the
+hostname from those that only watch.
+</para></listitem>
+<listitem><para>
+<emphasis>It is a legal and ethical matter, not just a technical
+one.</emphasis> Decrypting people's traffic carries obligations that
+vary by country and industry — employee notification, data
+protection law, and categories (finance, health, legal) you may be
+forbidden to inspect at all. Decide the policy, write it down, and
+tell the people affected, before you generate the CA.
+</para></listitem>
+</itemizedlist>
+<para>
+And remember the limit that no amount of TLS inspection removes: it
+only sees traffic that is TLS in the first place. The overlay tunnel
+from <link linkend="defeating">Defeating a Firewall</link> walks
+straight past it.
+</para>
+</sect2>
+</sect1>
+
+<sect1 id="squid">
+<title>Installing a Transparent Squid Proxy</title>
+
+<para>
+Squid is available from <ulink
+url="https://www.squid-cache.org/">www.squid-cache.org</ulink>, and
+every distribution packages it: <command>dnf install squid</command>
+or <command>apt install squid</command>.
+</para>
+
+<para>
+A <quote>transparent</quote> (interception) proxy grabs your users'
+web traffic at the firewall without any browser configuration. For
+plain HTTP it still works the way it always did: tell Squid to expect
+intercepted traffic (<literal>http_port 3129 intercept</literal> in
+<filename>squid.conf</filename>) and redirect port 80 at the firewall
+to it:
+</para>
+<programlisting>
+table ip proxy {
+    chain prerouting {
+        type nat hook prerouting priority -110;
+        iifname "eth1" tcp dport 80 redirect to :3129
+    }
+}
+</programlisting>
+
+<para>
+The honest modern caveat: almost nothing important travels over plain
+HTTP anymore. HTTPS interception requires running your own certificate
+authority, installing it on every client, and accepting the risks that
+come with breaking encryption in the middle (see the application proxy
+section above). For most networks today the practical uses of Squid
+are as a <emphasis>configured</emphasis> (non-transparent) proxy with
+authentication and logging, as a cache for things like OS package
+mirrors, or for domain-level allow/deny lists using TLS SNI without
+decrypting anything. The Squid documentation covers all three well.
+</para>
+</sect1>
+
+<sect1 id="management">
+<title>Making Management Easy</title>
+
+<sect2 id="fw-tools">
+<title>Firewall Tools</title>
+<para>
+There are several software packages that will make managing your
+firewall easier.
+</para>
+<para>
+Be careful — don't use these tools unless you can do without
+them. These tools make it just as easy to make a mistake as they do to
+help you get it right. I'm not really a GUI guy, but I've found a good
+interface helps by providing a nice report of all the rules in one
+easy glance.
+</para>
+<sect3 id="gui-tools">
+<title>Graphical Tools</title>
+<itemizedlist>
+<listitem><para>
+<application>firewall-config</application> is firewalld's official
+graphical front end — the zones, services, port forwards and rich
+rules from this document, presented in one window. Install it with
+the package of the same name.
+</para></listitem>
+<listitem><para>
+<application>Gufw</application> is the equivalent for
+<application>ufw</application>, the <quote>uncomplicated
+firewall</quote> that is the standard front end on Ubuntu. Same
+kernel machinery, different accent.
+</para></listitem>
+<listitem><para>
+Raw nftables has no official GUI, and that's fine — its
+interface is a text file, and the one easy-glance report I always
+wanted from these tools is <command>nft list ruleset</command>.
+</para></listitem>
+</itemizedlist>
+</sect3>
+
+<sect3 id="web-tools">
+<title>Web Based Tools</title>
+<itemizedlist>
+<listitem><para>
+<application>Cockpit</application> (<ulink
+url="https://cockpit-project.org/">cockpit-project.org</ulink>) gives
+you a web dashboard for the whole machine — services, logs,
+updates, and the firewalld configuration included. It is packaged by
+every major distribution and listens on port 9090.
+</para></listitem>
+<listitem><para>
+<application>Webmin</application> (<ulink
+url="https://webmin.com/">webmin.com</ulink>) is still with us, on
+port 10000. In the year 2000 I wrote in this very document that I
+hoped Jamie Cameron would add an ipchains module to it. He did
+— and Webmin has now outlived ipchains, iptables, and most of
+the hardware I ran it on. It manages firewalld and Linux firewall
+rules today.
+</para></listitem>
+<listitem><para>
+If you want a dedicated firewall appliance with a full web interface,
+<ulink url="https://www.ipfire.org/">IPFire</ulink> and <ulink
+url="https://openwrt.org/">OpenWrt</ulink> (its web face is called
+LuCI) are Linux-based — OpenWrt's firewall is nftables under the
+hood, just like ours. pfSense and OPNsense are the BSD-family
+equivalents.
+</para></listitem>
+</itemizedlist>
+</sect3>
+</sect2>
+
+<sect2 id="mgmt-hardening">
+<title>Hardening the Management Tools</title>
+<para>
+Think about what one of these tools actually is: a service, running on
+your firewall, that exists to change your firewall's rules. That makes
+its port the most valuable target on your network — a login
+prompt in front of root. Webmin alone has had remote-code-execution
+holes serious enough to make the news, and every one of these tools is
+software with a security history. If you are going to run one, harden
+it like you mean it:
+</para>
+<itemizedlist>
+<listitem><para>
+<emphasis>Never expose it to the Internet side.</emphasis> The
+management port (9090 for Cockpit, 10000 for Webmin, 443 for an
+appliance's web UI) should be reachable only from the LAN — or
+better, only from a management VLAN or a single admin workstation's
+address. In our nftables ruleset that is one input-chain rule; in
+firewalld, put the service in the <literal>internal</literal> zone
+only, or use a rich rule with a source address. Scan yourself from
+outside (as in the nftables chapter) and confirm the port does not
+answer.
+</para></listitem>
+<listitem><para>
+<emphasis>For remote administration, come in through a tunnel, not a
+panel.</emphasis> Reach the LAN over SSH or a WireGuard VPN first,
+then browse to the tool. A management interface that isn't reachable
+from the Internet can't be brute-forced from Bucharest at 3 a.m.
+</para></listitem>
+<listitem><para>
+<emphasis>Turn it on when you need it, off when you don't.</emphasis>
+Cockpit is socket-activated, so it costs nothing to leave installed
+but disabled: <command>systemctl disable --now cockpit.socket</command>
+until the day you want it. The most hardened service is one that
+isn't running — this is the same lesson as the hardening section,
+applied to our own tools.
+</para></listitem>
+<listitem><para>
+<emphasis>Give it real authentication.</emphasis> These tools log you
+in as an administrator, so treat their passwords like root's: long,
+unique, and stored in a password manager. Turn on two-factor
+authentication where it's supported (Webmin and the appliance
+distributions all offer it), and let the tool authenticate against
+the system's users rather than its own parallel password file when
+you can (Cockpit does this by default).
+</para></listitem>
+<listitem><para>
+<emphasis>Use HTTPS with a certificate you trust.</emphasis> These
+tools ship with self-signed certificates so the first login works;
+replace them with real ones, or at least verify the fingerprint
+before you type a password. Encrypted-to-an-impostor is not
+encrypted.
+</para></listitem>
+<listitem><para>
+<emphasis>Keep it updated, and read its logs.</emphasis> The
+management tool is part of your attack surface now, so it gets the
+same automatic updates as the rest of the firewall — and its
+login log deserves the same attention as the firewall's own drop
+log. A failed login on your firewall's management port is someone
+telling you exactly what they're after.
+</para></listitem>
+</itemizedlist>
+</sect2>
+</sect1>
+
+<sect1 id="defeating">
+<title>Defeating a Firewall</title>
+
+<para>
+Just to spoil your day, and keep you on your toes about security, I'll
+describe how easy it is to defeat your beautiful new firewall.
+</para>
+
+<para>
+Now that you have done everything in this document, you have a very
+secure server and network. You have a DMZ and no one can get into your
+network, and you are logging every connection made to the outside
+world. You make all your users go through a proxy and no one can go
+directly to the Internet.
+</para>
+
+<para>
+Then one of your users discovers that anything can be tunneled through
+anything. The old <application>httptunnel</application> trick —
+a bidirectional data path wrapped in innocent-looking HTTP requests
+— has only gotten easier: today an SSH session, a WireGuard or
+OpenVPN tunnel, or any number of commercial VPN products will happily
+run over port 443 and look exactly like the HTTPS traffic you must
+allow. DNS can carry a tunnel too, and encrypted DNS (DoH) hides name
+lookups inside that same HTTPS. Where my generation's rogue user put a
+modem on their desktop NT box and turned on routing, today's just
+turns on their phone's hotspot — and their workstation is a
+router into your LAN that never touches your firewall at all.
+</para>
+
+<para>
+None of this is new, and the LDP has a document about doing it on
+purpose. The <ulink
+url="https://tldp.org/HOWTO/Firewall-Piercing/">Firewall Piercing
+mini-HOWTO</ulink>, by François-René Rideau, shows how to run
+<command>ppp</command> over an <command>ssh</command> (or even
+<command>telnet</command>) connection to get a full, transparent
+network link straight through a firewall that only meant to let you
+log in. It predates today's tunnels by two decades and reads as a
+period piece in places, but the idea is exactly the one your users
+will rediscover — any allowed connection that can carry bytes in
+both directions can be made to carry a network. It's worth reading
+both to build a friendly VPN and to understand what you're up against.
+</para>
+
+<para>
+The polished, commercial version of this trick is called an
+<emphasis>overlay network</emphasis> — Tailscale, ZeroTier and
+Nebula are the names you'll hear. Here is how it works. Every machine
+that joins the overlay runs a small agent, and each agent makes an
+ordinary <emphasis>outbound</emphasis> connection to a coordination
+server on the Internet — the kind of connection your firewall
+allows all day long. The coordination server introduces the members
+to each other: it distributes their public keys and their current
+network addresses. The agents then build direct, encrypted tunnels
+(usually WireGuard) to each other using a trick called NAT hole
+punching — both machines fire UDP packets at each other
+simultaneously, so each machine's firewall believes its own side
+started the conversation and lets the <quote>replies</quote> through.
+Where hole punching fails, the traffic quietly falls back to bouncing
+off the vendor's relay servers, over port 443, dressed as HTTPS. The
+result is a private virtual network layered on top of yours: every
+member gets an address on the overlay, every member can reach every
+other member as if they shared a switch — no matter which side
+of your firewall they sit on — and your packet filter never saw
+a single inbound connection.
+</para>
+
+<para>
+Overlay networks are marvelous tools for administrators — this
+is the modern answer for reaching your own machines behind NAT, and a
+fine replacement for the VPN rc scripts that used to live in this
+document's appendix. But understand what one means when it shows up
+uninvited: a user who installs an agent on one workstation inside
+your LAN has made that workstation a member of a network you don't
+control, reachable from anywhere on earth, through a tunnel you
+cannot see into. Your firewall logs will show nothing but a
+workstation making outbound HTTPS and UDP connections — which
+is to say, nothing at all.
+</para>
+
+<para>
+And now the tinfoil-hat corner. There are conspiracy theories that
+certain large <quote>Micro Software</quote> companies (wink, wink)
+build overlay-network machinery right into their operating systems and
+applications, so that data can quietly phone home no matter how good
+your firewall is. I have no evidence for that particular claim, and
+I'm not making it. But notice <emphasis>why</emphasis> it's a
+plausible-sounding story rather than an obvious absurdity: every
+mechanism it would need — outbound-only connections, encryption,
+NAT traversal, fallback relays over port 443 — is exactly what
+the legitimate overlay networks above already do, in the open, for
+good reasons. That is the real lesson. Any program you run with
+network access can reach the Internet the same way your users' rogue
+tunnels do, and your packet filter will wave it through as friendly
+outbound web traffic. Trusting the software you install is a security
+decision every bit as real as the firewall rules, and no firewall
+substitutes for it.
+</para>
+
+<para>
+The lesson hasn't changed in twenty-five years: a firewall enforces a
+policy on people who follow the policy. Against the determined
+insider, technical controls only raise the cost. Filter what leaves
+your network as carefully as what enters it, watch your logs for the
+patterns (a <quote>DNS lookup</quote> that runs for six hours), and
+make sure the written policy — remember the beginning of this
+document? — covers the things the packet filter can't.
+</para>
+
+<para>
+Now, take over the world!
+</para>
+</sect1>
+
+<sect1 id="advanced">
+<title>Advanced Configurations</title>
+
+<para>
+There is one configuration I would like to go over before wrapping
+this document up. The one I have just outlined will probably suffice
+for most people. However, the next outline shows a more advanced
+configuration that can clear up some questions. If you have questions
+beyond what I have just covered, or are just interested in the
+versatility of proxy servers and firewalls, read on.
+</para>
+
+<sect2 id="large-network">
+<title>A Large Network with Emphasis on Security</title>
+<para>
+Say, for instance, you run the network for a small company. You have
+50 computers and you need various levels of access within your
+network, because you don't tell everyone everything. Therefore,
+you'll need to protect certain parts of the network from the rest.
+</para>
+<para>
+The levels are:
+</para>
+<orderedlist>
+<listitem><para>
+<emphasis role="strong">External</emphasis> — the level that
+gets shown to everybody: your public web presence.
+</para></listitem>
+<listitem><para>
+<emphasis role="strong">Staff</emphasis> — the general company
+network: workstations, printers, the wiki.
+</para></listitem>
+<listitem><para>
+<emphasis role="strong">Finance</emphasis> — where the payroll
+and the <emphasis>real</emphasis> plans are kept.
+</para></listitem>
+</orderedlist>
+
+<sect3 id="adv-network">
+<title>The Network Setup</title>
+<para>
+The public servers live on a DMZ hanging off the firewall, on real,
+routable addresses (or behind port forwards, as in our earlier
+examples). The Staff and Finance networks are separate private
+networks — say 192.168.1.0/24 and 192.168.2.0/24 — on
+separate interfaces or, more commonly today, separate VLANs on one
+interface. In firewalld terms each one is its own zone; in raw
+nftables each is matched by its own interface name.
+</para>
+<para>
+The point of the design is that <emphasis>every</emphasis> path
+between the levels goes through the firewall, where the policy is:
+</para>
+<itemizedlist>
+<listitem><para>Staff may reach the Internet (through the proxy) and
+the DMZ servers.</para></listitem>
+<listitem><para>Finance may reach the Staff network's services, but
+nothing on the Staff network may open a connection into Finance
+— connection tracking makes this one-way arrangement a single
+pair of rules.</para></listitem>
+<listitem><para>The DMZ may originate connections to nowhere at all.
+A public server that gets cracked should be a dead end, not a beach
+head.</para></listitem>
+<listitem><para>The file server that both internal networks share
+does not get Internet access. It's too important, and it has no
+business browsing. Deny it at the firewall by its (static) address.
+</para></listitem>
+</itemizedlist>
+<para>
+In the first edition of this document, the two internal networks were
+isolated with two separate Linux boxes, IP forwarding turned off, and
+an NFS server with two network cards. The modern version is one
+firewall with more interfaces and a few more zones — but notice
+that the shape of the thinking is identical: decide who may talk to
+whom, then make every conversation cross a point where you enforce
+it.
+</para>
+</sect3>
+</sect2>
+</sect1>
+
+<appendix id="appendix-nft">
+<title>APPENDIX A — The Complete nftables Ruleset</title>
+<para>
+The complete ruleset from the nftables section, ready to drop into
+<filename>/etc/nftables.conf</filename>. Adjust the three defines and
+the published server address, then <command>nft -c -f</command> it
+before you trust it.
+</para>
+<programlisting>
+#!/usr/sbin/nft -f
+#
+# Firewall ruleset - Firewall-HOWTO v2.0
+# eth0 = Internet, eth1 = LAN (192.168.1.0/24)
+# Web server published at 192.168.1.11
+
+flush ruleset
+
+define WAN = eth0
+define LAN = eth1
+define LANNET = 192.168.1.0/24
+
+table inet filter {
+    chain input {
+        type filter hook input priority 0; policy drop;
+        iif lo accept
+        ct state established,related accept
+        ct state invalid drop
+        ip protocol icmp accept
+        meta l4proto ipv6-icmp accept
+        iifname $LAN tcp dport ssh accept
+        iifname $LAN udp dport { domain, bootps } accept
+        iifname $LAN tcp dport domain accept
+        iifname $WAN log prefix "fw-input-drop " counter drop
+    }
+    chain forward {
+        type filter hook forward priority 0; policy drop;
+        iifname $LAN oifname $WAN accept
+        ct state established,related accept
+        iifname $WAN oifname $LAN ip daddr 192.168.1.11 \
+            tcp dport { http, https } accept
+        log prefix "fw-forward-drop " counter drop
+    }
+    chain output {
+        type filter hook output priority 0; policy accept;
+    }
+}
+
+table ip nat {
+    chain prerouting {
+        type nat hook prerouting priority -100;
+        iifname $WAN tcp dport { http, https } dnat to 192.168.1.11
+    }
+    chain postrouting {
+        type nat hook postrouting priority 100;
+        oifname $WAN ip saddr $LANNET masquerade
+    }
+}
+</programlisting>
+</appendix>
+
+<appendix id="appendix-firewalld">
+<title>APPENDIX B — A firewalld Setup Script</title>
+<para>
+The complete firewalld configuration from this document as one
+idempotent script. Run it once on a fresh machine; every setting is
+permanent and survives reboots.
+</para>
+<programlisting>
+#!/bin/bash
+#
+# firewalld setup - Firewall-HOWTO v2.0
+# eth0 = Internet, eth1 = LAN
+# Web server published at 192.168.1.11
+
+set -e
+
+WAN=eth0
+LAN=eth1
+WEBSERVER=192.168.1.11
+
+# zones
+firewall-cmd --permanent --zone=external --change-interface=$WAN
+firewall-cmd --permanent --zone=internal --change-interface=$LAN
+firewall-cmd --permanent --set-default-zone=internal
+
+# the Internet side answers nothing directed at the firewall itself
+firewall-cmd --permanent --zone=external --remove-service=ssh
+
+# services the LAN may use on the firewall
+firewall-cmd --permanent --zone=internal --add-service=dns
+
+# publish the web server
+firewall-cmd --permanent --zone=external \
+    --add-forward-port=port=80:proto=tcp:toport=80:toaddr=$WEBSERVER
+firewall-cmd --permanent --zone=external \
+    --add-forward-port=port=443:proto=tcp:toport=443:toaddr=$WEBSERVER
+
+# masquerading is on in the external zone by default; make sure
+firewall-cmd --permanent --zone=external --add-masquerade
+
+firewall-cmd --reload
+firewall-cmd --get-active-zones
+</programlisting>
+</appendix>
+
+</article>
