@@ -20,7 +20,7 @@
 <refpurpose>Character encoding to use in files for HTML Help compiler.</refpurpose>
 <refdescription>
 <para>HTML Help Compiler is not UTF-8 aware, so you should always use
-apropriate single-byte encoding here.</para>
+appropriate single-byte encoding here.</para>
 </refdescription>
 </doc:param>
 

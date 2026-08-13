@@ -21,7 +21,7 @@
 <!-- Which $attrs to select -->
 <xsl:param name="val"/>
 
-<!-- Seperator for profiling values -->
+<!-- Separator for profiling values -->
 <xsl:param name="sep" select="';'"/>  
 
 <!-- Copy all non-element nodes -->

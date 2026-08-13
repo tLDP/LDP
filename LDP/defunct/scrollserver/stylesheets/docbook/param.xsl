@@ -425,7 +425,7 @@ in browsers.
 <xsl:param name="generate.component.toc" select="1" doc:type='boolean'/>
 
 <doc:param name="generate.component.toc" xmlns="">
-<refpurpose>Should TOCs be genereated in components (Chapters, Appendixes, etc.)?</refpurpose>
+<refpurpose>Should TOCs be generated in components (Chapters, Appendixes, etc.)?</refpurpose>
 <refdescription>
 <para>If true (non-zero), they are.
 </para>
@@ -435,7 +435,7 @@ in browsers.
 <xsl:param name="generate.division.toc" select="1" doc:type='boolean'/>
 
 <doc:param name="generate.division.toc" xmlns="">
-<refpurpose>Should TOCs be genereated in divisions (Books, Parts, etc.)?</refpurpose>
+<refpurpose>Should TOCs be generated in divisions (Books, Parts, etc.)?</refpurpose>
 <refdescription>
 <para>If true (non-zero), they are.
 </para>

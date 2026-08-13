@@ -1260,14 +1260,14 @@ is false.</para>
 </varlistentry>
 <varlistentry><term>label-wrapper</term>
 <listitem>
-<para>If <parameter>label-wrapper</parameter> is not the emtpy string,
+<para>If <parameter>label-wrapper</parameter> is not the empty string,
 it must be the name of an element. The element so named will be wrapped
 around labels on output.</para>
 </listitem>
 </varlistentry>
 <varlistentry><term>title-wrapper</term>
 <listitem>
-<para>If <parameter>title.wrapper</parameter> is not the emtpy string,
+<para>If <parameter>title.wrapper</parameter> is not the empty string,
 it must be the name of an element. The element so named will be wrapped
 around titles on output.</para>
 </listitem>
@@ -1275,7 +1275,7 @@ around titles on output.</para>
 <varlistentry><term>label-wrapper-class</term>
 <listitem>
 <para>If a <parameter>label-wrapper</parameter> is provided and
-<parameter>label-wrapper-class</parameter> is not the emtpy string,
+<parameter>label-wrapper-class</parameter> is not the empty string,
 it be used as the value for a <sgmltag class="attribute">class</sgmltag>
 attribute on the <parameter>label-wrapper</parameter> element.</para>
 <para>This is a dirty hack because it only makes sense for the HTML
@@ -1287,7 +1287,7 @@ set as a parameter, but I can't.</para>
 <varlistentry><term>title-wrapper-class</term>
 <listitem>
 <para>If a <parameter>title-wrapper</parameter> is provided and
-<parameter>title-wrapper-class</parameter> is not the emtpy string,
+<parameter>title-wrapper-class</parameter> is not the empty string,
 it be used as the value for a <sgmltag class="attribute">class</sgmltag>
 attribute on the <parameter>title-wrapper</parameter> element.</para>
 <para>This is a dirty hack because it only makes sense for the HTML

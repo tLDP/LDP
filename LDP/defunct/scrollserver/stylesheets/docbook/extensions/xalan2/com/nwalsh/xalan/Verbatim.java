@@ -380,7 +380,7 @@ public class Verbatim {
    * <tt>areaset</tt> get the same number.</p>
    *
    * <p>Only the <tt>linecolumn</tt> and <tt>linerange</tt> units are
-   * supported. If no unit is specifed, <tt>linecolumn</tt> is assumed.
+   * supported. If no unit is specified, <tt>linecolumn</tt> is assumed.
    * If only a line is specified, the callout decoration appears in
    * the defaultColumn. Lines will be padded with blanks to reach the
    * necessary column, but callouts that are located beyond the last
@@ -419,7 +419,7 @@ public class Verbatim {
    * parenthesis.</p>
    *
    * <p>Only the <tt>linecolumn</tt> and <tt>linerange</tt> units are
-   * supported. If no unit is specifed, <tt>linecolumn</tt> is assumed.
+   * supported. If no unit is specified, <tt>linecolumn</tt> is assumed.
    * If only a line is specified, the callout decoration appears in
    * the defaultColumn. Lines will be padded with blanks to reach the
    * necessary column, but callouts that are located beyond the last
@@ -722,7 +722,7 @@ public class Verbatim {
    * the global callout array if it can be interpreted.</p>
    *
    * <p>Only the <tt>linecolumn</tt> and <tt>linerange</tt> units are
-   * supported. If no unit is specifed, <tt>linecolumn</tt> is assumed.
+   * supported. If no unit is specified, <tt>linecolumn</tt> is assumed.
    * If only a line is specified, the callout decoration appears in
    * the <tt>defaultColumn</tt>.</p>
    *

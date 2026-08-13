@@ -271,7 +271,7 @@ public class Verbatim {
    * <dt><code>callout.graphics</code></dt>
    * <dd>Are we using callout graphics? A value of 0 or "" is false,
    * any other value is true. If callout graphics are not used, the
-   * parameters related to graphis are not queried.</dd>
+   * parameters related to graphics are not queried.</dd>
    * <dt><code>callout.graphics.path</code></dt>
    * <dd>Specifies the path to callout graphics.</dd>
    * <dt><code>callout.graphics.extension</code></dt>
@@ -409,7 +409,7 @@ public class Verbatim {
    * <tt>areaset</tt> get the same number.</p>
    *
    * <p>Only the <tt>linecolumn</tt> and <tt>linerange</tt> units are
-   * supported. If no unit is specifed, <tt>linecolumn</tt> is assumed.
+   * supported. If no unit is specified, <tt>linecolumn</tt> is assumed.
    * If only a line is specified, the callout decoration appears in
    * the defaultColumn. Lines will be padded with blanks to reach the
    * necessary column, but callouts that are located beyond the last

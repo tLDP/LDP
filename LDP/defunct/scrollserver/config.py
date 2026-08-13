@@ -28,7 +28,7 @@ def parseConfig():
 		1. The command line (--option)
 		2. The config file specified in the $SCROLLSERVER_CONFIG
 		environment variable.
-		3. The config file specificed in the 'defaultConfigFile'
+		3. The config file specified in the 'defaultConfigFile'
 		variable.
 		4. A hardcoded default from 'configOptions'.
 	"""

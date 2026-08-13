@@ -95,7 +95,7 @@ to be incomplete. Don't forget to read the source, too :-)</para>
 <refpurpose>Substitute one text string for another in a string</refpurpose>
 <refdescription>
 <para>The <function>string.subst</function> template replaces all
-occurances of <parameter>target</parameter> in <parameter>string</parameter>
+occurrences of <parameter>target</parameter> in <parameter>string</parameter>
 with <parameter>replacement</parameter> and returns the result.
 </para>
 </refdescription>
